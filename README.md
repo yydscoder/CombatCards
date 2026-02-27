@@ -3,7 +3,7 @@
 This is a browser-based card battle game built in vanilla JavaScript with no frameworks.
 Defeat the Enemy by playing cards from your hand before your mana runs out.
 
-## 🎮 How to Play (
+## 🎮 How to Play (LAST UPDATED 28/2/2026)
 
 1. Three cards start in your hand — **Fire Blast**, **Ember Shot**, and **Flame Jet** MORE TO COME!!!!!!!!!!!!!!!!!
 2. Click a card to attack the enemy
