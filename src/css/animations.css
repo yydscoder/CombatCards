@@ -1,0 +1,240 @@
+/**
+ * CSS Animations for Emoji Card Battle
+ * 
+ * This file contains all hand-coded CSS animations for the game.
+ * Following the WakaTime tactic, no libraries are used - all animations
+ * are implemented with pure CSS @keyframes.
+ * 
+ * Animations include:
+ * - Health bar transitions
+ * - Damage feedback (flash, shake)
+ * - Card hover effects
+ * - Victory/defeat animations
+ */
+
+/* Health bar animations */
+@keyframes healthBarTransition {
+    from {
+        width: 100%;
+    }
+    to {
+        width: var(--health-percentage, 100%);
+    }
+}
+
+@keyframes healthBarPulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Damage feedback animations */
+@keyframes flashRed {
+    0%, 100% {
+        background-color: transparent;
+        box-shadow: none;
+    }
+    25% {
+        background-color: rgba(255, 0, 0, 0.3);
+        box-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+    }
+    50% {
+        background-color: transparent;
+        box-shadow: none;
+    }
+    75% {
+        background-color: rgba(255, 0, 0, 0.3);
+        box-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+    }
+}
+
+@keyframes screenShake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    20%, 60%, 80% {
+        transform: translateX(-5px);
+    }
+    40%, 80% {
+        transform: translateX(5px);
+    }
+}
+
+@keyframes damageNumberFloat {
+    from {
+        opacity: 0;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(-50px);
+    }
+}
+
+/* Card animations */
+@keyframes cardHoverScale {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes cardClickPress {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(0.95);
+    }
+}
+
+/* Victory/Defeat animations */
+@keyframes victoryPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(74, 138, 74, 0.7);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 10px rgba(74, 138, 74, 0);
+    }
+}
+
+@keyframes defeatPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(138, 74, 74, 0.7);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 10px rgba(138, 74, 74, 0);
+    }
+}
+
+/* UI element animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+}
+
+/* Critical hit animation */
+@keyframes criticalHitGlow {
+    0%, 100% {
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+    }
+    50% {
+        text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 25px rgba(255, 255, 255, 0.5);
+    }
+}
+
+/* Enemy attack animation */
+@keyframes enemyAttack {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1) rotate(-5deg);
+    }
+    100% {
+        transform: scale(1) rotate(0);
+    }
+}
+
+/* Player attack animation */
+@keyframes playerAttack {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1) rotate(5deg);
+    }
+    100% {
+        transform: scale(1) rotate(0);
+    }
+}
+
+/* Health bar specific animations */
+@keyframes healthDecrease {
+    from {
+        width: var(--old-health-width, 100%);
+    }
+    to {
+        width: var(--new-health-width, 100%);
+    }
+}
+
+@keyframes healthIncrease {
+    from {
+        width: var(--old-health-width, 100%);
+    }
+    to {
+        width: var(--new-health-width, 100%);
+    }
+}
+
+/* Floating damage numbers */
+@keyframes floatUp {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-100px);
+    }
+}
+
+.float-up {
+    animation: floatUp 1s ease-out forwards;
+}
+
+/* Card draw animation */
+@keyframes cardDraw {
+    0% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    50% {
+        transform: translateY(-10px);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Loading animation */
+@keyframes loadingSpin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}

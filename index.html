@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Card Battle</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="src/css/animations.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="hud">
+            <div id="player-stats">HP: <span id="player-hp">100</span> | Mana: <span id="player-mana">50</span></div>
+            <div id="enemy-stats">Enemy HP: <span id="enemy-hp">80</span></div>
+            <div id="turn-counter">Turn: <span id="turn-count">1</span></div>
+        </div>
+        
+        <div id="battle-field">
+            <div id="enemy-area">
+                <div id="enemy-graphic">
+                    <div id="enemy-emoji">🟢</div>
+                    <div id="enemy-name">Slime</div>
+                </div>
+            </div>
+            <div id="player-area">
+                <div id="player-graphic">
+                    <div id="player-emoji">🧙</div>
+                    <div id="player-name">You</div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="hand"></div>
+        <div id="deck"></div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>
