@@ -40,6 +40,7 @@ export class GameOverScreen {
     showVictory() {
         const stats = this.saveSystem.getStats();
         this._show(
+            '🏆',
             'VICTORY!',
             'The enemy has been defeated!',
             stats,
