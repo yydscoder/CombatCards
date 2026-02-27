@@ -137,6 +137,13 @@ export class Hand {
         }
         
         console.log(`Card removed from hand: ${card.name}`);
+
+        // Refill hand when all cards have been used
+        if (this.cards.length === 0 && !this.gameState.isGameOver) {
+            console.log('Hand empty — refilling...');
+            this.initHand();
+        }
+
         return true;
     }
     
