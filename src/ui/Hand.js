@@ -462,7 +462,7 @@ export class Hand {
             endTurnBtn.disabled = true;
             
             setTimeout(() => {
-                endTurnBtn.textContent = 'End Turn ➡️';
+                endTurnBtn.textContent = 'End Turn';
                 endTurnBtn.disabled = false;
             }, 1000);
         }
