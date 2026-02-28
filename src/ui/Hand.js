@@ -452,7 +452,7 @@ export class Hand {
         // Advance turn (this will also regenerate mana)
         if (this.gameState.turnManager) {
             this.gameState.turnManager.advanceTurn();
-            if (this.hud) this.hud.updateTurnCounter();
+            if (this.hud) this.hud.updateAll(); // refresh mana bar + turn counter
         }
         
         // Visual feedback on button
