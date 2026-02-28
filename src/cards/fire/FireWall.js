@@ -63,7 +63,7 @@ export class FireWall extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            'ðŸ§±'            // Emoji - wall/barrier
+            '🧱'            // Emoji - wall/barrier
         );
 
         // FireWall-specific properties

@@ -55,7 +55,7 @@ export class Combust extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            'ðŸ’¥'            // Emoji - collision/explosion
+            '💥'            // Emoji - collision/explosion
         );
 
         // Combust-specific properties

@@ -58,7 +58,7 @@ export class Blaze extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            'ðŸ”¥'            // Emoji - intensifying fire
+            '🔥'            // Emoji - intensifying fire
         );
 
         // Blaze-specific properties

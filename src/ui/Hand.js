@@ -221,7 +221,7 @@ export class Hand {
     
     /**
      * Renders a card in the hand
-     * 
+     *
      * @param {Object} card - The card to render
      */
     renderCard(card) {
@@ -231,42 +231,49 @@ export class Hand {
         cardElement.dataset.cardId = card.id;
         cardElement.dataset.cardName = card.name;
         cardElement.dataset.cardType = card.constructor.name;
-        
+
         // Add click event listener
         cardElement.addEventListener('click', (event) => {
             this.handleCardClick(card, event);
         });
-        
+
         // Create card content
         const cardContent = document.createElement('div');
         cardContent.className = 'card-content';
-        
+
+        // Create mana cost badge (top-left corner)
+        const manaBadge = document.createElement('div');
+        manaBadge.className = 'card-mana-cost';
+        manaBadge.textContent = card.cost;
+        manaBadge.title = `${card.cost} Mana`;
+
         // Create emoji element
         const emojiElement = document.createElement('div');
         emojiElement.className = 'card-emoji';
         emojiElement.textContent = card.emoji;
-        
+
         // Create name element
         const nameElement = document.createElement('div');
         nameElement.className = 'card-name';
         nameElement.textContent = card.name;
-        
+
         // Create stats element
         const statsElement = document.createElement('div');
         statsElement.className = 'card-stats';
         statsElement.textContent = card.getStatsString();
-        
+
         // Append elements
+        cardContent.appendChild(manaBadge);
         cardContent.appendChild(emojiElement);
         cardContent.appendChild(nameElement);
         cardContent.appendChild(statsElement);
         cardElement.appendChild(cardContent);
-        
+
         // Append to hand container
         if (this.handContainer) {
             this.handContainer.appendChild(cardElement);
         }
-        
+
         console.log(`Card rendered in hand: ${card.name}`);
     }
     

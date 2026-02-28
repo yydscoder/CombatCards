@@ -59,7 +59,7 @@ export class Phoenix extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            'ðŸ¦…'            // Emoji - phoenix bird
+            '🦅'            // Emoji - phoenix bird
         );
 
         // Phoenix-specific properties

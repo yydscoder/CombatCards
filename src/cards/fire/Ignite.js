@@ -64,7 +64,7 @@ export class Ignite extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            'âœ¨'            // Emoji - spark/ignition
+            '✨'            // Emoji - spark/ignition
         );
 
         // Ignite-specific properties

@@ -57,7 +57,7 @@ export class Ember extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            'ðŸ”¶'            // Emoji - orange ember glow
+            '🔶'            // Emoji - orange ember glow
         );
 
         // Ember-specific properties

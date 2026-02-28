@@ -62,7 +62,7 @@ export class FlameStrike extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            'âš”ï¸'            // Emoji - crossed swords (weapon buff)
+            '⚔️'            // Emoji - crossed swords (weapon buff)
         );
 
         // FlameStrike-specific properties

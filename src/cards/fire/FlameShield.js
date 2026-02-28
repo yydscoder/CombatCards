@@ -59,7 +59,7 @@ export class FlameShield extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            'ðŸ›¡ï¸'            // Emoji - shield with fire
+            '🛡️'            // Emoji - shield with fire
         );
 
         // FlameShield-specific properties

@@ -56,7 +56,7 @@ export class Firestorm extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            'ðŸŒªï¸'            // Emoji - fire tornado/storm
+            '🌪️'            // Emoji - fire tornado/storm
         );
 
         // Firestorm-specific properties

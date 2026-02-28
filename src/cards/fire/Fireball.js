@@ -55,7 +55,7 @@ export class Fireball extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            'ðŸ”µ'            // Emoji - blue fireball core
+            '🔵'            // Emoji - blue fireball core
         );
 
         // Fireball-specific properties

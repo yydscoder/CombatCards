@@ -66,7 +66,7 @@ export class FireBreath extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            'ðŸ‰'            // Emoji - dragon face
+            '🐉'            // Emoji - dragon face
         );
 
         // FireBreath-specific properties

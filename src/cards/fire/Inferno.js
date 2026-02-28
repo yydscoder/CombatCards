@@ -55,7 +55,7 @@ export class Inferno extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            'ðŸŒ‹'            // Emoji - volcano/eruption
+            '🌋'            // Emoji - volcano/eruption
         );
 
         // Inferno-specific properties

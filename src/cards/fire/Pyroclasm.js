@@ -61,7 +61,7 @@ export class Pyroclasm extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            'â˜„ï¸'            // Emoji - comet/volcanic eruption
+            '☄️'            // Emoji - comet/volcanic eruption
         );
 
         // Pyroclasm-specific properties
