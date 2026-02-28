@@ -1,12 +1,12 @@
 /**
  * Hand UI Module for Emoji Card Battle
- * 
+ *
  * This module manages the player's hand of cards.
  * It handles drawing cards, displaying them, and managing hand state.
  */
 
 // Import card classes
-import { FireCard } from '../cards/FireCard.js';
+import { FireCard } from '../cards/fire/FireCard.js';
 import { DamageCalculator } from '../combat/DamageCalculator.js';
 import { SlimeEnemy } from '../enemies/SlimeEnemy.js';
 

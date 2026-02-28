@@ -14,7 +14,7 @@
  */
 
 // Import the FireCard class for demonstration
-import { FireCard } from '../cards/FireCard.js';
+import { FireCard } from '../cards/fire/FireCard.js';
 
 // Import enemy and damage calculator modules
 import { SlimeEnemy } from '../enemies/SlimeEnemy.js';
