@@ -20,7 +20,7 @@
  */
 
 // Import the base Card class
-import { Card } from './Card.js';
+import { Card } from '../Card.js';
 
 /**
  * Inferno Card Class
@@ -55,7 +55,7 @@ export class Inferno extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            '🌋'            // Emoji - volcano/eruption
+            'ðŸŒ‹'            // Emoji - volcano/eruption
         );
 
         // Inferno-specific properties
@@ -114,7 +114,7 @@ export class Inferno extends Card {
         let defenseReduction = Math.min(effectiveDefense / 100, 0.5);
         actualDamage = actualDamage * (1 - defenseReduction);
         
-        // Apply random variation (±15% for more consistent ultimate)
+        // Apply random variation (Â±15% for more consistent ultimate)
         const variation = 0.85 + Math.random() * 0.30;
         actualDamage = Math.floor(actualDamage * variation);
 
@@ -169,7 +169,7 @@ export class Inferno extends Card {
      * @returns {string} Formatted display name
      */
     getDisplayName() {
-        return `${this.name} [${this.cost} mana] 🌋`;
+        return `${this.name} [${this.cost} mana] ðŸŒ‹`;
     }
 
     /**

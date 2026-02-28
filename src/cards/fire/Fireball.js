@@ -20,7 +20,7 @@
  */
 
 // Import the base Card class
-import { Card } from './Card.js';
+import { Card } from '../Card.js';
 
 /**
  * Fireball Card Class
@@ -55,7 +55,7 @@ export class Fireball extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            '🔵'            // Emoji - blue fireball core
+            'ðŸ”µ'            // Emoji - blue fireball core
         );
 
         // Fireball-specific properties
@@ -149,7 +149,7 @@ export class Fireball extends Card {
      * @returns {string} Formatted display name
      */
     getDisplayName() {
-        return `${this.name} [${this.cost} mana] 🔵`;
+        return `${this.name} [${this.cost} mana] ðŸ”µ`;
     }
 
     /**

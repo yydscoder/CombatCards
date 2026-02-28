@@ -26,7 +26,7 @@
  */
 
 // Import the base Card class
-import { Card } from './Card.js';
+import { Card } from '../Card.js';
 
 /**
  * FireWall Card Class
@@ -63,7 +63,7 @@ export class FireWall extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            '🧱'            // Emoji - wall/barrier
+            'ðŸ§±'            // Emoji - wall/barrier
         );
 
         // FireWall-specific properties
@@ -197,7 +197,7 @@ export class FireWall extends Card {
      * @returns {string} Formatted display name
      */
     getDisplayName() {
-        return `${this.name} [${this.cost} mana] 🧱`;
+        return `${this.name} [${this.cost} mana] ðŸ§±`;
     }
 
     /**

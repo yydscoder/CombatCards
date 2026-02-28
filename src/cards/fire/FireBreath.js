@@ -27,7 +27,7 @@
  */
 
 // Import the base Card class
-import { Card } from './Card.js';
+import { Card } from '../Card.js';
 
 /**
  * FireBreath Card Class
@@ -66,7 +66,7 @@ export class FireBreath extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            '🐉'            // Emoji - dragon face
+            'ðŸ‰'            // Emoji - dragon face
         );
 
         // FireBreath-specific properties
@@ -222,7 +222,7 @@ export class FireBreath extends Card {
      * @returns {string} Formatted display name
      */
     getDisplayName() {
-        return `${this.name} [${this.cost} mana] 🐉`;
+        return `${this.name} [${this.cost} mana] ðŸ‰`;
     }
 
     /**

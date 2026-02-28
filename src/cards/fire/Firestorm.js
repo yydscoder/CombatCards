@@ -21,7 +21,7 @@
  */
 
 // Import the base Card class
-import { Card } from './Card.js';
+import { Card } from '../Card.js';
 
 /**
  * Firestorm Card Class
@@ -56,7 +56,7 @@ export class Firestorm extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            '🌪️'            // Emoji - fire tornado/storm
+            'ðŸŒªï¸'            // Emoji - fire tornado/storm
         );
 
         // Firestorm-specific properties
@@ -187,7 +187,7 @@ export class Firestorm extends Card {
      * @returns {string} Formatted display name
      */
     getDisplayName() {
-        return `${this.name} [${this.cost} mana] 🌪️`;
+        return `${this.name} [${this.cost} mana] ðŸŒªï¸`;
     }
 
     /**

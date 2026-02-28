@@ -25,7 +25,7 @@
  */
 
 // Import the base Card class
-import { Card } from './Card.js';
+import { Card } from '../Card.js';
 
 /**
  * FlameStrike Card Class
@@ -62,7 +62,7 @@ export class FlameStrike extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            '⚔️'            // Emoji - crossed swords (weapon buff)
+            'âš”ï¸'            // Emoji - crossed swords (weapon buff)
         );
 
         // FlameStrike-specific properties
@@ -220,7 +220,7 @@ export class FlameStrike extends Card {
      * @returns {string} Formatted display name
      */
     getDisplayName() {
-        return `${this.name} [${this.cost} mana] ⚔️`;
+        return `${this.name} [${this.cost} mana] âš”ï¸`;
     }
 
     /**

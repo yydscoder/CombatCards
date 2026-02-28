@@ -20,7 +20,7 @@
  */
 
 // Import the base Card class
-import { Card } from './Card.js';
+import { Card } from '../Card.js';
 
 /**
  * Combust Card Class
@@ -55,7 +55,7 @@ export class Combust extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            '💥'            // Emoji - collision/explosion
+            'ðŸ’¥'            // Emoji - collision/explosion
         );
 
         // Combust-specific properties
@@ -104,7 +104,7 @@ export class Combust extends Card {
             console.log(`COMBUST EXECUTE! Enemy at ${enemyHpPercent * 100}% HP - Damage doubled!`);
         }
 
-        // Apply random variation (±10% for more consistency on execute)
+        // Apply random variation (Â±10% for more consistency on execute)
         const variation = 0.9 + Math.random() * 0.2;
         actualDamage = Math.floor(actualDamage * variation);
 
@@ -181,7 +181,7 @@ export class Combust extends Card {
      * @returns {string} Formatted display name
      */
     getDisplayName() {
-        return `${this.name} [${this.cost} mana] 💥`;
+        return `${this.name} [${this.cost} mana] ðŸ’¥`;
     }
 
     /**

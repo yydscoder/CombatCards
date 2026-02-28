@@ -24,7 +24,7 @@
  */
 
 // Import the base Card class
-import { Card } from './Card.js';
+import { Card } from '../Card.js';
 
 /**
  * Scorch Card Class
@@ -60,7 +60,7 @@ export class Scorch extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            '🔥'            // Emoji - fire (scorching flame)
+            'ðŸ”¥'            // Emoji - fire (scorching flame)
         );
 
         // Scorch-specific properties
@@ -98,7 +98,7 @@ export class Scorch extends Card {
         // Apply initial damage
         let actualDamage = this.damage;
         
-        // Small variance on damage (±15%)
+        // Small variance on damage (Â±15%)
         const variance = 0.85 + Math.random() * 0.30;
         actualDamage = Math.floor(actualDamage * variance);
 
@@ -197,7 +197,7 @@ export class Scorch extends Card {
      * @returns {string} Formatted display name
      */
     getDisplayName() {
-        return `${this.name} [${this.cost} mana] 🔥`;
+        return `${this.name} [${this.cost} mana] ðŸ”¥`;
     }
 
     /**

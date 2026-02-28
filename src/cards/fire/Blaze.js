@@ -23,7 +23,7 @@
  */
 
 // Import the base Card class
-import { Card } from './Card.js';
+import { Card } from '../Card.js';
 
 /**
  * Blaze Card Class
@@ -58,7 +58,7 @@ export class Blaze extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            '🔥'            // Emoji - intensifying fire
+            'ðŸ”¥'            // Emoji - intensifying fire
         );
 
         // Blaze-specific properties
@@ -132,7 +132,7 @@ export class Blaze extends Card {
         const damageCalc = this.calculateCurrentDamage(gameState);
         let actualDamage = damageCalc.totalDamage;
 
-        // Apply random variation (±10%)
+        // Apply random variation (Â±10%)
         const variance = 0.9 + Math.random() * 0.2;
         actualDamage = Math.floor(actualDamage * variance);
 
@@ -203,7 +203,7 @@ export class Blaze extends Card {
      * @returns {string} Formatted display name
      */
     getDisplayName() {
-        return `${this.name} [${this.cost} mana] 🔥`;
+        return `${this.name} [${this.cost} mana] ðŸ”¥`;
     }
 
     /**

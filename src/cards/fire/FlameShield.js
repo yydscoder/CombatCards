@@ -21,7 +21,7 @@
  */
 
 // Import the base Card class
-import { Card } from './Card.js';
+import { Card } from '../Card.js';
 
 /**
  * FlameShield Card Class
@@ -59,7 +59,7 @@ export class FlameShield extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            '🛡️'            // Emoji - shield with fire
+            'ðŸ›¡ï¸'            // Emoji - shield with fire
         );
 
         // FlameShield-specific properties
@@ -196,7 +196,7 @@ export class FlameShield extends Card {
      * @returns {string} Formatted display name
      */
     getDisplayName() {
-        return `${this.name} [${this.cost} mana] 🛡️`;
+        return `${this.name} [${this.cost} mana] ðŸ›¡ï¸`;
     }
 
     /**

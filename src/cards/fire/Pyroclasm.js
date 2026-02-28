@@ -26,7 +26,7 @@
  */
 
 // Import the base Card class
-import { Card } from './Card.js';
+import { Card } from '../Card.js';
 
 /**
  * Pyroclasm Card Class
@@ -61,7 +61,7 @@ export class Pyroclasm extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            '☄️'            // Emoji - comet/volcanic eruption
+            'â˜„ï¸'            // Emoji - comet/volcanic eruption
         );
 
         // Pyroclasm-specific properties
@@ -141,7 +141,7 @@ export class Pyroclasm extends Card {
             `(HP: ${Math.round(multCalc.hpPercent * 100)}%, Missing: ${Math.round(multCalc.missingPercent * 100)}%)`
         );
 
-        // Apply random variation (±15%)
+        // Apply random variation (Â±15%)
         const variance = 0.85 + Math.random() * 0.30;
         actualDamage = Math.floor(actualDamage * variance);
 
@@ -162,7 +162,7 @@ export class Pyroclasm extends Card {
 
         console.log(
             `PYROCLASM ERUPTION: ${actualDamage} damage ` +
-            `(Base: ${this.baseDamage} × ${multCalc.multiplier} multiplier)` +
+            `(Base: ${this.baseDamage} Ã— ${multCalc.multiplier} multiplier)` +
             `${isCriticalHit ? ' [CRIT!]' : ''}`
         );
 
@@ -217,7 +217,7 @@ export class Pyroclasm extends Card {
      * @returns {string} Formatted display name
      */
     getDisplayName() {
-        return `${this.name} [${this.cost} mana] ☄️`;
+        return `${this.name} [${this.cost} mana] â˜„ï¸`;
     }
 
     /**

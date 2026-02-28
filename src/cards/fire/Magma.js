@@ -27,7 +27,7 @@
  */
 
 // Import the base Card class
-import { Card } from './Card.js';
+import { Card } from '../Card.js';
 
 /**
  * Magma Card Class
@@ -64,7 +64,7 @@ export class Magma extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            '🌋'            // Emoji - volcano
+            'ðŸŒ‹'            // Emoji - volcano
         );
 
         // Magma-specific properties
@@ -268,7 +268,7 @@ export class Magma extends Card {
      * @returns {string} Formatted display name
      */
     getDisplayName() {
-        return `${this.name} [${this.cost} mana] 🌋`;
+        return `${this.name} [${this.cost} mana] ðŸŒ‹`;
     }
 
     /**

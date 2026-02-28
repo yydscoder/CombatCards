@@ -21,7 +21,7 @@
  */
 
 // Import the base Card class
-import { Card } from './Card.js';
+import { Card } from '../Card.js';
 
 /**
  * Phoenix Card Class
@@ -59,7 +59,7 @@ export class Phoenix extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            '🦅'            // Emoji - phoenix bird
+            'ðŸ¦…'            // Emoji - phoenix bird
         );
 
         // Phoenix-specific properties
@@ -208,7 +208,7 @@ export class Phoenix extends Card {
      * @returns {string} Formatted display name
      */
     getDisplayName() {
-        return `${this.name} [${this.cost} mana] 🦅`;
+        return `${this.name} [${this.cost} mana] ðŸ¦…`;
     }
 
     /**

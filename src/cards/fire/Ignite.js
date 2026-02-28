@@ -27,7 +27,7 @@
  */
 
 // Import the base Card class
-import { Card } from './Card.js';
+import { Card } from '../Card.js';
 
 /**
  * Ignite Card Class
@@ -64,7 +64,7 @@ export class Ignite extends Card {
             name,           // Card name
             cost,           // Mana cost
             effect,         // Effect object
-            '✨'            // Emoji - spark/ignition
+            'âœ¨'            // Emoji - spark/ignition
         );
 
         // Ignite-specific properties
@@ -221,7 +221,7 @@ export class Ignite extends Card {
      * @returns {string} Formatted display name
      */
     getDisplayName() {
-        return `${this.name} [${this.cost} mana] ✨`;
+        return `${this.name} [${this.cost} mana] âœ¨`;
     }
 
     /**
