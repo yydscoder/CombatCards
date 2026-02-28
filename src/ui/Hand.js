@@ -347,12 +347,6 @@ export class Hand {
         // Remove card from hand after use
         this.removeCard(card);
 
-        // Advance turn
-        if (this.gameState.turnManager) {
-            this.gameState.turnManager.advanceTurn();
-            if (this.hud) this.hud.updateTurnCounter();
-        }
-
         // Visual feedback
         this.addVisualFeedback(card, 'success');
     }
@@ -427,25 +421,66 @@ export class Hand {
         if (this.handContainer) {
             this.handContainer.innerHTML = '';
         }
-        
+
         // Render all cards in hand
         this.cards.forEach(card => {
             this.renderCard(card);
         });
-        
+
         console.log(`Hand display updated with ${this.cards.length} cards`);
+    }
+    
+    /**
+     * Initializes the end turn button
+     */
+    initEndTurnButton() {
+        const endTurnBtn = document.getElementById('end-turn-btn');
+        if (endTurnBtn) {
+            endTurnBtn.addEventListener('click', () => this.endTurn());
+            console.log('End Turn button initialized');
+        } else {
+            console.warn('End Turn button not found in DOM');
+        }
+    }
+    
+    /**
+     * Handles ending the current turn
+     */
+    endTurn() {
+        console.log('Ending turn...');
+        
+        // Advance turn (this will also regenerate mana)
+        if (this.gameState.turnManager) {
+            this.gameState.turnManager.advanceTurn();
+            if (this.hud) this.hud.updateTurnCounter();
+        }
+        
+        // Visual feedback on button
+        const endTurnBtn = document.getElementById('end-turn-btn');
+        if (endTurnBtn) {
+            endTurnBtn.textContent = 'Turn Ended ✓';
+            endTurnBtn.disabled = true;
+            
+            setTimeout(() => {
+                endTurnBtn.textContent = 'End Turn ➡️';
+                endTurnBtn.disabled = false;
+            }, 1000);
+        }
+        
+        console.log(`Turn ended. Now on turn ${this.gameState.turnCount}`);
     }
 }
 
 /**
  * Initializes the Hand and returns the instance
- * 
+ *
  * @param {Object} gameState - The game state object
  * @returns {Hand} The initialized Hand instance
  */
 export function initializeHand(gameState, hud, saveSystem, gameOverScreen) {
     const hand = new Hand(gameState, hud, saveSystem, gameOverScreen);
     hand.initHand();
+    hand.initEndTurnButton();
     console.log('Hand initialized successfully');
     return hand;
 }
