@@ -226,7 +226,7 @@ export class TurnManager {
      *
      * This method increments the turn counter and transitions to the next
      * phase of the game. It also checks for win/loss conditions and
-     * updates the game state accordingly. Mana is regenerated at the start of each turn.
+     * updates the game state accordingly. Mana is set based on turn number.
      */
     advanceTurn() {
         // Check if the game is already over
@@ -238,14 +238,10 @@ export class TurnManager {
         // Increment the turn counter
         this.currentTurn++;
 
-        // Regenerate mana at the start of each turn (3 mana per turn, max 10)
-        const manaRegen = GAME_CONFIG.MANA_PER_TURN;
-        const newMana = Math.min(
-            GAME_CONFIG.PLAYER_MAX_MANA,
-            this.gameState.playerMana + manaRegen
-        );
-        this.gameState.updatePlayerMana(newMana);
-        console.log(`Turn ${this.currentTurn}: Regenerated ${manaRegen} mana (now ${this.gameState.playerMana}/${GAME_CONFIG.PLAYER_MAX_MANA})`);
+        // Set mana based on turn number (3 → 6 → 9 → 10 → 10...)
+        const manaForTurn = this.getManaForTurn(this.currentTurn);
+        this.gameState.updatePlayerMana(manaForTurn);
+        console.log(`Turn ${this.currentTurn}: Mana set to ${manaForTurn}/${GAME_CONFIG.PLAYER_MAX_MANA}`);
 
         // Reset the turn start time
         this.turnStartTime = performance.now();
@@ -264,6 +260,24 @@ export class TurnManager {
             this.currentPhase = 'player';
             console.log('Turn phase set to: player');
         }
+    }
+    
+    /**
+     * Gets the mana amount for a specific turn number
+     * @param {number} turnNumber - The current turn number
+     * @returns {number} The mana amount for this turn
+     */
+    getManaForTurn(turnNumber) {
+        // Use the MANA_BY_TURN array, or cap at max mana if turn exceeds array
+        const manaArray = GAME_CONFIG.MANA_BY_TURN;
+        const lastIndex = manaArray.length - 1;
+        
+        if (turnNumber <= 0) {
+            return GAME_CONFIG.PLAYER_START_MANA;
+        }
+        
+        // Return mana for this turn, or the last value if turn exceeds array
+        return manaArray[Math.min(turnNumber - 1, lastIndex)];
     }
     
     /**

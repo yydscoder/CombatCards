@@ -15,8 +15,10 @@ export const GAME_CONFIG = {
     PLAYER_MAX_HP: 100,
     PLAYER_START_HP: 100,
     PLAYER_MAX_MANA: 10,      // Maximum mana cap
-    PLAYER_START_MANA: 3,     // Starting mana
-    MANA_PER_TURN: 3,         // Mana regenerated each turn
+    PLAYER_START_MANA: 3,     // Starting mana (turn 1)
+
+    // Mana progression per turn
+    MANA_BY_TURN: [3, 6, 9, 10, 10, 10, 10, 10, 10, 10],
 
     // Enemy settings
     ENEMY_MAX_HP: 80,
