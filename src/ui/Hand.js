@@ -7,6 +7,21 @@
 
 // Import card classes
 import { FireCard } from '../cards/fire/FireCard.js';
+import { Fireball } from '../cards/fire/Fireball.js';
+import { Inferno } from '../cards/fire/Inferno.js';
+import { Ember } from '../cards/fire/Ember.js';
+import { Phoenix } from '../cards/fire/Phoenix.js';
+import { FlameShield } from '../cards/fire/FlameShield.js';
+import { Combust } from '../cards/fire/Combust.js';
+import { Firestorm } from '../cards/fire/Firestorm.js';
+import { Scorch } from '../cards/fire/Scorch.js';
+import { Blaze } from '../cards/fire/Blaze.js';
+import { Pyroclasm } from '../cards/fire/Pyroclasm.js';
+import { FireWall } from '../cards/fire/FireWall.js';
+import { Ignite } from '../cards/fire/Ignite.js';
+import { Magma } from '../cards/fire/Magma.js';
+import { FireBreath } from '../cards/fire/FireBreath.js';
+import { FlameStrike } from '../cards/fire/FlameStrike.js';
 import { DamageCalculator } from '../combat/DamageCalculator.js';
 import { SlimeEnemy } from '../enemies/SlimeEnemy.js';
 
@@ -59,22 +74,73 @@ export class Hand {
     
     /**
      * Initializes the hand with starting cards
+     * Draws 3 random cards from the fire deck
      */
     initHand() {
-        // Create initial hand (3 fire cards for testing)
-        const fireCard1 = new FireCard("Fire Blast", 5, 10);
-        const fireCard2 = new FireCard("Ember Shot", 3, 6);
-        const fireCard3 = new FireCard("Flame Jet", 7, 15);
+        // Create the full fire deck
+        const deck = this._createFireDeck();
         
-        // Add cards to hand
-        this.addCard(fireCard1);
-        this.addCard(fireCard2);
-        this.addCard(fireCard3);
+        // Shuffle the deck
+        this._shuffleDeck(deck);
         
-        // Update game state
-        this.gameState.hand = this.cards;
+        // Draw 3 random cards for starting hand
+        const startingHandSize = 3;
+        for (let i = 0; i < startingHandSize && deck.length > 0; i++) {
+            const card = deck.pop();
+            this.addCard(card);
+        }
         
-        console.log(`Hand initialized with ${this.cards.length} cards`);
+        // Store remaining cards in gameState deck
+        this.gameState.deck = deck;
+
+        console.log(`Hand initialized with ${this.cards.length} random cards from ${deck.length + this.cards.length} card deck`);
+    }
+    
+    /**
+     * Creates a full fire deck with all available fire cards
+     * @returns {Array} Array of card instances
+     */
+    _createFireDeck() {
+        const deck = [];
+        
+        // Add multiple copies of each card type for variety
+        // Basic cards (more common)
+        for (let i = 0; i < 3; i++) deck.push(new FireCard("Fire Blast", 5, 10));
+        for (let i = 0; i < 3; i++) deck.push(new Fireball());
+        for (let i = 0; i < 3; i++) deck.push(new Ember());
+        for (let i = 0; i < 2; i++) deck.push(new Ignite());
+        
+        // Mid-cost cards (moderate)
+        for (let i = 0; i < 2; i++) deck.push(new Scorch());
+        for (let i = 0; i < 2; i++) deck.push(new FlameShield());
+        for (let i = 0; i < 2; i++) deck.push(new FireWall());
+        for (let i = 0; i < 2; i++) deck.push(new FlameStrike());
+        for (let i = 0; i < 2; i++) deck.push(new Combust());
+        for (let i = 0; i < 2; i++) deck.push(new Blaze());
+        for (let i = 0; i < 2; i++) deck.push(new FireBreath());
+        
+        // High-cost cards (rare)
+        for (let i = 0; i < 2; i++) deck.push(new Phoenix());
+        for (let i = 0; i < 2; i++) deck.push(new Magma());
+        for (let i = 0; i < 2; i++) deck.push(new Firestorm());
+        for (let i = 0; i < 2; i++) deck.push(new Pyroclasm());
+        
+        // Ultimate card (very rare)
+        deck.push(new Inferno());
+        
+        return deck;
+    }
+    
+    /**
+     * Shuffles a deck using Fisher-Yates algorithm
+     * @param {Array} deck - The deck to shuffle
+     */
+    _shuffleDeck(deck) {
+        for (let i = deck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+        console.log('Deck shuffled using Fisher-Yates algorithm');
     }
     
     /**
@@ -109,7 +175,7 @@ export class Hand {
     
     /**
      * Removes a card from the hand
-     * 
+     *
      * @param {Object} card - The card to remove
      * @returns {boolean} True if card was removed successfully, false otherwise
      */
@@ -120,28 +186,34 @@ export class Hand {
             console.warn(`Card not found in hand: ${card.name}`);
             return false;
         }
-        
+
         // Remove card from array
         this.cards.splice(index, 1);
-        
+
         // Update card state
         card.isInHand = false;
-        
+
+        // Add to discard pile
+        card.isDiscarded = true;
+        if (!this.gameState.discardPile) {
+            this.gameState.discardPile = [];
+        }
+        this.gameState.discardPile.push(card);
+
         // Update game state
         this.gameState.hand = this.cards;
-        
+
         // Remove card element from DOM
         const cardElement = document.querySelector(`[data-card-id="${card.id}"]`);
         if (cardElement && cardElement.parentNode) {
             cardElement.parentNode.removeChild(cardElement);
         }
-        
-        console.log(`Card removed from hand: ${card.name}`);
 
-        // Refill hand when all cards have been used
-        if (this.cards.length === 0 && !this.gameState.isGameOver) {
-            console.log('Hand empty — refilling...');
-            this.initHand();
+        console.log(`Card removed from hand: ${card.name} (discard pile: ${this.gameState.discardPile.length})`);
+
+        // Draw a new card to replace the played one (maintain hand size)
+        if (!this.gameState.isGameOver && this.cards.length < 5) {
+            this.drawCard();
         }
 
         return true;
@@ -294,15 +366,33 @@ export class Hand {
     
     /**
      * Draws a card from the deck
-     * 
+     *
      * @returns {Object|null} The drawn card or null if no cards available
      */
     drawCard() {
-        // For demo purposes, create a new fire card
-        const newCard = new FireCard("New Fire Card", 4, 8);
-        this.addCard(newCard);
+        // Check if deck exists and has cards
+        if (!this.gameState.deck || this.gameState.deck.length === 0) {
+            console.warn('Cannot draw card: deck is empty');
+            
+            // Reshuffle discard pile into deck if hand is empty
+            if (this.cards.length === 0 && this.gameState.discardPile?.length > 0) {
+                console.log('Reshuffling discard pile into new deck...');
+                this.gameState.deck = [...this.gameState.discardPile];
+                this.gameState.discardPile = [];
+                this._shuffleDeck(this.gameState.deck);
+            } else {
+                // Create a new deck if everything is exhausted
+                console.log('Creating new deck...');
+                this.gameState.deck = this._createFireDeck();
+                this._shuffleDeck(this.gameState.deck);
+            }
+        }
         
-        console.log(`Card drawn: ${newCard.name}`);
+        // Draw from deck
+        const newCard = this.gameState.deck.pop();
+        this.addCard(newCard);
+
+        console.log(`Card drawn: ${newCard.name} (${this.gameState.deck.length} cards remaining)`);
         return newCard;
     }
     
