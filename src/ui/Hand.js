@@ -113,6 +113,9 @@ export class Hand {
         // Store remaining cards in gameState deck
         this.gameState.deck = deck;
 
+        // Update playable/unplayable classes based on starting mana
+        this.updateCardAffordability();
+
         console.log(`Hand initialized with ${this.cards.length} random cards from ${deck.length + this.cards.length} card deck`);
     }
     
@@ -315,6 +318,13 @@ export class Hand {
         cardContent.appendChild(statsElement);
         cardElement.appendChild(cardContent);
 
+        // Mark affordability so player can see what's playable
+        if (card.canPlay(this.gameState)) {
+            cardElement.classList.add('playable');
+        } else {
+            cardElement.classList.add('unplayable');
+        }
+
         // Append to hand container
         if (this.handContainer) {
             this.handContainer.appendChild(cardElement);
@@ -365,6 +375,7 @@ export class Hand {
                 this.hud.showDamageFeedback(damageResult.finalDamage, 'enemy', damageResult.details.isCriticalHit);
                 this.hud.updateAll();
             }
+            this.updateCardAffordability();
 
             // Flash the enemy graphic
             const enemyArea = document.getElementById('enemy-area');
@@ -412,6 +423,24 @@ export class Hand {
     }
     
     /**
+     * Re-evaluates playable/unplayable classes for all cards in hand
+     * based on current mana. Call this whenever mana changes.
+     */
+    updateCardAffordability() {
+        this.cards.forEach(card => {
+            const el = document.querySelector(`[data-card-id="${card.id}"]`);
+            if (!el) return;
+            if (card.canPlay(this.gameState)) {
+                el.classList.add('playable');
+                el.classList.remove('unplayable');
+            } else {
+                el.classList.add('unplayable');
+                el.classList.remove('playable');
+            }
+        });
+    }
+
+    /**
      * Draws a card from the deck
      *
      * @returns {Object|null} The drawn card or null if no cards available
@@ -430,7 +459,7 @@ export class Hand {
             } else {
                 // Create a new deck if everything is exhausted
                 console.log('Creating new deck...');
-                this.gameState.deck = this._createFireDeck();
+                this.gameState.deck = this._createCombinedDeck();
                 this._shuffleDeck(this.gameState.deck);
             }
         }
@@ -500,6 +529,7 @@ export class Hand {
             this.gameState.turnManager.advanceTurn();
             if (this.hud) this.hud.updateAll(); // refresh mana bar + turn counter
         }
+        this.updateCardAffordability();
         
         // Visual feedback on button
         const endTurnBtn = document.getElementById('end-turn-btn');
