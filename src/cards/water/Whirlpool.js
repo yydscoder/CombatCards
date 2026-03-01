@@ -69,7 +69,7 @@ export class Whirlpool extends Card {
         // DoT mechanics
         this.duration = 3;
         this.missChance = 0.30;
-        this.totalDamage = damagePerTurn * duration;
+        this.totalDamage = damagePerTurn * this.duration;
 
         console.log(`Whirlpool card created: ${this.name} (${this.damagePerTurn}/turn, Cost: ${this.cost})`);
     }
