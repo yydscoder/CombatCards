@@ -69,7 +69,7 @@ export class Blizzard extends Card {
         this.tickCount = 3;
         this.slowChance = 0.20;
         this.slowDuration = 1;
-        this.totalDamage = damagePerTick * tickCount;
+        this.totalDamage = damagePerTick * this.tickCount;
 
         console.log(`Blizzard card created: ${this.name} (${this.damagePerTick} × ${this.tickCount}, Cost: ${this.cost})`);
     }
