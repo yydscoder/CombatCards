@@ -5,7 +5,7 @@
  * It handles drawing cards, displaying them, and managing hand state.
  */
 
-// Import card classes
+// Import card classes - Fire
 import { FireCard } from '../cards/fire/FireCard.js';
 import { Fireball } from '../cards/fire/Fireball.js';
 import { Inferno } from '../cards/fire/Inferno.js';
@@ -22,6 +22,26 @@ import { Ignite } from '../cards/fire/Ignite.js';
 import { Magma } from '../cards/fire/Magma.js';
 import { FireBreath } from '../cards/fire/FireBreath.js';
 import { FlameStrike } from '../cards/fire/FlameStrike.js';
+
+// Import card classes - Water
+import { WaterJet } from '../cards/water/WaterJet.js';
+import { TidalWave } from '../cards/water/TidalWave.js';
+import { Heal } from '../cards/water/Heal.js';
+import { IceWall } from '../cards/water/IceWall.js';
+import { FrostBite } from '../cards/water/FrostBite.js';
+import { AquaBlast } from '../cards/water/AquaBlast.js';
+import { BubbleShield } from '../cards/water/BubbleShield.js';
+import { Tsunami } from '../cards/water/Tsunami.js';
+import { Regen } from '../cards/water/Regen.js';
+import { IceSpike } from '../cards/water/IceSpike.js';
+import { Purify } from '../cards/water/Purify.js';
+import { DeepFreeze } from '../cards/water/DeepFreeze.js';
+import { Whirlpool } from '../cards/water/Whirlpool.js';
+import { ManaSpring } from '../cards/water/ManaSpring.js';
+import { Blizzard } from '../cards/water/Blizzard.js';
+import { HydroBoost } from '../cards/water/HydroBoost.js';
+import { Leviathan } from '../cards/water/Leviathan.js';
+
 import { DamageCalculator } from '../combat/DamageCalculator.js';
 import { SlimeEnemy } from '../enemies/SlimeEnemy.js';
 
@@ -74,11 +94,11 @@ export class Hand {
     
     /**
      * Initializes the hand with starting cards
-     * Draws 3 random cards from the fire deck
+     * Draws 3 random cards from the combined fire and water deck
      */
     initHand() {
-        // Create the full fire deck
-        const deck = this._createFireDeck();
+        // Create the full combined deck
+        const deck = this._createCombinedDeck();
         
         // Shuffle the deck
         this._shuffleDeck(deck);
@@ -97,20 +117,20 @@ export class Hand {
     }
     
     /**
-     * Creates a full fire deck with all available fire cards
+     * Creates a combined deck with fire and water cards
      * @returns {Array} Array of card instances
      */
-    _createFireDeck() {
+    _createCombinedDeck() {
         const deck = [];
         
-        // Add multiple copies of each card type for variety
-        // Basic cards (more common)
+        // === FIRE DECK ===
+        // Basic fire cards (more common)
         for (let i = 0; i < 3; i++) deck.push(new FireCard("Fire Blast", 5, 10));
         for (let i = 0; i < 3; i++) deck.push(new Fireball());
         for (let i = 0; i < 3; i++) deck.push(new Ember());
         for (let i = 0; i < 2; i++) deck.push(new Ignite());
         
-        // Mid-cost cards (moderate)
+        // Mid-cost fire cards
         for (let i = 0; i < 2; i++) deck.push(new Scorch());
         for (let i = 0; i < 2; i++) deck.push(new FlameShield());
         for (let i = 0; i < 2; i++) deck.push(new FireWall());
@@ -119,14 +139,40 @@ export class Hand {
         for (let i = 0; i < 2; i++) deck.push(new Blaze());
         for (let i = 0; i < 2; i++) deck.push(new FireBreath());
         
-        // High-cost cards (rare)
+        // High-cost fire cards
         for (let i = 0; i < 2; i++) deck.push(new Phoenix());
         for (let i = 0; i < 2; i++) deck.push(new Magma());
         for (let i = 0; i < 2; i++) deck.push(new Firestorm());
         for (let i = 0; i < 2; i++) deck.push(new Pyroclasm());
         
-        // Ultimate card (very rare)
+        // Ultimate fire card
         deck.push(new Inferno());
+        
+        // === WATER DECK ===
+        // Basic water cards
+        for (let i = 0; i < 3; i++) deck.push(new WaterJet());
+        for (let i = 0; i < 3; i++) deck.push(new IceSpike());
+        for (let i = 0; i < 2; i++) deck.push(new Heal());
+        for (let i = 0; i < 2; i++) deck.push(new AquaBlast());
+        
+        // Mid-cost water cards
+        for (let i = 0; i < 2; i++) deck.push(new IceWall());
+        for (let i = 0; i < 2; i++) deck.push(new BubbleShield());
+        for (let i = 0; i < 2; i++) deck.push(new FrostBite());
+        for (let i = 0; i < 2; i++) deck.push(new Regen());
+        for (let i = 0; i < 2; i++) deck.push(new Purify());
+        for (let i = 0; i < 2; i++) deck.push(new ManaSpring());
+        for (let i = 0; i < 2; i++) deck.push(new HydroBoost());
+        for (let i = 0; i < 2; i++) deck.push(new Whirlpool());
+        
+        // High-cost water cards
+        for (let i = 0; i < 2; i++) deck.push(new TidalWave());
+        for (let i = 0; i < 2; i++) deck.push(new DeepFreeze());
+        for (let i = 0; i < 2; i++) deck.push(new Blizzard());
+        for (let i = 0; i < 2; i++) deck.push(new Tsunami());
+        
+        // Ultimate water card
+        deck.push(new Leviathan());
         
         return deck;
     }

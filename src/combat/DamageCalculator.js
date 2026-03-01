@@ -1,6 +1,6 @@
 /**
  * Damage Calculator Module for Emoji Card Battle
- * 
+ *
  * This module implements the core damage calculation logic for the game.
  * It handles all aspects of damage calculation including:
  * - Base damage calculation
@@ -8,8 +8,10 @@
  * - Critical hit calculation
  * - Elemental modifiers
  * - Random variation
- * 
- * The calculator is designed to be reusable across different combat scenarios.
+ * - Healing calculation
+ * - Shield/defense calculation
+ *
+ * The calculator is designed to be reusable across different combat scenarios similar to the engine component
  */
 
 // Import configuration constants
@@ -17,7 +19,7 @@ import { GAME_CONFIG } from '../core/config.js';
 
 /**
  * DamageCalculator class - Manages damage calculation logic
- * 
+ *
  * This class encapsulates all damage calculation functionality.
  * It provides methods to calculate damage for different scenarios
  * and can be extended for more complex damage formulas.
@@ -30,13 +32,13 @@ export class DamageCalculator {
         // Log initialization for debugging and tracking
         console.log('DamageCalculator initialized');
     }
-    
+
     /**
      * Calculates damage based on attacker and defender stats
-     * 
+     *
      * This method calculates the final damage amount after applying
      * all relevant modifiers and calculations.
-     * 
+     *
      * @param {Object} attacker - The attacker's stats (card, enemy, etc.)
      * @param {Object} defender - The defender's stats (enemy, player, etc.)
      * @param {Object} attackInfo - Additional attack information (critical hit, element, etc.)
@@ -48,25 +50,25 @@ export class DamageCalculator {
             console.error('Invalid attacker or defender provided to calculateDamage');
             return { success: false, error: 'invalid_inputs' };
         }
-        
+
         // Get base damage from attacker
         let baseDamage = this._getBaseDamage(attacker, attackInfo);
-        
+
         // Apply defense reduction
         const defenseReducedDamage = this._applyDefenseReduction(baseDamage, defender);
-        
+
         // Apply critical hit multiplier
         const criticalDamage = this._applyCriticalHit(defenseReducedDamage, attackInfo);
-        
+
         // Apply elemental modifiers
         const elementalDamage = this._applyElementalModifiers(criticalDamage, attacker, defender, attackInfo);
-        
+
         // Apply random variation
         const finalDamage = this._applyRandomVariation(elementalDamage);
-        
+
         // Ensure minimum damage of 1
         const minDamage = Math.max(1, finalDamage);
-        
+
         // Create result object
         const result = {
             success: true,
@@ -83,10 +85,131 @@ export class DamageCalculator {
                 defenseReduction: this._calculateDefenseReductionPercentage(defender)
             }
         };
-        
+
         // Log the damage calculation for debugging
         console.log(`Damage calculation: ${result.details.attacker} → ${result.details.defender}: ${result.finalDamage} damage`);
+
+        return result;
+    }
+
+    /**
+     * Calculates healing amount based on healer stats and bonuses
+     *
+     * This method calculates the final healing amount after applying
+     * all relevant modifiers such as critical heals and bonuses.
+     *
+     * @param {Object} healer - The healer's stats (card, effect, etc.)
+     * @param {Object} target - The target receiving healing
+     * @param {Object} healInfo - Additional healing information (crit, bonus, etc.)
+     * @returns {Object} Result object containing calculated healing and details
+     */
+    calculateHealing(healer, target, healInfo = {}) {
+        // Validate inputs
+        if (!healer) {
+            console.error('Invalid healer provided to calculateHealing');
+            return { success: false, error: 'invalid_healer' };
+        }
+
+        // Get base healing amount
+        let baseHeal = healInfo.baseHeal || healer.healAmount || healer.value || 0;
+
+        if (baseHeal <= 0) {
+            console.warn('Healing amount is 0 or negative');
+            return { success: false, error: 'no_healing_base', baseHeal: 0 };
+        }
+
+        // Apply healing bonus multiplier (from buffs, cards, etc.)
+        const healingBonus = healInfo.healingBonus || 1.0;
+        let bonusHeal = baseHeal * healingBonus;
+
+        // Check for critical heal (some cards can crit heal)
+        const isCriticalHeal = healInfo.isCriticalHeal || (Math.random() < (healInfo.critChance || 0));
+        let critHeal = bonusHeal;
         
+        if (isCriticalHeal) {
+            const critMultiplier = healInfo.critMultiplier || GAME_CONFIG.CRITICAL_HIT_MULTIPLIER;
+            critHeal = bonusHeal * critMultiplier;
+            console.log(`Critical Heal! Multiplier: ${critMultiplier}x`);
+        }
+
+        // Apply random variation (±10% for healing - less variance than damage)
+        const variation = critHeal * (0.9 + Math.random() * 0.2);
+        const finalHeal = Math.floor(variation);
+
+        // Ensure minimum healing of 1
+        const minHeal = Math.max(1, finalHeal);
+
+        // Create result object
+        const result = {
+            success: true,
+            baseHeal: baseHeal,
+            bonusHeal: bonusHeal,
+            criticalHeal: critHeal,
+            finalHeal: minHeal,
+            details: {
+                healer: healer.name || 'unknown',
+                target: target?.name || target?.type || 'self',
+                isCriticalHeal: isCriticalHeal,
+                healingBonus: healingBonus,
+                critMultiplier: isCriticalHeal ? (healInfo.critMultiplier || GAME_CONFIG.CRITICAL_HIT_MULTIPLIER) : 1
+            }
+        };
+
+        // Log the healing calculation for debugging
+        console.log(`Healing calculation: ${result.details.healer} → ${result.details.target}: ${result.finalHeal} HP`);
+
+        return result;
+    }
+
+    /**
+     * Calculates shield/barrier amount based on card stats
+     *
+     * This method calculates the final shield amount after applying
+     * all relevant modifiers.
+     *
+     * @param {Object} card - The card providing the shield
+     * @param {Object} target - The target receiving the shield
+     * @param {Object} shieldInfo - Additional shield information (bonus, duration, etc.)
+     * @returns {Object} Result object containing calculated shield and details
+     */
+    calculateShield(card, target, shieldInfo = {}) {
+        // Validate inputs
+        if (!card) {
+            console.error('Invalid card provided to calculateShield');
+            return { success: false, error: 'invalid_card' };
+        }
+
+        // Get base shield amount
+        let baseShield = shieldInfo.baseShield || card.shieldAmount || card.value || 0;
+
+        if (baseShield <= 0) {
+            console.warn('Shield amount is 0 or negative');
+            return { success: false, error: 'no_shield_base', baseShield: 0 };
+        }
+
+        // Apply shield bonus multiplier
+        const shieldBonus = shieldInfo.shieldBonus || 1.0;
+        const finalShield = Math.floor(baseShield * shieldBonus);
+
+        // Get shield duration
+        const duration = shieldInfo.duration || card.shieldDuration || 3;
+
+        // Create result object
+        const result = {
+            success: true,
+            baseShield: baseShield,
+            finalShield: finalShield,
+            duration: duration,
+            details: {
+                source: card.name || 'unknown',
+                target: target?.name || target?.type || 'self',
+                shieldBonus: shieldBonus
+            }
+        };
+
+        // Log the shield calculation for debugging
+        console.log(`Shield calculation: ${result.details.source} → ${result.details.target}: ${result.finalShield} shield for ${duration} turns`);
+
         return result;
     }
     
