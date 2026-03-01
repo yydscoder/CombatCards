@@ -178,7 +178,7 @@ export class Hand {
     }
     
     /**
-     * Shuffles a deck using Fisher-Yates algorithm
+     * Shuffles a deck using Fisher-Yates algorithm for unbiased shuffling
      * @param {Array} deck - The deck to shuffle
      */
     _shuffleDeck(deck) {
