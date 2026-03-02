@@ -142,14 +142,9 @@ export class HydroBoost extends Card {
         const isNotOnCooldown = !this.cooldown || this.cooldown <= 0;
 
         // Check if HydroBoost is already active
-        const hasExistingBuff = gameState.activeHydroBoost !== null;
+        const hasExistingBuff = !!gameState.activeHydroBoost;
 
-        // Check if player has water cards to buff
-        const hasWaterCards = gameState.hand?.some(
-            card => card.element === 'water' && card !== this
-        );
-
-        return hasEnoughMana && isInHand && isNotOnCooldown && !hasExistingBuff && hasWaterCards;
+        return hasEnoughMana && isInHand && isNotOnCooldown && !hasExistingBuff;
     }
 
     /**

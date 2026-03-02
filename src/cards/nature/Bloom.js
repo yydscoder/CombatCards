@@ -139,14 +139,9 @@ export class Bloom extends Card {
         const isNotOnCooldown = !this.cooldown || this.cooldown <= 0;
 
         // Check if Bloom is already active
-        const hasExistingBuff = gameState.activeBloom !== null;
+        const hasExistingBuff = !!gameState.activeBloom;
 
-        // Check if player has nature cards to buff
-        const hasNatureCards = gameState.hand?.some(
-            card => card.element === 'nature' && card !== this
-        );
-
-        return hasEnoughMana && isInHand && isNotOnCooldown && !hasExistingBuff && hasNatureCards;
+        return hasEnoughMana && isInHand && isNotOnCooldown && !hasExistingBuff;
     }
 
     /**
