@@ -40,6 +40,9 @@ export class Enemy {
         this.isPoisoned = false; // Whether the enemy is poisoned (takes damage over time)
         this.poisonDamage = 0; // Damage per turn from poison
         
+        // Active status effects (DoT, debuffs, stuns, etc.)
+        this.activeEffects = [];
+
         // AI behavior properties
         this.aggression = stats.aggression || 0.5; // How aggressive the enemy is (0-1)
         this.intelligence = stats.intelligence || 0.3; // How intelligent the enemy is (0-1)
@@ -195,6 +198,33 @@ export class Enemy {
     }
     
     /**
+     * Adds an active effect (DoT, debuff, stun, etc.) to this enemy.
+     *
+     * @param {Object} effect - The effect object to add
+     */
+    addEffect(effect) {
+        if (!effect || !effect.name) {
+            console.warn(`${this.name}.addEffect: invalid effect`, effect);
+            return;
+        }
+        this.activeEffects.push(effect);
+        console.log(`[Effect] ${effect.name} applied to ${this.name} (${effect.turnsRemaining ?? effect.duration} turns)`);
+    }
+
+    /**
+     * Removes an active effect by name.
+     *
+     * @param {string} effectName - The name of the effect to remove
+     */
+    removeEffect(effectName) {
+        const before = this.activeEffects.length;
+        this.activeEffects = this.activeEffects.filter(e => e.name !== effectName);
+        if (this.activeEffects.length < before) {
+            console.log(`[Effect] ${effectName} removed from ${this.name}`);
+        }
+    }
+
+    /**
      * Resets the enemy to its initial state
      */
     reset() {
@@ -203,6 +233,7 @@ export class Enemy {
         this.isStunned = false;
         this.isPoisoned = false;
         this.poisonDamage = 0;
+        this.activeEffects = [];
         this.lastActionTimestamp = null;
         
         console.log(`Enemy reset: ${this.name}`);

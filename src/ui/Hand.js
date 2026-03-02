@@ -410,22 +410,38 @@ export class Hand {
             // ── Self-targeted card (heal, mana restore, shield, buff) ──
             this._applyPlayerEffect(card);
         } else {
-            // ── Enemy-targeted card (damage, DoT) ──
+            // ── Enemy-targeted card (damage, DoT, stacking effects) ──
+            // Route through each card's own executeEffect so that DoT effects
+            // (Whirlpool, Overgrowth, Ignite, Magma, etc.) get registered.
             if (this.gameState.enemy) {
-                const damageResult = this.damageCalculator.calculateCardDamage(card, this.gameState.enemy);
-                const takeDamageResult = this.gameState.enemy.takeDamage(damageResult.finalDamage, {
-                    isCriticalHit: damageResult.details.isCriticalHit,
-                    criticalMultiplier: damageResult.details.criticalMultiplier
-                });
+                const result = card.executeEffect(this.gameState, this.gameState.enemy);
 
-                // Sync gameState enemy HP
-                this.gameState.enemyHp = this.gameState.enemy.hp;
+                if (!result?.success) {
+                    // Refund mana — card effect failed (e.g. effect already active)
+                    this.gameState.updatePlayerMana(this.gameState.playerMana + card.cost);
+                    console.warn(`${card.name} effect failed (${result?.reason || 'unknown'}). Mana refunded.`);
+                    this.addVisualFeedback(card, 'failure');
+                    return;
+                }
 
-                console.log(`Attack Used — dealt ${damageResult.finalDamage} damage${damageResult.details.isCriticalHit ? ' (CRIT!)' : ''} | Enemy HP: ${this.gameState.enemy.hp}/${this.gameState.enemy.maxHp}`);
+                // executeEffect uses gameState.updateEnemyHp(); keep enemy object in sync
+                if (this.gameState.enemy.hp !== undefined) {
+                    this.gameState.enemy.hp = this.gameState.enemyHp;
+                }
+
+                const damageDealt = result.damage || 0;
+                const isCrit     = result.isCriticalHit || false;
+
+                console.log(
+                    `Attack Used — ${card.name} dealt ${damageDealt} damage` +
+                    `${isCrit ? ' (CRIT!)' : ''}` +
+                    ` | Enemy HP: ${this.gameState.enemyHp}/${this.gameState.enemyMaxHp}` +
+                    (result.statusEffects?.length ? ` | DoT applied: ${result.statusEffects.map(e => e.name).join(', ')}` : '')
+                );
 
                 // Show HUD damage feedback and update all values
                 if (this.hud) {
-                    this.hud.showDamageFeedback(damageResult.finalDamage, 'enemy', damageResult.details.isCriticalHit);
+                    this.hud.showDamageFeedback(damageDealt, 'enemy', isCrit);
                     this.hud.updateAll();
                 }
 
@@ -438,17 +454,10 @@ export class Hand {
                     setTimeout(() => enemyArea.classList.remove('hit'), 400);
                 }
 
-                // Check if enemy is dead
-                if (takeDamageResult.isDead || this.gameState.enemy.hp <= 0) {
-                    console.log('Enemy defeated!');
-                    this.gameState.isGameOver = true;
-                    this.gameState.gameOverReason = 'player_win';
-                    if (this.hud) this.hud.showVictory();
-                    if (this.saveSystem) this.saveSystem.saveWin();
+                // Check if enemy is dead from initial hit
+                if (this.gameState.enemyHp <= 0) {
+                    this._handleEnemyDeath();
                     this.removeCard(card);
-                    if (this.gameOverScreen) {
-                        setTimeout(() => this.gameOverScreen.showVictory(), 400);
-                    }
                     return;
                 }
             }
@@ -850,11 +859,36 @@ export class Hand {
         if (anyChanged && this.hud) this.hud.updateAll();
     }
 
+    /**
+     * Centralised enemy-death handler — keeps victory logic in one place.
+     */
+    _handleEnemyDeath() {
+        console.log('Enemy defeated!');
+        this.gameState.isGameOver = true;
+        this.gameState.gameOverReason = 'player_win';
+        if (this.hud) this.hud.showVictory();
+        if (this.saveSystem) this.saveSystem.saveWin();
+        if (this.gameOverScreen) {
+            setTimeout(() => this.gameOverScreen.showVictory(), 400);
+        }
+    }
+
     endTurn() {
         console.log('Ending turn...');
 
         // Tick DoT / HoT effects before the new turn's mana is granted
         this._processActiveEffects();
+
+        // Keep enemy object HP in sync after DoT ticks
+        if (this.gameState.enemy?.hp !== undefined) {
+            this.gameState.enemy.hp = this.gameState.enemyHp;
+        }
+
+        // Check if DoT killed the enemy
+        if (this.gameState.enemyHp <= 0 && !this.gameState.isGameOver) {
+            this._handleEnemyDeath();
+            return;
+        }
 
         // Advance turn (this will also regenerate mana)
         if (this.gameState.turnManager) {
