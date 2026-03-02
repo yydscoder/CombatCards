@@ -502,6 +502,7 @@ export class Hand {
             case 'heal_over_time': {
                 const perTick = card.healPerTurn || card.effect?.value || 3;
                 const dur     = card.duration || 3;
+                // Apply immediate first tick
                 this.gameState.updatePlayerHp(this.gameState.playerHp + perTick);
                 console.log(
                     `[Hand] REGEN — ${card.name}:`,
@@ -510,6 +511,25 @@ export class Hand {
                     `| HP: ${hpBefore} → ${this.gameState.playerHp}/${this.gameState.playerMaxHp}`
                 );
                 if (this.hud) this.hud.showDamageFeedback(perTick, 'player', false);
+                // Register remaining ticks so endTurn() can process them
+                if (dur > 1) {
+                    const hotEffect = {
+                        name: card.name.toLowerCase().replace(/\s+/g, '_'),
+                        healPerTurn: perTick,
+                        duration: dur,
+                        turnsRemaining: dur - 1, // first tick already applied
+                        source: card.name,
+                        type: 'heal_over_time',
+                        emoji: '💚'
+                    };
+                    if (typeof this.gameState.addEffect === 'function') {
+                        this.gameState.addEffect(hotEffect);
+                    } else {
+                        this.gameState.activeEffects = this.gameState.activeEffects || [];
+                        this.gameState.activeEffects.push(hotEffect);
+                    }
+                    console.log(`[Hand] REGEN registered: ${dur - 1} more ticks of +${perTick} HP/turn`);
+                }
                 break;
             }
 
@@ -697,13 +717,145 @@ export class Hand {
             console.warn('End Turn button not found in DOM');
         }
     }
-    
+
     /**
-     * Handles ending the current turn
+     * Processes all active DoT / HoT / buff effects at the end of each turn.
+     * Applies per-turn healing or damage, decrements turnsRemaining, and
+     * removes expired effects.  Called by endTurn() before advancing the turn.
      */
+    _processActiveEffects() {
+        const gs = this.gameState;
+        let anyChanged = false;
+
+        // ── Player effects (HoT, Magma pool, damage buffs, etc.) ──────────────
+        if (gs.activeEffects?.length) {
+            const remaining = [];
+
+            for (const fx of gs.activeEffects) {
+                // Heal-over-time  (Regen, Regrow, Lifebloom …)
+                if (fx.healPerTurn && fx.healPerTurn > 0) {
+                    const heal = fx.healPerTurn;
+                    gs.updatePlayerHp(gs.playerHp + heal);
+                    console.log(
+                        `[HoT] ${fx.emoji || '💚'} ${fx.name}:`,
+                        `+${heal} HP | HP now ${gs.playerHp}/${gs.playerMaxHp}`,
+                        `| ${fx.turnsRemaining - 1} ticks left`
+                    );
+                    if (this.hud) this.hud.showDamageFeedback(heal, 'player', false);
+                    anyChanged = true;
+                }
+
+                // Delayed eruption — Magma pool grows each tick then erupts
+                if (fx.type === 'delayed_eruption') {
+                    if (fx.turnsRemaining === 1) {
+                        // Final tick: full eruption burst
+                        const eruptDmg = Math.floor(
+                            fx.currentDamage * (fx.eruptionMultiplier || 3)
+                        );
+                        gs.updateEnemyHp(gs.enemyHp - eruptDmg);
+                        console.log(`[Magma] 🌋 ERUPTION! ${eruptDmg} damage to enemy!`);
+                        if (this.hud) this.hud.showDamageFeedback(eruptDmg, 'enemy', false);
+                    } else {
+                        // Intermediate tick: deal current damage, then grow it
+                        const tickDmg = fx.tickDamage || fx.currentDamage;
+                        gs.updateEnemyHp(gs.enemyHp - tickDmg);
+                        fx.currentDamage = Math.floor(
+                            fx.currentDamage * (fx.growthMultiplier || 1.5)
+                        );
+                        console.log(
+                            `[Magma] 🌋 tick: −${tickDmg} to enemy`,
+                            `| grows to ${fx.currentDamage}`,
+                            `| ${fx.turnsRemaining - 1} turns to eruption`
+                        );
+                        if (this.hud) this.hud.showDamageFeedback(tickDmg, 'enemy', false);
+                    }
+                    anyChanged = true;
+                }
+
+                // Decrement and keep if still alive
+                fx.turnsRemaining = (fx.turnsRemaining || 1) - 1;
+                if (fx.turnsRemaining > 0) {
+                    remaining.push(fx);
+                } else {
+                    console.log(`[Effect] ${fx.name} expired`);
+                }
+            }
+
+            gs.activeEffects = remaining;
+        }
+
+        // ── Enemy effects (burn, DoT, debuffs) ───────────────────────────────
+        if (gs.enemy?.activeEffects?.length) {
+            const remaining = [];
+
+            for (const fx of gs.enemy.activeEffects) {
+                // Standard damage-over-time  (Whirlpool: damagePerTurn)
+                if (fx.type === 'damage_over_time' && fx.damagePerTurn) {
+                    const dmg = fx.damagePerTurn;
+                    gs.updateEnemyHp(gs.enemyHp - dmg);
+                    console.log(
+                        `[DoT] ${fx.emoji || '💧'} ${fx.name}:`,
+                        `−${dmg} to enemy | HP now ${gs.enemyHp}`,
+                        `| ${(fx.turnsRemaining || 1) - 1} turns left`
+                    );
+                    if (this.hud) this.hud.showDamageFeedback(dmg, 'enemy', false);
+                    anyChanged = true;
+                }
+
+                // Nature DoT  (Overgrowth: damagePerTick)
+                if (fx.type === 'nature_dot' && fx.damagePerTick) {
+                    const dmg = fx.damagePerTick;
+                    gs.updateEnemyHp(gs.enemyHp - dmg);
+                    console.log(
+                        `[DoT] ${fx.emoji || '🌿'} ${fx.name}:`,
+                        `−${dmg} to enemy | HP now ${gs.enemyHp}`,
+                        `| ${(fx.turnsRemaining || 1) - 1} turns left`
+                    );
+                    if (this.hud) this.hud.showDamageFeedback(dmg, 'enemy', false);
+                    anyChanged = true;
+                }
+
+                // Stacking burn  (Ignite: burnDamage × stacks)
+                if (fx.type === 'stacking_burn') {
+                    const dmg = Math.floor(fx.burnDamage * (fx.stacks || 1));
+                    if (dmg > 0) {
+                        gs.updateEnemyHp(gs.enemyHp - dmg);
+                        console.log(
+                            `[DoT] 🔥 ${fx.name}:`,
+                            `−${dmg} (${fx.burnDamage}×${fx.stacks} stacks) to enemy`,
+                            `| HP now ${gs.enemyHp}`
+                        );
+                        if (this.hud) this.hud.showDamageFeedback(dmg, 'enemy', false);
+                        anyChanged = true;
+                    }
+                }
+
+                // Decrement duration  (effects may use turnsRemaining or duration)
+                const hasTurns = fx.turnsRemaining !== undefined;
+                if (hasTurns) {
+                    fx.turnsRemaining -= 1;
+                    if (fx.turnsRemaining > 0) remaining.push(fx);
+                    else console.log(`[Effect] ${fx.name} expired`);
+                } else if (fx.duration !== undefined) {
+                    fx.duration -= 1;
+                    if (fx.duration > 0) remaining.push(fx);
+                    else console.log(`[Effect] ${fx.name} expired`);
+                }
+                // if neither field exists just let the effect expire
+            }
+
+            gs.enemy.activeEffects = remaining;
+        }
+
+        if (anyChanged && this.hud) this.hud.updateAll();
+    }
+
     endTurn() {
         console.log('Ending turn...');
-        
+
+        // Tick DoT / HoT effects before the new turn's mana is granted
+        this._processActiveEffects();
+
         // Advance turn (this will also regenerate mana)
         if (this.gameState.turnManager) {
             this.gameState.turnManager.advanceTurn();
