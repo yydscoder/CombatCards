@@ -69,7 +69,7 @@ export class Overgrowth extends Card {
         // DoT and debuff mechanics
         this.dotDuration = 4;
         this.damageReduction = 0.30;
-        this.totalDamage = dotDamage * dotDuration;
+        this.totalDamage = dotDamage * this.dotDuration;
 
         console.log(`Overgrowth card created: ${this.name} (${this.dotDamage}/tick, Cost: ${this.cost})`);
     }

@@ -66,7 +66,7 @@ export class Photosynthesis extends Card {
         
         // Mana regen mechanics
         this.duration = 3;
-        this.totalMana = manaPerTurn * duration;
+        this.totalMana = manaPerTurn * this.duration;
 
         console.log(`Photosynthesis card created: ${this.name} (${this.manaPerTurn} mana/turn, Cost: ${this.cost})`);
     }
