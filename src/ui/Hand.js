@@ -404,55 +404,136 @@ export class Hand {
         // Deduct mana
         this.gameState.updatePlayerMana(this.gameState.playerMana - card.cost);
 
-        // Apply damage to enemy
-        if (this.gameState.enemy) {
-            const damageResult = this.damageCalculator.calculateCardDamage(card, this.gameState.enemy);
-            const takeDamageResult = this.gameState.enemy.takeDamage(damageResult.finalDamage, {
-                isCriticalHit: damageResult.details.isCriticalHit,
-                criticalMultiplier: damageResult.details.criticalMultiplier
-            });
+        const effectTarget = card.effect?.target || 'enemy';
 
-            // Sync gameState enemy HP
-            this.gameState.enemyHp = this.gameState.enemy.hp;
+        if (effectTarget === 'self') {
+            // ── Self-targeted card (heal, mana restore, shield, buff) ──
+            this._applyPlayerEffect(card);
+        } else {
+            // ── Enemy-targeted card (damage, DoT) ──
+            if (this.gameState.enemy) {
+                const damageResult = this.damageCalculator.calculateCardDamage(card, this.gameState.enemy);
+                const takeDamageResult = this.gameState.enemy.takeDamage(damageResult.finalDamage, {
+                    isCriticalHit: damageResult.details.isCriticalHit,
+                    criticalMultiplier: damageResult.details.criticalMultiplier
+                });
 
-            console.log(`Attack Used — dealt ${damageResult.finalDamage} damage${damageResult.details.isCriticalHit ? ' (CRIT!)' : ''} | Enemy HP: ${this.gameState.enemy.hp}/${this.gameState.enemy.maxHp}`);
+                // Sync gameState enemy HP
+                this.gameState.enemyHp = this.gameState.enemy.hp;
 
-            // Show HUD damage feedback and update all values
-            if (this.hud) {
-                this.hud.showDamageFeedback(damageResult.finalDamage, 'enemy', damageResult.details.isCriticalHit);
-                this.hud.updateAll();
-            }
-            this.updateCardAffordability();
+                console.log(`Attack Used — dealt ${damageResult.finalDamage} damage${damageResult.details.isCriticalHit ? ' (CRIT!)' : ''} | Enemy HP: ${this.gameState.enemy.hp}/${this.gameState.enemy.maxHp}`);
 
-            // Flash the enemy graphic
-            const enemyArea = document.getElementById('enemy-area');
-            if (enemyArea) {
-                enemyArea.classList.remove('hit');
-                void enemyArea.offsetWidth; // reflow to restart animation
-                enemyArea.classList.add('hit');
-                setTimeout(() => enemyArea.classList.remove('hit'), 400);
-            }
-
-            // Check if enemy is dead
-            if (takeDamageResult.isDead || this.gameState.enemy.hp <= 0) {
-                console.log('Enemy defeated!');
-                this.gameState.isGameOver = true;
-                this.gameState.gameOverReason = 'player_win';
-                if (this.hud) this.hud.showVictory();
-                if (this.saveSystem) this.saveSystem.saveWin();
-                this.removeCard(card);
-                if (this.gameOverScreen) {
-                    setTimeout(() => this.gameOverScreen.showVictory(), 400);
+                // Show HUD damage feedback and update all values
+                if (this.hud) {
+                    this.hud.showDamageFeedback(damageResult.finalDamage, 'enemy', damageResult.details.isCriticalHit);
+                    this.hud.updateAll();
                 }
-                return;
+
+                // Flash the enemy graphic
+                const enemyArea = document.getElementById('enemy-area');
+                if (enemyArea) {
+                    enemyArea.classList.remove('hit');
+                    void enemyArea.offsetWidth;
+                    enemyArea.classList.add('hit');
+                    setTimeout(() => enemyArea.classList.remove('hit'), 400);
+                }
+
+                // Check if enemy is dead
+                if (takeDamageResult.isDead || this.gameState.enemy.hp <= 0) {
+                    console.log('Enemy defeated!');
+                    this.gameState.isGameOver = true;
+                    this.gameState.gameOverReason = 'player_win';
+                    if (this.hud) this.hud.showVictory();
+                    if (this.saveSystem) this.saveSystem.saveWin();
+                    this.removeCard(card);
+                    if (this.gameOverScreen) {
+                        setTimeout(() => this.gameOverScreen.showVictory(), 400);
+                    }
+                    return;
+                }
             }
         }
 
         // Remove card from hand after use
         this.removeCard(card);
 
-        // Visual feedback
+        // Visual feedback + refresh affordability
         this.addVisualFeedback(card, 'success');
+        this.updateCardAffordability();
+    }
+
+    /**
+     * Applies a self-targeted card effect to the player.
+     * Handles heal, heal_over_time, heal_and_buff, mana_restore,
+     * shield, shield_and_buff, damage_buff, and damage_reduction types.
+     * @param {Object} card - The card being played
+     */
+    _applyPlayerEffect(card) {
+        const type = card.effect?.type || 'unknown';
+        let logMsg = '';
+
+        switch (type) {
+            case 'heal':
+            case 'heal_and_buff': {
+                const base = card.healAmount || card.effect?.value || 5;
+                const isCrit = Math.random() < (card.critChance || 0.10);
+                const amount = Math.max(1, Math.floor(base * (isCrit ? 1.5 : 1) * (0.9 + Math.random() * 0.2)));
+                this.gameState.updatePlayerHp(this.gameState.playerHp + amount);
+                logMsg = `Healed ${amount} HP${isCrit ? ' (CRIT!)' : ''}`;
+                if (this.hud) {
+                    this.hud.showDamageFeedback(amount, 'player', isCrit);
+                }
+                break;
+            }
+
+            case 'heal_over_time': {
+                // Apply the first tick immediately; future ticks would need a tick system
+                const perTick = card.healPerTurn || card.effect?.value || 3;
+                this.gameState.updatePlayerHp(this.gameState.playerHp + perTick);
+                logMsg = `Regen applied: +${perTick} HP now (+${perTick}/turn for ${card.duration || 3} turns)`;
+                if (this.hud) this.hud.showDamageFeedback(perTick, 'player', false);
+                break;
+            }
+
+            case 'mana_restore': {
+                const amount = card.manaRestore || card.effect?.value || 5;
+                this.gameState.updatePlayerMana(this.gameState.playerMana + amount);
+                logMsg = `Restored ${amount} mana (total: ${this.gameState.playerMana}/${this.gameState.playerMaxMana})`;
+                break;
+            }
+
+            case 'shield':
+            case 'shield_and_buff': {
+                // Treat shield as a temporary HP buffer for now
+                const shield = card.shieldAmount || card.effect?.value || 8;
+                this.gameState.updatePlayerHp(this.gameState.playerHp + shield);
+                logMsg = `Shield: +${shield} HP absorbed`;
+                if (this.hud) this.hud.showDamageFeedback(shield, 'player', false);
+                break;
+            }
+
+            case 'damage_buff': {
+                const bonus = card.damageBonus || card.effect?.value || 0.5;
+                this.gameState.activeDamageBuff = (this.gameState.activeDamageBuff || 1) * (1 + bonus);
+                logMsg = `Damage buff: next attack ×${((1 + bonus)).toFixed(1)}`;
+                break;
+            }
+
+            case 'damage_reduction': {
+                const reduction = card.damageReduction || card.effect?.value || 0.3;
+                this.gameState.activeDamageReduction = Math.min(0.75, (this.gameState.activeDamageReduction || 0) + reduction);
+                logMsg = `Damage reduction: ${(this.gameState.activeDamageReduction * 100).toFixed(0)}% for ${card.duration || 3} turns`;
+                break;
+            }
+
+            default:
+                logMsg = `${card.name} effect applied (type: ${type})`;
+                break;
+        }
+
+        console.log(`[Hand] Player effect — ${card.name} (${type}): ${logMsg}`);
+        if (this.hud) this.hud.updateAll();
+        this.updateCardAffordability();
     }
     
     /**
