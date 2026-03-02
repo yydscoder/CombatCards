@@ -3,9 +3,9 @@
 This is a browser-based card battle game built in vanilla JavaScript with no frameworks.
 Defeat the Enemy by playing cards from your hand before your mana runs out.
 
-## 🎮 How to Play (LAST UPDATED 28/2/2026)
+## How to Play (LAST UPDATED 28/2/2026)
 
-1. **Three random cards** start in your hand from a 66-card deck (Fire + Water)
+1. **Three random cards** start in your hand from a 105-card deck (Fire + Water + Nature)
 2. Click a card to attack the enemy
 3. Each card costs mana — watch your 💧 mana bar
 4. **Click "End Turn" to advance** and gain more mana
@@ -26,7 +26,7 @@ Mana **resets each turn** (does not carry over):
 
 Mana resets each turn , use it or lose it! Plan your combos wisely!!
 
-## 🔥 Fire Deck Cards (Should probably have a different section for this since it'll be expanding more in the future)
+## Fire Deck Cards (Should probably have a different section for this since it'll be expanding more in the future)
 
 ### Common Cards (3 copies each)
 | Card | Emoji | Cost | Effect |
@@ -60,7 +60,7 @@ Mana resets each turn , use it or lose it! Plan your combos wisely!!
 |------|-------|------|--------|
 | Inferno | 🌋 | 9 | 18 damage, 25% crit, 50% DEF penetration |
 
-## 💙 Water Deck Cards
+## Water Deck Cards
 
 ### Common Cards (3 copies each)
 | Card | Emoji | Cost | Effect |
@@ -95,6 +95,42 @@ Mana resets each turn , use it or lose it! Plan your combos wisely!!
 |------|-------|------|--------|
 | Leviathan | 🐋 | 10 | 25 damage, guaranteed crit, 50% DEF pen |
 
+## Nature Deck Cards
+
+### Common Cards (3 copies each)
+| Card | Emoji | Cost | Effect |
+|------|-------|------|--------|
+| VineWhip | 🌿 | 2 | 5 damage + 2 Wild DoT for 2 turns |
+| Poison | ☠️ | 3 | 4 Poison DoT/turn × 3, stacks 5× |
+
+### Uncommon Cards (2 copies each)
+| Card | Emoji | Cost | Effect |
+|------|-------|------|--------|
+| Regrow | 🌱 | 4 | Heal 12 HP + 3 HP/turn × 2 turns |
+| Bloom | 🌸 | 3 | Buff: Next nature spell +60% damage |
+| Roots | 🌳 | 4 | 3 damage, Root (50% miss) × 2 turns |
+| Thorns | 🌵 | 4 | Reflect 4 damage × 3 turns |
+| Photosynthesis | ☀️ | 2 | 2 mana/turn × 3 turns |
+| SeedBomb | 🌰 | 5 | 3 hits × 4-8 damage each |
+| BarkSkin | 🪵 | 4 | -40% damage taken × 3 turns |
+| Sap | 🩸 | 4 | Drain 8 damage, heal self |
+| Lifebloom | 🌺 | 5 | 4 HP/turn × 3 + 12 HP bloom |
+
+### Rare Cards (2 copies each)
+| Card | Emoji | Cost | Effect |
+|------|-------|------|--------|
+| WildGrowth | 🌾 | 6 | 3 damage, doubles/turn × 3 |
+| Entangle | 🕸️ | 5 | 4 damage, Stun 1 turn + 2 DoT |
+| SolarBeam | ☀️ | 7 | 14 damage, 2× vs undead, 20% crit |
+| MushroomCloud | 🍄 | 5 | 4 Poison DoT × 3, -25% accuracy |
+| Ironbark | 🛡️ | 6 | 20 shield × 4 turns |
+| Overgrowth | 🌿 | 8 | 6 DoT × 4, -30% enemy damage |
+
+### Legendary Cards (1 copy)
+| Card | Emoji | Cost | Effect |
+|------|-------|------|--------|
+| NatureWrath | ⛈️ | 10 | 22 damage, guaranteed crit + 5 Poison |
+
 ## Elemental Interactions
 
 | Attacker | vs Defender | Effect |
@@ -105,11 +141,11 @@ Mana resets each turn , use it or lose it! Plan your combos wisely!!
 
 > Damage includes ±20% random variation, defense reduction, and a 15% critical hit chance (1.5× damage).
 
-## 🚀 Running Locally
+## Running Locally
 
 Just run it locally via localhost or you can use the link I provided for the latest version.
 
-## 💾 Save Data
+## Save Data
 
 Win/loss stats are stored in `localStorage` under the key `combatCards_stats`.
 

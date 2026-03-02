@@ -42,6 +42,26 @@ import { Blizzard } from '../cards/water/Blizzard.js';
 import { HydroBoost } from '../cards/water/HydroBoost.js';
 import { Leviathan } from '../cards/water/Leviathan.js';
 
+// Import card classes - Nature
+import { VineWhip } from '../cards/nature/VineWhip.js';
+import { Regrow } from '../cards/nature/Regrow.js';
+import { Poison } from '../cards/nature/Poison.js';
+import { Roots } from '../cards/nature/Roots.js';
+import { Bloom } from '../cards/nature/Bloom.js';
+import { Thorns } from '../cards/nature/Thorns.js';
+import { Photosynthesis } from '../cards/nature/Photosynthesis.js';
+import { SeedBomb } from '../cards/nature/SeedBomb.js';
+import { BarkSkin } from '../cards/nature/BarkSkin.js';
+import { WildGrowth } from '../cards/nature/WildGrowth.js';
+import { Entangle } from '../cards/nature/Entangle.js';
+import { Lifebloom } from '../cards/nature/Lifebloom.js';
+import { SolarBeam } from '../cards/nature/SolarBeam.js';
+import { MushroomCloud } from '../cards/nature/MushroomCloud.js';
+import { NatureWrath } from '../cards/nature/NatureWrath.js';
+import { Sap } from '../cards/nature/Sap.js';
+import { Ironbark } from '../cards/nature/Ironbark.js';
+import { Overgrowth } from '../cards/nature/Overgrowth.js';
+
 import { DamageCalculator } from '../combat/DamageCalculator.js';
 import { SlimeEnemy } from '../enemies/SlimeEnemy.js';
 
@@ -177,6 +197,33 @@ export class Hand {
         // Ultimate water card
         deck.push(new Leviathan());
         
+        // === NATURE DECK ===
+        // Basic nature cards
+        for (let i = 0; i < 3; i++) deck.push(new VineWhip());
+        for (let i = 0; i < 2; i++) deck.push(new Poison());
+        for (let i = 0; i < 2; i++) deck.push(new Regrow());
+        for (let i = 0; i < 2; i++) deck.push(new Bloom());
+        
+        // Mid-cost nature cards
+        for (let i = 0; i < 2; i++) deck.push(new Roots());
+        for (let i = 0; i < 2; i++) deck.push(new Thorns());
+        for (let i = 0; i < 2; i++) deck.push(new Photosynthesis());
+        for (let i = 0; i < 2; i++) deck.push(new SeedBomb());
+        for (let i = 0; i < 2; i++) deck.push(new BarkSkin());
+        for (let i = 0; i < 2; i++) deck.push(new Sap());
+        for (let i = 0; i < 2; i++) deck.push(new Lifebloom());
+        
+        // High-cost nature cards
+        for (let i = 0; i < 2; i++) deck.push(new WildGrowth());
+        for (let i = 0; i < 2; i++) deck.push(new Entangle());
+        for (let i = 0; i < 2; i++) deck.push(new SolarBeam());
+        for (let i = 0; i < 2; i++) deck.push(new MushroomCloud());
+        for (let i = 0; i < 2; i++) deck.push(new Ironbark());
+        for (let i = 0; i < 2; i++) deck.push(new Overgrowth());
+        
+        // Ultimate nature card
+        deck.push(new NatureWrath());
+
         return deck;
     }
     
