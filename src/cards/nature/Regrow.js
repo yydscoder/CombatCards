@@ -154,9 +154,8 @@ export class Regrow extends Card {
         const hasEnoughMana = gameState.playerMana >= this.cost;
         const isInHand = this.isInHand;
         const isNotOnCooldown = !this.cooldown || this.cooldown <= 0;
-        const needsHealing = gameState.playerHp < gameState.playerMaxHp;
 
-        return hasEnoughMana && isInHand && isNotOnCooldown && needsHealing;
+        return hasEnoughMana && isInHand && isNotOnCooldown;
     }
 
     /**

@@ -153,10 +153,7 @@ export class Heal extends Card {
         // Check if the card is not on cooldown
         const isNotOnCooldown = !this.cooldown || this.cooldown <= 0;
 
-        // Can only heal if not at full health
-        const needsHealing = gameState.playerHp < gameState.playerMaxHp;
-
-        return hasEnoughMana && isInHand && isNotOnCooldown && needsHealing;
+        return hasEnoughMana && isInHand && isNotOnCooldown;
     }
 
     /**

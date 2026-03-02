@@ -142,16 +142,13 @@ export class Regen extends Card {
         const hasEnoughMana = gameState.playerMana >= this.cost;
         const isInHand = this.isInHand;
         const isNotOnCooldown = !this.cooldown || this.cooldown <= 0;
-        
-        // Check if player already has regen
+
+        // Block if regen is already active (no stacking)
         const hasExistingRegen = gameState.activeEffects?.some(
             effect => effect.name === 'regen'
         ) || false;
 
-        // Can only heal if not at full health or no existing regen
-        const canHeal = gameState.playerHp < gameState.playerMaxHp || !hasExistingRegen;
-
-        return hasEnoughMana && isInHand && isNotOnCooldown && canHeal && !hasExistingRegen;
+        return hasEnoughMana && isInHand && isNotOnCooldown && !hasExistingRegen;
     }
 
     /**

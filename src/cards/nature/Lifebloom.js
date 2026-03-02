@@ -158,14 +158,13 @@ export class Lifebloom extends Card {
         const hasEnoughMana = gameState.playerMana >= this.cost;
         const isInHand = this.isInHand;
         const isNotOnCooldown = !this.cooldown || this.cooldown <= 0;
-        const needsHealing = gameState.playerHp < gameState.playerMaxHp;
 
         // Check if lifebloom is already active
         const hasExisting = gameState.activeEffects?.some(
             effect => effect.name === 'lifebloom'
         ) || false;
 
-        return hasEnoughMana && isInHand && isNotOnCooldown && needsHealing && !hasExisting;
+        return hasEnoughMana && isInHand && isNotOnCooldown && !hasExisting;
     }
 
     /**
