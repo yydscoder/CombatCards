@@ -69,7 +69,7 @@ export class Lifebloom extends Card {
         // Healing mechanics
         this.duration = 3;
         this.bloomHeal = healPerTick * 3;
-        this.totalHeal = (healPerTick * duration) + this.bloomHeal;
+        this.totalHeal = (healPerTick * this.duration) + this.bloomHeal;
 
         console.log(`Lifebloom card created: ${this.name} (${this.healPerTick}/tick + ${this.bloomHeal} bloom)`);
     }
