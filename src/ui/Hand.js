@@ -470,27 +470,45 @@ export class Hand {
      */
     _applyPlayerEffect(card) {
         const type = card.effect?.type || 'unknown';
-        let logMsg = '';
+        const hpBefore   = this.gameState.playerHp;
+        const manaBefore = this.gameState.playerMana;
+
+        console.log(
+            `[Hand] Self-effect triggered — ${card.name} (ID: ${card.id})`,
+            `| type: ${type}`,
+            `| cost: ${card.cost}`,
+            `| HP before: ${hpBefore}/${this.gameState.playerMaxHp}`,
+            `| Mana before: ${manaBefore}/${this.gameState.playerMaxMana}`
+        );
 
         switch (type) {
             case 'heal':
             case 'heal_and_buff': {
-                const base = card.healAmount || card.effect?.value || 5;
+                const base   = card.healAmount || card.effect?.value || 5;
                 const isCrit = Math.random() < (card.critChance || 0.10);
                 const amount = Math.max(1, Math.floor(base * (isCrit ? 1.5 : 1) * (0.9 + Math.random() * 0.2)));
                 this.gameState.updatePlayerHp(this.gameState.playerHp + amount);
-                logMsg = `Healed ${amount} HP${isCrit ? ' (CRIT!)' : ''}`;
-                if (this.hud) {
-                    this.hud.showDamageFeedback(amount, 'player', isCrit);
-                }
+                console.log(
+                    `[Hand] HEAL — ${card.name}:`,
+                    `base=${base}`,
+                    `| rolled amount=${amount}`,
+                    `| crit=${isCrit}`,
+                    `| HP: ${hpBefore} → ${this.gameState.playerHp}/${this.gameState.playerMaxHp}`
+                );
+                if (this.hud) this.hud.showDamageFeedback(amount, 'player', isCrit);
                 break;
             }
 
             case 'heal_over_time': {
-                // Apply the first tick immediately; future ticks would need a tick system
                 const perTick = card.healPerTurn || card.effect?.value || 3;
+                const dur     = card.duration || 3;
                 this.gameState.updatePlayerHp(this.gameState.playerHp + perTick);
-                logMsg = `Regen applied: +${perTick} HP now (+${perTick}/turn for ${card.duration || 3} turns)`;
+                console.log(
+                    `[Hand] REGEN — ${card.name}:`,
+                    `+${perTick} HP per turn for ${dur} turns`,
+                    `| first tick applied now`,
+                    `| HP: ${hpBefore} → ${this.gameState.playerHp}/${this.gameState.playerMaxHp}`
+                );
                 if (this.hud) this.hud.showDamageFeedback(perTick, 'player', false);
                 break;
             }
@@ -498,40 +516,74 @@ export class Hand {
             case 'mana_restore': {
                 const amount = card.manaRestore || card.effect?.value || 5;
                 this.gameState.updatePlayerMana(this.gameState.playerMana + amount);
-                logMsg = `Restored ${amount} mana (total: ${this.gameState.playerMana}/${this.gameState.playerMaxMana})`;
+                console.log(
+                    `[Hand] MANA RESTORE — ${card.name}:`,
+                    `restored ${amount} mana`,
+                    `| Mana: ${manaBefore} → ${this.gameState.playerMana}/${this.gameState.playerMaxMana}`,
+                    `| net gain: +${this.gameState.playerMana - manaBefore}`
+                );
                 break;
             }
 
             case 'shield':
             case 'shield_and_buff': {
-                // Treat shield as a temporary HP buffer for now
                 const shield = card.shieldAmount || card.effect?.value || 8;
+                const dur    = card.shieldDuration || card.duration || 3;
                 this.gameState.updatePlayerHp(this.gameState.playerHp + shield);
-                logMsg = `Shield: +${shield} HP absorbed`;
+                console.log(
+                    `[Hand] SHIELD — ${card.name}:`,
+                    `absorbs ${shield} damage for ${dur} turns`,
+                    `| HP buffer: ${hpBefore} → ${this.gameState.playerHp}/${this.gameState.playerMaxHp}`
+                );
                 if (this.hud) this.hud.showDamageFeedback(shield, 'player', false);
                 break;
             }
 
-            case 'damage_buff': {
-                const bonus = card.damageBonus || card.effect?.value || 0.5;
-                this.gameState.activeDamageBuff = (this.gameState.activeDamageBuff || 1) * (1 + bonus);
-                logMsg = `Damage buff: next attack ×${((1 + bonus)).toFixed(1)}`;
+            case 'damage_buff':
+            case 'next_card_buff': {
+                const bonus    = card.damageBonus || card.effect?.value || 0.5;
+                const appliesTo = card.appliesTo || card.effect?.appliesTo || 'all';
+                const prevBuff = this.gameState.activeDamageBuff || 1;
+                this.gameState.activeDamageBuff = prevBuff * (1 + bonus);
+                console.log(
+                    `[Hand] DAMAGE BUFF — ${card.name}:`,
+                    `+${(bonus * 100).toFixed(0)}% damage to [${appliesTo}]`,
+                    `| multiplier: ${prevBuff.toFixed(2)} → ${this.gameState.activeDamageBuff.toFixed(2)}`,
+                    `| duration: ${card.duration || 1} turn(s)`
+                );
                 break;
             }
 
             case 'damage_reduction': {
                 const reduction = card.damageReduction || card.effect?.value || 0.3;
-                this.gameState.activeDamageReduction = Math.min(0.75, (this.gameState.activeDamageReduction || 0) + reduction);
-                logMsg = `Damage reduction: ${(this.gameState.activeDamageReduction * 100).toFixed(0)}% for ${card.duration || 3} turns`;
+                const prevReduction = this.gameState.activeDamageReduction || 0;
+                this.gameState.activeDamageReduction = Math.min(0.75, prevReduction + reduction);
+                console.log(
+                    `[Hand] DAMAGE REDUCTION — ${card.name}:`,
+                    `+${(reduction * 100).toFixed(0)}% reduction`,
+                    `| total reduction: ${(prevReduction * 100).toFixed(0)}% → ${(this.gameState.activeDamageReduction * 100).toFixed(0)}%`,
+                    `| duration: ${card.duration || 3} turn(s)`,
+                    `| cap: 75%`
+                );
                 break;
             }
 
             default:
-                logMsg = `${card.name} effect applied (type: ${type})`;
+                console.warn(
+                    `[Hand] UNKNOWN self-effect — ${card.name} (type: "${type}")`,
+                    `| effect object:`, card.effect
+                );
                 break;
         }
 
-        console.log(`[Hand] Player effect — ${card.name} (${type}): ${logMsg}`);
+        console.log(
+            `[Hand] Self-effect complete — ${card.name}`,
+            `| HP: ${hpBefore} → ${this.gameState.playerHp}`,
+            `| Mana: ${manaBefore} → ${this.gameState.playerMana}`,
+            `| activeDamageBuff: ${this.gameState.activeDamageBuff ?? 'none'}`,
+            `| activeDamageReduction: ${this.gameState.activeDamageReduction ?? 'none'}`
+        );
+
         if (this.hud) this.hud.updateAll();
         this.updateCardAffordability();
     }
