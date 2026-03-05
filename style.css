@@ -517,3 +517,315 @@ body {
 #game-over-btn:active {
     transform: translateY(0);
 }
+
+#game-over-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+#game-over-retry, #game-over-continue {
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+#game-over-retry {
+    background: linear-gradient(135deg, #6a6a6a, #4a4a4a);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(100, 100, 100, 0.4);
+}
+
+#game-over-retry:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(100, 100, 100, 0.6);
+}
+
+#game-over-continue {
+    background: linear-gradient(135deg, #5a5aff, #3a3acc);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(90, 90, 255, 0.4);
+}
+
+#game-over-continue:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(90, 90, 255, 0.6);
+}
+
+/* ─── Level Select Screen ─── */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+    background: linear-gradient(160deg, #2d2d44, #1a1a2e);
+    border-radius: 16px;
+    border: 2px solid #3a3a5a;
+    box-shadow: 0 0 40px rgba(90, 90, 255, 0.3);
+    max-width: 900px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #3a3a5a;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 24px;
+    letter-spacing: 1px;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #aaaaaa;
+    font-size: 32px;
+    cursor: pointer;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.modal-close:hover {
+    background-color: #3a3a5a;
+    color: #ffffff;
+}
+
+.level-select-content {
+    padding: 24px;
+}
+
+.progress-summary {
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.progress-summary p {
+    margin-bottom: 10px;
+    color: #cccccc;
+    font-size: 14px;
+}
+
+.progress-bar {
+    height: 12px;
+    background-color: #1a1a2e;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #3a3a5a;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4caf50, #8bc34a);
+    border-radius: 6px;
+    transition: width 0.5s ease-in-out;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+}
+
+.levels-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.level-card {
+    background: linear-gradient(160deg, #3a3a5a, #2d2d44);
+    border-radius: 12px;
+    border: 2px solid #4a4a7a;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    cursor: pointer;
+}
+
+.level-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.level-card-completed {
+    border-color: #4caf50;
+}
+
+.level-card-completed:hover {
+    border-color: #8bc34a;
+}
+
+.level-card-current {
+    border-color: #2196f3;
+    box-shadow: 0 0 20px rgba(33, 150, 243, 0.3);
+}
+
+.level-card-current:hover {
+    border-color: #64b5f6;
+}
+
+.level-card-locked {
+    border-color: #3a3a5a;
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.level-card-locked:hover {
+    transform: none;
+}
+
+.level-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid #4a4a7a;
+}
+
+.level-number {
+    font-size: 12px;
+    font-weight: bold;
+    color: #8888aa;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.level-status-icon {
+    font-size: 16px;
+}
+
+.level-card-body {
+    padding: 16px;
+}
+
+.level-name {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    color: #ffffff;
+}
+
+.level-description {
+    margin: 0 0 12px 0;
+    font-size: 13px;
+    color: #aaaaaa;
+    line-height: 1.4;
+}
+
+.level-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+}
+
+.level-difficulty {
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.level-enemy {
+    color: #cccccc;
+}
+
+.btn-start-level {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #ffffff;
+    background: linear-gradient(135deg, #5a5aff, #3a3acc);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 12px rgba(90, 90, 255, 0.3);
+}
+
+.btn-start-level:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(90, 90, 255, 0.5);
+}
+
+.btn-start-level:active {
+    transform: translateY(0);
+}
+
+.campaign-complete {
+    margin-top: 24px;
+    text-align: center;
+    padding: 20px;
+    background: linear-gradient(160deg, #1a3a1a, #0d200d);
+    border-radius: 12px;
+    border: 2px solid #4caf50;
+}
+
+.campaign-complete h3 {
+    margin: 0 0 16px 0;
+    color: #4caf50;
+    font-size: 20px;
+}
+
+.btn-secondary {
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #ffffff;
+    background: linear-gradient(135deg, #6a6a6a, #4a4a4a);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(100, 100, 100, 0.4);
+}
+
+/* Level select button in HUD */
+#new-run-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: bold;
+    color: #ffffff;
+    background: linear-gradient(135deg, #5a5aff, #3a3acc);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 2px 8px rgba(90, 90, 255, 0.3);
+}
+
+#new-run-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(90, 90, 255, 0.5);
+}
+
+#round-info {
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+}
