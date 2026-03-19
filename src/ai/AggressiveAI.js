@@ -151,15 +151,17 @@ export class AggressiveAI {
      * @returns {number} Calculated damage
      */
     calculateDamage(enemy, decision) {
-        let damage = enemy.attackPower;
+        let damage = enemy.attackCard?.baseDamage ?? enemy.attackPower;
 
         // Apply damage multiplier from decision
         if (decision.damageMultiplier) {
             damage *= decision.damageMultiplier;
         }
 
-        // Add random variation (±15% for aggressive AI - more consistent)
-        const variation = damage * (0.85 + Math.random() * 0.3);
+        // Add random variation based on enemy attack card spread
+        const minMultiplier = enemy.attackCard?.minMultiplier ?? 0.85;
+        const maxMultiplier = enemy.attackCard?.maxMultiplier ?? 1.15;
+        const variation = damage * (minMultiplier + Math.random() * (maxMultiplier - minMultiplier));
         damage = Math.floor(variation);
 
         return Math.max(1, damage);

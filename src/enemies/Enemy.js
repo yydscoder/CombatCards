@@ -142,10 +142,12 @@ export class Enemy {
         }
         
         // Calculate base damage
-        let damage = this.attackPower;
-        
-        // Add random variation (±20%)
-        const variation = damage * (0.8 + Math.random() * 0.4);
+        let damage = this.attackCard?.baseDamage ?? this.attackPower;
+
+        // Add random variation using attack card spread if available
+        const minMultiplier = this.attackCard?.minMultiplier ?? 0.8;
+        const maxMultiplier = this.attackCard?.maxMultiplier ?? 1.2;
+        const variation = damage * (minMultiplier + Math.random() * (maxMultiplier - minMultiplier));
         damage = Math.floor(variation);
         
         // Check for critical hit (15% chance)

@@ -93,6 +93,10 @@ export class RoundManager {
             scaledStats.attack
         );
 
+        if (scaledStats.attackCard) {
+            this.currentEnemy.attackCard = scaledStats.attackCard;
+        }
+
         this.isRoundActive = true;
 
         const roundInfo = {

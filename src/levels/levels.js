@@ -23,6 +23,7 @@ export const ENEMY_POOL = {
         emoji: '👺',
         baseHp: 60,
         baseAttack: 14,
+        attackCardName: 'Jagged Slash',
         minRound: 1,
         weight: 3, // Spawn weight (higher = more common)
         class: 'aggressive'
@@ -33,6 +34,7 @@ export const ENEMY_POOL = {
         emoji: '👹',
         baseHp: 100,
         baseAttack: 18,
+        attackCardName: 'Crushing Cleave',
         minRound: 4,
         weight: 2,
         class: 'brute'
@@ -43,6 +45,7 @@ export const ENEMY_POOL = {
         emoji: '💀',
         baseHp: 70,
         baseAttack: 12,
+        attackCardName: 'Bone Strike',
         minRound: 7,
         weight: 2,
         class: 'defensive'
@@ -53,6 +56,7 @@ export const ENEMY_POOL = {
         emoji: '👻',
         baseHp: 55,
         baseAttack: 15,
+        attackCardName: 'Haunt Swipe',
         minRound: 10,
         weight: 1,
         class: 'special'
@@ -63,12 +67,30 @@ export const ENEMY_POOL = {
         emoji: '🐉',
         baseHp: 200,
         baseAttack: 25,
+        attackCardName: 'Ancient Fury',
         minRound: 15,
         weight: 0.5, // Rare spawn
         class: 'boss',
         isBoss: true
     }
 };
+
+const DAMAGE_SPREAD_BY_CLASS = {
+    aggressive: { min: 0.85, max: 1.15 },
+    brute: { min: 0.9, max: 1.1 },
+    defensive: { min: 0.8, max: 1.05 },
+    special: { min: 0.75, max: 1.2 },
+    boss: { min: 0.9, max: 1.15 }
+};
+
+function getDamageSpreadForClass(enemyClass, round) {
+    const base = DAMAGE_SPREAD_BY_CLASS[enemyClass] || { min: 0.85, max: 1.15 };
+    const roundBonus = Math.min(0.05, Math.floor((round - 1) / 10) * 0.02);
+    return {
+        min: Math.max(0.7, base.min - roundBonus),
+        max: Math.min(1.35, base.max + roundBonus)
+    };
+}
 
 /**
  * Round milestones for survivor mode
@@ -149,7 +171,8 @@ export function selectEnemyForRound(round, forceBoss = false) {
  * @returns {Object} Scaled enemy stats
  */
 export function scaleEnemyStats(baseEnemy, round) {
-    const scalingFactor = 1 + ((round - 1) * 0.1); // 10% per round
+    const scalingFactor = 1 + ((round - 1) * 0.06); // 6% per round for slower ramp
+    const damageSpread = getDamageSpreadForClass(baseEnemy.class, round);
     
     return {
         name: baseEnemy.name,
@@ -157,6 +180,12 @@ export function scaleEnemyStats(baseEnemy, round) {
         emoji: baseEnemy.emoji,
         hp: Math.floor(baseEnemy.baseHp * scalingFactor),
         attack: Math.floor(baseEnemy.baseAttack * scalingFactor),
+        attackCard: {
+            name: baseEnemy.attackCardName || `${baseEnemy.name} Strike`,
+            baseDamage: Math.floor(baseEnemy.baseAttack * scalingFactor),
+            minMultiplier: damageSpread.min,
+            maxMultiplier: damageSpread.max
+        },
         class: baseEnemy.class,
         isBoss: baseEnemy.isBoss || false,
         round: round
