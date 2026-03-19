@@ -20,12 +20,12 @@ import { AggressiveAI, createAggressiveAI } from '../ai/AggressiveAI.js';
 /**
  * Creates a new Orc instance
  *
- * @param {string} name - The name of the orc (default: "Orc")
+ * @param {string} name - The name of the orc (default: "Orc Warrior")
  * @param {number} maxHp - The maximum health points (default: 100)
  * @param {number} attack - The attack power (default: 18)
  */
 export class Orc extends Enemy {
-    constructor(name = "Orc", maxHp = 100, attack = 18) {
+    constructor(name = "Orc Warrior", maxHp = 100, attack = 18) {
         // Define orc stats - strong and tough
         const stats = {
             defense: 8,       // Good defense
@@ -48,6 +48,9 @@ export class Orc extends Enemy {
         this.isBrutal = true;
         this.buffStacks = 0;
         this.maxBuffStacks = 3;
+        this.attackFrequency = 0.7; // 70% chance to attack - slower, telegraphs attacks
+        this.isCharging = false;
+        this.chargeTurns = 0;
         
         // Initialize AI with moderate aggression (allows buffing)
         this.ai = createAggressiveAI({
@@ -70,6 +73,42 @@ export class Orc extends Enemy {
         
         if (!player) {
             return { success: false, reason: 'no_player_target' };
+        }
+
+        // Handle charging state
+        if (this.isCharging) {
+            this.chargeTurns--;
+            if (this.chargeTurns <= 0) {
+                this.isCharging = false;
+                console.log(`${this.name} finishes charging!`);
+            } else {
+                console.log(`${this.name} is charging... (${this.chargeTurns} turns left)`);
+                return {
+                    success: true,
+                    action: 'charging',
+                    chargeTurns: this.chargeTurns,
+                    message: `${this.name} is gathering strength!`
+                };
+            }
+        }
+
+        // Orcs are slower - may skip turn to prepare (30% chance)
+        if (Math.random() > this.attackFrequency) {
+            // 50% chance to charge, 50% to buff
+            if (Math.random() < 0.5 && this.buffStacks < this.maxBuffStacks) {
+                return this.executeBuff(player, gameState);
+            } else {
+                // Telegraph a big attack
+                this.isCharging = true;
+                this.chargeTurns = 2;
+                console.log(`${this.name} is preparing a powerful strike!`);
+                return {
+                    success: true,
+                    action: 'telegraph',
+                    chargeTurns: this.chargeTurns,
+                    message: `${this.name} readies a devastating attack!`
+                };
+            }
         }
 
         // Use AI to decide action

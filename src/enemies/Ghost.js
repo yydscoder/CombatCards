@@ -18,12 +18,12 @@ import { Enemy } from './Enemy.js';
 /**
  * Creates a new Ghost instance
  *
- * @param {string} name - The name of the ghost (default: "Ghost")
+ * @param {string} name - The name of the ghost (default: "Ghost Wraith")
  * @param {number} maxHp - The maximum health points (default: 55)
  * @param {number} attack - The attack power (default: 15)
  */
 export class Ghost extends Enemy {
-    constructor(name = "Ghost", maxHp = 55, attack = 15) {
+    constructor(name = "Ghost Wraith", maxHp = 55, attack = 15) {
         // Define ghost stats - evasive but fragile
         const stats = {
             defense: 3,       // Low defense (relies on evasion)
@@ -48,6 +48,7 @@ export class Ghost extends Enemy {
         this.phaseChance = 0.35; // 35% base phase chance
         this.phaseCooldown = 0;
         this.fearApplied = false;
+        this.attackFrequency = 0.65; // 65% chance to attack - unpredictable
         
         // Ghost AI state
         this.aiState = 'normal'; // 'normal', 'evasive', 'haunting'
@@ -73,6 +74,22 @@ export class Ghost extends Enemy {
 
         // Update AI state based on HP and turn
         this.updateAIState();
+
+        // Ghosts are ethereal - may phase instead of attacking (35% chance)
+        if (Math.random() > this.attackFrequency) {
+            if (this.phaseCooldown <= 0 && Math.random() < 0.5) {
+                return this.executePhase({ target: 'self' }, player, gameState);
+            } else if (!this.fearApplied) {
+                return this.executeFear({ target: 'player' }, player, gameState);
+            } else {
+                console.log(`${this.name} drifts ominously...`);
+                return {
+                    success: true,
+                    action: 'skip',
+                    message: `${this.name} is gathering ectoplasmic energy!`
+                };
+            }
+        }
 
         // Decide action based on AI state
         const decision = this.decideAction(player, gameState);

@@ -20,12 +20,12 @@ import { DefensiveAI, createDefensiveAI } from '../ai/DefensiveAI.js';
 /**
  * Creates a new Skeleton instance
  *
- * @param {string} name - The name of the skeleton (default: "Skeleton")
+ * @param {string} name - The name of the skeleton (default: "Skeleton Knight")
  * @param {number} maxHp - The maximum health points (default: 70)
  * @param {number} attack - The attack power (default: 12)
  */
 export class Skeleton extends Enemy {
-    constructor(name = "Skeleton", maxHp = 70, attack = 12) {
+    constructor(name = "Skeleton Knight", maxHp = 70, attack = 12) {
         // Define skeleton stats - balanced with good defense
         const stats = {
             defense: 6,       // Moderate defense (bony armor)
@@ -50,6 +50,7 @@ export class Skeleton extends Enemy {
         this.shieldValue = this.hasShield ? Math.floor(maxHp * 0.3) : 0;
         this.reassembleChance = 0.4; // 40% chance to reassemble
         this.hasReassembled = false;
+        this.attackFrequency = 0.6; // 60% chance to attack - defensive, waits for opportunities
         
         // Initialize AI with defensive behavior
         this.ai = createDefensiveAI({
@@ -72,6 +73,26 @@ export class Skeleton extends Enemy {
         
         if (!player) {
             return { success: false, reason: 'no_player_target' };
+        }
+
+        // Skeletons are defensive - may skip turn to defend (40% chance)
+        if (Math.random() > this.attackFrequency) {
+            // Prioritize healing/buffing when not attacking
+            if (this.hp < this.maxHp * 0.5) {
+                return this.executeHeal({ healAmount: Math.floor(this.maxHp * 0.25) }, player, gameState);
+            } else if (!this.hasShield || this.shieldValue < 20) {
+                return this.executeBuff({ 
+                    buffType: 'shield', 
+                    shieldAmount: Math.floor(this.maxHp * 0.2) 
+                }, player, gameState);
+            } else {
+                console.log(`${this.name} raises its guard, waiting for an opening...`);
+                return {
+                    success: true,
+                    action: 'defend',
+                    message: `${this.name} is defending!`
+                };
+            }
         }
 
         // Use AI to decide action

@@ -72,9 +72,11 @@ export class HUD {
         }
 
         if (this.elements.enemyStats) {
+            const enemyName = this.gameState.enemy?.getDisplayName?.() || this.gameState.enemy?.name || 'Enemy';
+            const enemyEmoji = this.gameState.enemy?.emoji || '🟢';
             this.elements.enemyStats.innerHTML = `
                 <div class="hud-block">
-                    <div class="hud-block-title">🟢 Slime</div>
+                    <div class="hud-block-title">${enemyEmoji} ${enemyName}</div>
                     <div class="bar-row">
                         <span class="bar-icon">❤️</span>
                         <div class="bar-track">

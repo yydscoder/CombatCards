@@ -19,7 +19,7 @@
 export const ENEMY_POOL = {
     goblin: {
         id: 'goblin',
-        name: 'Goblin',
+        name: 'Goblin Scout',
         emoji: '👺',
         baseHp: 60,
         baseAttack: 14,
@@ -29,7 +29,7 @@ export const ENEMY_POOL = {
     },
     orc: {
         id: 'orc',
-        name: 'Orc',
+        name: 'Orc Warrior',
         emoji: '👹',
         baseHp: 100,
         baseAttack: 18,
@@ -39,7 +39,7 @@ export const ENEMY_POOL = {
     },
     skeleton: {
         id: 'skeleton',
-        name: 'Skeleton',
+        name: 'Skeleton Knight',
         emoji: '💀',
         baseHp: 70,
         baseAttack: 12,
@@ -49,7 +49,7 @@ export const ENEMY_POOL = {
     },
     ghost: {
         id: 'ghost',
-        name: 'Ghost',
+        name: 'Ghost Wraith',
         emoji: '👻',
         baseHp: 55,
         baseAttack: 15,

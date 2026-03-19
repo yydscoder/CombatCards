@@ -45,6 +45,7 @@ export class Dragon extends Enemy {
         // Dragon-specific properties
         this.type = 'dragon';
         this.isBoss = true;
+        this.attackFrequency = 0.85; // 85% chance to attack - boss but gives some breathing room
         
         // Combat phase tracking
         this.combatPhase = 'initial'; // 'initial', 'enraged', 'desperate'
@@ -83,8 +84,36 @@ export class Dragon extends Enemy {
         // Update combat phase based on HP
         this.updateCombatPhase();
 
+        // Dragons are powerful but may roar/position (15% chance)
+        if (Math.random() > this.attackFrequency) {
+            console.log(`${this.name} roars menacingly!`);
+            return {
+                success: true,
+                action: 'roar',
+                message: `${this.name} lets out a terrifying roar!`
+            };
+        }
+
         // Decide action based on phase and cooldowns
         const decision = this.decideAction(player, gameState);
+
+        // Handle charging state for Devastate
+        if (this.isCharging) {
+            this.chargeTurns--;
+            if (this.chargeTurns <= 0) {
+                this.isCharging = false;
+                // Unleash devastate
+                return this.executeDevastate({ action: 'devastate' }, player, gameState);
+            } else {
+                console.log(`${this.name} continues charging DEVASTATE... (${this.chargeTurns} turns left)`);
+                return {
+                    success: true,
+                    action: 'charging_devastate',
+                    chargeTurns: this.chargeTurns,
+                    message: `${this.name} is gathering destructive energy!`
+                };
+            }
+        }
 
         // Execute the decided action
         switch (decision.action) {
@@ -99,7 +128,16 @@ export class Dragon extends Enemy {
             case 'buff':
                 return this.executeBuff(decision, player, gameState);
             case 'devastate':
-                return this.executeDevastate(decision, player, gameState);
+                // Start charging devastate
+                this.isCharging = true;
+                this.chargeTurns = 2;
+                console.log(`${this.name} begins charging DEVASTATE!`);
+                return {
+                    success: true,
+                    action: 'charging_devastate',
+                    chargeTurns: this.chargeTurns,
+                    message: `${this.name} is charging a devastating attack!`
+                };
             case 'stunned':
                 return { success: false, reason: 'stunned', action: 'stunned' };
             default:

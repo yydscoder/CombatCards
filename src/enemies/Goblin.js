@@ -20,12 +20,12 @@ import { AggressiveAI, createAggressiveAI } from '../ai/AggressiveAI.js';
 /**
  * Creates a new Goblin instance
  *
- * @param {string} name - The name of the goblin (default: "Goblin")
+ * @param {string} name - The name of the goblin (default: "Goblin Scout")
  * @param {number} maxHp - The maximum health points (default: 60)
  * @param {number} attack - The attack power (default: 14)
  */
 export class Goblin extends Enemy {
-    constructor(name = "Goblin", maxHp = 60, attack = 14) {
+    constructor(name = "Goblin Scout", maxHp = 60, attack = 14) {
         // Define goblin stats - fast but fragile
         const stats = {
             defense: 2,       // Low defense
@@ -46,6 +46,7 @@ export class Goblin extends Enemy {
         // Goblin-specific properties
         this.type = 'goblin';
         this.isAggressive = true;
+        this.attackFrequency = 0.9; // 90% chance to attack each turn
         
         // Initialize AI
         this.ai = createAggressiveAI({
@@ -71,6 +72,16 @@ export class Goblin extends Enemy {
         
         if (!player) {
             return { success: false, reason: 'no_player_target' };
+        }
+
+        // Goblins are aggressive - may skip turn to reposition (10% chance)
+        if (Math.random() > this.attackFrequency) {
+            console.log(`${this.name} scuttles around, looking for an opening...`);
+            return {
+                success: true,
+                action: 'skip',
+                message: `${this.name} is positioning for a better attack!`
+            };
         }
 
         // Use AI to decide action

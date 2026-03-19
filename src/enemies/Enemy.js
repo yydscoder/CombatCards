@@ -20,6 +20,8 @@
  * @param {string} emoji - The emoji representation of the enemy
  * @param {Object} stats - Additional enemy statistics (defense, speed, etc.)
  */
+import { cardKeeper, buildEffectLog } from '../core/cardKeeper.js';
+
 export class Enemy {
     constructor(name, maxHp, attack, emoji, stats = {}) {
         // Enemy identification properties
@@ -205,10 +207,20 @@ export class Enemy {
     addEffect(effect) {
         if (!effect || !effect.name) {
             console.warn(`${this.name}.addEffect: invalid effect`, effect);
+            cardKeeper('effect_invalid_enemy', {
+                target: this.name,
+                targetId: this.id,
+                effect: buildEffectLog(effect)
+            });
             return;
         }
         this.activeEffects.push(effect);
         console.log(`[Effect] ${effect.name} applied to ${this.name} (${effect.turnsRemaining ?? effect.duration} turns)`);
+        cardKeeper('effect_applied_enemy', {
+            target: this.name,
+            targetId: this.id,
+            effect: buildEffectLog(effect)
+        });
     }
 
     /**

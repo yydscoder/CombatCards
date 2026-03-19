@@ -12,6 +12,7 @@
 
 // Import configuration constants
 import { GAME_CONFIG } from './config.js';
+import { cardKeeper, buildEffectLog } from './cardKeeper.js';
 
 /**
  * Initializes the game state object
@@ -38,7 +39,7 @@ export function initializeGameState() {
         enemyMaxHp: GAME_CONFIG.ENEMY_MAX_HP, // Maximum enemy health points (HP)
         enemy: null, // Reference to the enemy object
         
-        // Game progression state variables
+        // Game progression state variables for future use
         turnCount: 1, // Current turn number (starts at 1)
         currentPhase: 'player', // Current turn phase ('player', 'enemy', 'end')
         isGameOver: false, // Flag indicating if the game has ended
@@ -113,6 +114,10 @@ export function initializeGameState() {
             if (this.debugMode && GAME_CONFIG.LOG_LEVEL === 'info') {
                 console.log(`Effect added: ${effect.name}`);
             }
+            cardKeeper('effect_applied_player', {
+                target: 'player',
+                effect: buildEffectLog(effect)
+            });
         },
         
         removeEffect: function(effectName) {

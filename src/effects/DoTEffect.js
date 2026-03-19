@@ -7,12 +7,14 @@
  * Supported DoT types:
  * - Poison: Nature-based damage over time
  * - Burn: Fire-based damage over time
- * - Bleed: Physical damage over time
- * - Frost: Ice-based damage over time
- * - Decay: Dark magic damage over time
+ * - Bleed: Physical damage over time TO BE ADDED
+ * - Frost: Ice-based damage over time TO BE ADDED
+ * - Decay: Dark magic damage over time TO BE ADDED
  * 
  * @module effects/DoTEffect
  */
+
+import { cardKeeper, buildEffectLog } from '../core/cardKeeper.js';
 
 /**
  * DoT Effect Types
@@ -111,8 +113,12 @@ export class DoTEffect {
         this.canStack = DoTConfig[this.type]?.stacks || false;
         this.isActive = true;
         this.lastTickDamage = 0;
-        
-        console.log(`DoTEffect created: ${this.name} (${this.damagePerTick} DMG/tick, ${this.duration} turns)`);
+
+        cardKeeper('dot_created', {
+            effect: buildEffectLog(this),
+            damagePerTick: this.damagePerTick,
+            duration: this.duration
+        });
     }
 
     /**
@@ -149,7 +155,11 @@ export class DoTEffect {
             this.isActive = false;
         }
 
-        console.log(`${this.name} DoT tick: ${totalDamage} damage (${this.turnsRemaining} turns remaining)`);
+        cardKeeper('dot_tick', {
+            effect: buildEffectLog(this),
+            damage: totalDamage,
+            turnsRemaining: this.turnsRemaining
+        });
 
         return {
             success: true,
@@ -180,7 +190,11 @@ export class DoTEffect {
             this.turnsRemaining = this.duration;
         }
 
-        console.log(`${this.name} stacked: ${this.stacks}/${this.maxStacks} stacks`);
+        cardKeeper('dot_stacked', {
+            effect: buildEffectLog(this),
+            stacks: this.stacks,
+            maxStacks: this.maxStacks
+        });
         return stacksAdded > 0;
     }
 
@@ -194,7 +208,10 @@ export class DoTEffect {
         if (this.stacks <= 0) {
             this.isActive = false;
         }
-        console.log(`${this.name} stacks reduced: ${this.stacks} remaining`);
+        cardKeeper('dot_unstacked', {
+            effect: buildEffectLog(this),
+            stacks: this.stacks
+        });
     }
 
     /**
@@ -243,7 +260,9 @@ export class DoTManager {
     constructor(target) {
         this.target = target;
         this.effects = new Map();
-        console.log(`DoTManager created for target: ${target?.name || 'unknown'}`);
+        cardKeeper('dot_manager_created', {
+            target: target?.name || 'unknown'
+        });
     }
 
     /**
@@ -258,6 +277,11 @@ export class DoTManager {
         if (existingEffect && existingEffect.canStack) {
             // Stack the existing effect
             const stacksAdded = existingEffect.addStacks(newEffect.stacks);
+            cardKeeper('dot_applied', {
+                action: stacksAdded ? 'stacked' : 'max_stacks',
+                target: this.target?.name || 'unknown',
+                effect: buildEffectLog(existingEffect)
+            });
             return {
                 success: true,
                 action: stacksAdded ? 'stacked' : 'max_stacks',
@@ -267,6 +291,11 @@ export class DoTManager {
         } else if (existingEffect && !existingEffect.canStack) {
             // Refresh duration if can't stack
             existingEffect.turnsRemaining = newEffect.duration;
+            cardKeeper('dot_applied', {
+                action: 'refreshed',
+                target: this.target?.name || 'unknown',
+                effect: buildEffectLog(existingEffect)
+            });
             return {
                 success: true,
                 action: 'refreshed',
@@ -276,6 +305,11 @@ export class DoTManager {
         } else {
             // Add new effect
             this.effects.set(newEffect.type, newEffect);
+            cardKeeper('dot_applied', {
+                action: 'applied',
+                target: this.target?.name || 'unknown',
+                effect: buildEffectLog(newEffect)
+            });
             return {
                 success: true,
                 action: 'applied',
@@ -360,7 +394,10 @@ export class DoTManager {
     removeAll() {
         const count = this.effects.size;
         this.effects.clear();
-        console.log(`All DoT effects removed: ${count} effects cleansed`);
+        cardKeeper('dot_cleansed', {
+            target: this.target?.name || 'unknown',
+            removed: count
+        });
         return count;
     }
 
