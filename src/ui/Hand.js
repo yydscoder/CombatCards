@@ -1062,13 +1062,18 @@ export class Hand {
 
         // Enemy counterattack cooldown and attack
         if (!this.gameState.isGameOver) {
-            this.gameState.enemyAttackCooldown = Math.max(0, (this.gameState.enemyAttackCooldown ?? 0) - 1);
-            if (this.gameState.enemyAttackCooldown <= 0) {
+            const interval = this.gameState.enemyAttackInterval || 1;
+            const currentCd = this.gameState.enemyAttackCooldown ?? interval;
+
+            if (currentCd <= 1) {
                 this.gameState.enemyAttackCooldown = 0;
                 if (this.hud) this.hud.updateAll();
                 this._performEnemyAttack();
-                this.gameState.enemyAttackCooldown = this.gameState.enemyAttackInterval || 1;
+                this.gameState.enemyAttackCooldown = interval;
+            } else {
+                this.gameState.enemyAttackCooldown = currentCd - 1;
             }
+
             if (this.hud) this.hud.updateAll();
         }
 
