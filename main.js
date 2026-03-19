@@ -117,9 +117,13 @@ function startRound() {
     gameState.enemy = roundInfo.enemy;
     gameState.enemyMaxHp = roundInfo.enemyStats.hp;
     gameState.enemyHp = roundInfo.enemyStats.hp;
+    gameState.enemyAttackCooldown = gameState.enemyAttackInterval || 1;
 
     // Update enemy display
     updateEnemyDisplay(roundInfo.enemy, roundInfo.enemyStats);
+    if (window.gameRefs?.hud) {
+        window.gameRefs.hud.updateAll();
+    }
 
     // Show milestone if applicable
     if (roundInfo.milestone) {

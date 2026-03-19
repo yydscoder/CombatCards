@@ -53,7 +53,7 @@ export class HUD {
         if (this.elements.playerStats) {
             this.elements.playerStats.innerHTML = `
                 <div class="hud-block">
-                    <div class="hud-block-title">⚔️ You</div>
+                    <div class="hud-block-title">You</div>
                     <div class="bar-row">
                         <span class="bar-icon">❤️</span>
                         <div class="bar-track">
@@ -72,17 +72,20 @@ export class HUD {
         }
 
         if (this.elements.enemyStats) {
-            const enemyName = this.gameState.enemy?.getDisplayName?.() || this.gameState.enemy?.name || 'Enemy';
-            const enemyEmoji = this.gameState.enemy?.emoji || '🟢';
+            const enemyName = this.gameState.enemy?.name || 'Enemy';
             this.elements.enemyStats.innerHTML = `
                 <div class="hud-block">
-                    <div class="hud-block-title">${enemyEmoji} ${enemyName}</div>
+                    <div class="hud-block-title" id="enemy-name-title">${enemyName}</div>
                     <div class="bar-row">
                         <span class="bar-icon">❤️</span>
                         <div class="bar-track">
                             <div class="bar-fill" id="enemy-health-fill" style="width:100%"></div>
                         </div>
                         <span class="bar-value"><span id="enemy-hp">${this.gameState.enemyHp}</span>/<span>${this.gameState.enemyMaxHp}</span></span>
+                    </div>
+                    <div class="bar-row hud-cd-row">
+                        <span class="bar-icon">CD</span>
+                        <span class="bar-value"><span id="enemy-attack-cd">${this.gameState.enemyAttackCooldown ?? 0}</span></span>
                     </div>
                 </div>`;
         }
@@ -140,6 +143,11 @@ export class HUD {
             return;
         }
 
+        const enemyTitle = document.getElementById('enemy-name-title');
+        if (enemyTitle) {
+            enemyTitle.textContent = this.gameState.enemy?.name || 'Enemy';
+        }
+
         const pct = (this.gameState.enemyHp / this.gameState.enemyMaxHp) * 100;
         healthFill.style.width = `${pct}%`;
         healthFill.style.setProperty('--health-percentage', `${pct}%`);
@@ -148,6 +156,11 @@ export class HUD {
         const hpSpan = document.getElementById('enemy-hp');
         if (hpSpan) hpSpan.textContent = this.gameState.enemyHp;
         else console.warn('[HUD] enemy-hp span NOT FOUND');
+
+        const cdSpan = document.getElementById('enemy-attack-cd');
+        if (cdSpan) {
+            cdSpan.textContent = this.gameState.enemyAttackCooldown ?? 0;
+        }
 
         console.log(
             `[HUD] Enemy bar — HP: ${this.gameState.enemyHp}/${this.gameState.enemyMaxHp}`,

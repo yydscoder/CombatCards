@@ -38,6 +38,8 @@ export function initializeGameState() {
         enemyHp: GAME_CONFIG.ENEMY_START_HP, // Current enemy health points (HP)
         enemyMaxHp: GAME_CONFIG.ENEMY_MAX_HP, // Maximum enemy health points (HP)
         enemy: null, // Reference to the enemy object
+        enemyAttackInterval: 1, // Enemy attacks every N turns
+        enemyAttackCooldown: 1, // Turns remaining until enemy attack
         
         // Game progression state variables for future use
         turnCount: 1, // Current turn number (starts at 1)
@@ -141,6 +143,8 @@ export function initializeGameState() {
             this.playerMaxMana = GAME_CONFIG.PLAYER_MAX_MANA;
             this.enemyHp = GAME_CONFIG.ENEMY_START_HP;
             this.enemyMaxHp = GAME_CONFIG.ENEMY_MAX_HP;
+            this.enemyAttackInterval = 1;
+            this.enemyAttackCooldown = 1;
             this.turnCount = 1;
             this.currentPhase = 'player';
             this.isGameOver = false;

@@ -101,6 +101,13 @@ export class Hand {
             gameState.enemyHp = gameState.enemy.hp;
             gameState.enemyMaxHp = gameState.enemy.maxHp;
         }
+        if (!gameState.enemyAttackInterval) {
+            gameState.enemyAttackInterval = 1;
+        }
+        if (!gameState.enemyAttackCooldown) {
+            gameState.enemyAttackCooldown = gameState.enemyAttackInterval;
+        }
+        gameState.player = this._buildPlayerProxy();
         this.handContainer = document.getElementById('hand');
         this.deckContainer = document.getElementById('deck');
         
@@ -868,8 +875,77 @@ export class Hand {
         this.gameState.gameOverReason = 'player_win';
         if (this.hud) this.hud.showVictory();
         if (this.saveSystem) this.saveSystem.saveWin();
-        if (this.gameOverScreen) {
-            setTimeout(() => this.gameOverScreen.showVictory(), 400);
+        const roundResult = window.survivorMode?.completeRound?.();
+        if (this.gameOverScreen?.showRoundVictory && roundResult?.completeResult) {
+            setTimeout(() => this.gameOverScreen.showRoundVictory(roundResult.completeResult), 400);
+        }
+    }
+
+    _handlePlayerDefeat() {
+        console.log('Player defeated!');
+        this.gameState.isGameOver = true;
+        this.gameState.gameOverReason = 'player_loss';
+        if (this.hud) this.hud.showDefeat();
+        const defeatInfo = window.survivorMode?.onPlayerDefeat?.();
+        if (this.gameOverScreen?.showDefeat) {
+            setTimeout(() => this.gameOverScreen.showDefeat(defeatInfo), 400);
+        }
+    }
+
+    _buildPlayerProxy() {
+        return {
+            takeDamage: (damage, attackInfo = {}) => {
+                return this._applyEnemyDamage(damage, attackInfo);
+            }
+        };
+    }
+
+    _applyEnemyDamage(damage, attackInfo = {}) {
+        const reduction = this.gameState.activeDamageReduction || 0;
+        const rawDamage = Math.max(0, Math.floor(damage));
+        const finalDamage = Math.max(0, Math.floor(rawDamage * (1 - reduction)));
+        this.gameState.updatePlayerHp(this.gameState.playerHp - finalDamage);
+        this.gameState.lastDamageTaken = finalDamage;
+        this.gameState.isCriticalHit = !!attackInfo.isCriticalHit;
+
+        if (this.hud) {
+            this.hud.showDamageFeedback(finalDamage, 'player', !!attackInfo.isCriticalHit);
+            this.hud.updateAll();
+        }
+
+        return {
+            success: true,
+            damageTaken: finalDamage,
+            remainingHp: this.gameState.playerHp,
+            isDead: this.gameState.playerHp <= 0
+        };
+    }
+
+    _performEnemyAttack() {
+        const enemy = this.gameState.enemy;
+        if (!enemy || !enemy.isAlive) {
+            return;
+        }
+
+        if (enemy.isStunned) {
+            console.log(`${enemy.name} is stunned and skips the attack.`);
+            enemy.isStunned = false;
+            return;
+        }
+
+        let result = null;
+        if (typeof enemy.performAction === 'function') {
+            result = enemy.performAction(this.gameState);
+        } else if (typeof enemy.attack === 'function') {
+            result = enemy.attack(this.gameState);
+        }
+
+        if (result?.damage !== undefined && result.damageTaken === undefined) {
+            this._applyEnemyDamage(result.damage, { isCriticalHit: result.isCriticalHit });
+        }
+
+        if (this.gameState.playerHp <= 0 && !this.gameState.isGameOver) {
+            this._handlePlayerDefeat();
         }
     }
 
@@ -888,6 +964,16 @@ export class Hand {
         if (this.gameState.enemyHp <= 0 && !this.gameState.isGameOver) {
             this._handleEnemyDeath();
             return;
+        }
+
+        // Enemy counterattack cooldown and attack
+        if (!this.gameState.isGameOver) {
+            this.gameState.enemyAttackCooldown = Math.max(0, (this.gameState.enemyAttackCooldown ?? 0) - 1);
+            if (this.gameState.enemyAttackCooldown <= 0) {
+                this._performEnemyAttack();
+                this.gameState.enemyAttackCooldown = this.gameState.enemyAttackInterval || 1;
+            }
+            if (this.hud) this.hud.updateAll();
         }
 
         // Advance turn (this will also regenerate mana)
