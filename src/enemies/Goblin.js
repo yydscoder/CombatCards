@@ -31,7 +31,8 @@ export class Goblin extends Enemy {
             defense: 2,       // Low defense
             speed: 1.5,       // High speed - attacks first
             aggression: 0.95, // Very aggressive
-            intelligence: 0.4 // Moderate cunning
+            intelligence: 0.4, // Moderate cunning
+            attackInterval: 1  // Attacks every turn
         };
 
         // Call parent constructor with goblin properties

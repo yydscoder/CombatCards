@@ -31,7 +31,8 @@ export class Orc extends Enemy {
             defense: 8,       // Good defense
             speed: 0.7,       // Slow but powerful
             aggression: 0.7,  // Moderately aggressive
-            intelligence: 0.6 // Tactical fighter
+            intelligence: 0.6, // Tactical fighter
+            attackInterval: 2  // Attacks every 2 turns
         };
 
         // Call parent constructor with orc properties

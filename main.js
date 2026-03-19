@@ -117,7 +117,8 @@ function startRound() {
     gameState.enemy = roundInfo.enemy;
     gameState.enemyMaxHp = roundInfo.enemyStats.hp;
     gameState.enemyHp = roundInfo.enemyStats.hp;
-    gameState.enemyAttackCooldown = gameState.enemyAttackInterval || 1;
+    gameState.enemyAttackInterval = roundInfo.enemy.attackInterval || 1;
+    gameState.enemyAttackCooldown = gameState.enemyAttackInterval;
 
     // Update enemy display
     updateEnemyDisplay(roundInfo.enemy, roundInfo.enemyStats);
@@ -181,6 +182,7 @@ function startNewRun() {
  */
 function completeRound() {
     const roundManager = window.roundManager;
+    const gameState = window.gameRefs.gameState;
     
     // Complete current round
     const completeResult = roundManager.completeRound();
@@ -190,6 +192,14 @@ function completeRound() {
     }
 
     console.log(`💰 Round complete! +${completeResult.goldReward} gold (Total: ${completeResult.totalGold})`);
+
+    // Player progression: small boosts per round
+    const hpGain = 5;
+    const manaGain = (completeResult.round % 2 === 0) ? 1 : 0;
+    gameState.playerMaxHp += hpGain;
+    gameState.playerMaxMana = Math.min(20, gameState.playerMaxMana + manaGain);
+    gameState.updatePlayerHp(gameState.playerMaxHp);
+    gameState.updatePlayerMana(gameState.playerMaxMana);
 
     // Advance to next round
     const nextResult = roundManager.nextRound();

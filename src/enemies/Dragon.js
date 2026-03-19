@@ -30,7 +30,8 @@ export class Dragon extends Enemy {
             defense: 12,      // High defense (scales)
             speed: 1.1,       // Good speed for its size
             aggression: 0.8,  // High aggression
-            intelligence: 0.9 // Very intelligent - adapts tactics
+            intelligence: 0.9, // Very intelligent - adapts tactics
+            attackInterval: 2   // Attacks every 2 turns
         };
 
         // Call parent constructor with dragon properties

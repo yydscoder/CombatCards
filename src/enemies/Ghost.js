@@ -29,7 +29,8 @@ export class Ghost extends Enemy {
             defense: 3,       // Low defense (relies on evasion)
             speed: 1.3,       // High speed - floats quickly
             aggression: 0.6,  // Moderate aggression
-            intelligence: 0.9 // High intelligence - uses tricks
+              intelligence: 0.9, // High intelligence - uses tricks
+              attackInterval: 3  // Attacks every 3 turns
         };
 
         // Call parent constructor with ghost properties

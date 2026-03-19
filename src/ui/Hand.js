@@ -102,7 +102,7 @@ export class Hand {
             gameState.enemyMaxHp = gameState.enemy.maxHp;
         }
         if (!gameState.enemyAttackInterval) {
-            gameState.enemyAttackInterval = 1;
+            gameState.enemyAttackInterval = gameState.enemy?.attackInterval || 1;
         }
         if (!gameState.enemyAttackCooldown) {
             gameState.enemyAttackCooldown = gameState.enemyAttackInterval;
@@ -871,14 +871,18 @@ export class Hand {
      */
     _handleEnemyDeath() {
         console.log('Enemy defeated!');
-        this.gameState.isGameOver = true;
-        this.gameState.gameOverReason = 'player_win';
+        this.gameState.isGameOver = false;
+        this.gameState.gameOverReason = null;
         if (this.hud) this.hud.showVictory();
         if (this.saveSystem) this.saveSystem.saveWin();
         const roundResult = window.survivorMode?.completeRound?.();
         if (this.gameOverScreen?.showRoundVictory && roundResult?.completeResult) {
             setTimeout(() => this.gameOverScreen.showRoundVictory(roundResult.completeResult), 400);
         }
+
+        this.gameState.updatePlayerHp(this.gameState.playerMaxHp);
+        this.gameState.updatePlayerMana(this.gameState.playerMaxMana);
+        if (this.hud) this.hud.updateAll();
     }
 
     _handlePlayerDefeat() {
@@ -903,10 +907,63 @@ export class Hand {
     _applyEnemyDamage(damage, attackInfo = {}) {
         const reduction = this.gameState.activeDamageReduction || 0;
         const rawDamage = Math.max(0, Math.floor(damage));
-        const finalDamage = Math.max(0, Math.floor(rawDamage * (1 - reduction)));
+        let remainingDamage = rawDamage;
+
+        // Absorption effects (bubble shield, flame shield, etc.)
+        if (this.gameState.activeEffects?.length) {
+            for (const fx of this.gameState.activeEffects) {
+                if (remainingDamage <= 0) break;
+
+                if (fx.name === 'bubble_shield' && fx.remainingBubbles > 0) {
+                    const absorbed = Math.min(fx.absorbPerBubble || 0, remainingDamage);
+                    if (absorbed > 0) {
+                        fx.remainingBubbles -= 1;
+                        remainingDamage -= absorbed;
+                        console.log(`[Shield] Bubble absorbed ${absorbed} damage. Bubbles left: ${fx.remainingBubbles}`);
+                        if (fx.remainingBubbles <= 0) {
+                            fx.turnsRemaining = 0;
+                        }
+                    }
+                }
+
+                if (fx.name === 'flame_shield' && fx.remainingShield > 0) {
+                    const absorbed = Math.min(fx.remainingShield, remainingDamage);
+                    fx.remainingShield -= absorbed;
+                    remainingDamage -= absorbed;
+                    console.log(`[Shield] FlameShield absorbed ${absorbed} damage. Shield left: ${fx.remainingShield}`);
+                    if (fx.remainingShield <= 0) {
+                        fx.turnsRemaining = 0;
+                    }
+                }
+            }
+        }
+
+        const finalDamage = Math.max(0, Math.floor(remainingDamage * (1 - reduction)));
         this.gameState.updatePlayerHp(this.gameState.playerHp - finalDamage);
         this.gameState.lastDamageTaken = finalDamage;
         this.gameState.isCriticalHit = !!attackInfo.isCriticalHit;
+
+        // Reflect damage back to enemy
+        let reflectDamage = 0;
+        if (this.gameState.activeEffects?.length && this.gameState.enemy) {
+            for (const fx of this.gameState.activeEffects) {
+                if (fx.type === 'reflection' && fx.reflectDamage) {
+                    reflectDamage += fx.reflectDamage;
+                }
+                if (fx.reflectPercent) {
+                    reflectDamage += Math.floor(finalDamage * fx.reflectPercent);
+                }
+            }
+        }
+
+        if (reflectDamage > 0 && this.gameState.enemy) {
+            this.gameState.updateEnemyHp(this.gameState.enemyHp - reflectDamage);
+            if (this.gameState.enemy.hp !== undefined) {
+                this.gameState.enemy.hp = this.gameState.enemyHp;
+            }
+            console.log(`[Reflect] ${reflectDamage} damage reflected to ${this.gameState.enemy.name}`);
+            if (this.hud) this.hud.showDamageFeedback(reflectDamage, 'enemy', false);
+        }
 
         if (this.hud) {
             this.hud.showDamageFeedback(finalDamage, 'player', !!attackInfo.isCriticalHit);
@@ -947,6 +1004,7 @@ export class Hand {
         if (this.gameState.playerHp <= 0 && !this.gameState.isGameOver) {
             this._handlePlayerDefeat();
         }
+        this._logStatusSnapshot('enemy_attack');
     }
 
     _formatEffectList(effects) {

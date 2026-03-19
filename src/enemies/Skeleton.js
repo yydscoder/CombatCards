@@ -31,7 +31,8 @@ export class Skeleton extends Enemy {
             defense: 6,       // Moderate defense (bony armor)
             speed: 1.0,       // Average speed
             aggression: 0.4,  // Low aggression - tactical
-            intelligence: 0.7 // High intelligence - uses strategy
+              intelligence: 0.7, // High intelligence - uses strategy
+              attackInterval: 2   // Attacks every 2 turns
         };
 
         // Call parent constructor with skeleton properties

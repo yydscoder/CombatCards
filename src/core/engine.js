@@ -323,36 +323,11 @@ export class TurnManager {
      * if the game should end due to win or loss conditions.
      */
     _checkGameOverConditions() {
-        // Check if player has won (enemy HP <= 0)
-        if (this.gameState.enemyHp <= 0) {
-            this.isGameOver = true;
-            this.gameOverReason = 'player_win';
-            console.log('Player victory detected at turn', this.currentTurn);
-            return;
-        }
-        
         // Check if player has lost (player HP <= 0)
         if (this.gameState.playerHp <= 0) {
             this.isGameOver = true;
             this.gameOverReason = 'player_loss';
             console.log('Player defeat detected at turn', this.currentTurn);
-            return;
-        }
-        
-        // Check if turn limit has been reached
-        if (this.currentTurn > GAME_CONFIG.MAX_TURN_COUNT) {
-            this.isGameOver = true;
-            this.gameOverReason = 'turn_limit';
-            console.log('Turn limit reached at turn', this.currentTurn);
-            return;
-        }
-        
-        // Check if turn time limit has been exceeded
-        if (this.turnStartTime && 
-            (performance.now() - this.turnStartTime) > GAME_CONFIG.TURN_TIME_LIMIT_MS) {
-            this.isGameOver = true;
-            this.gameOverReason = 'time_limit';
-            console.log('Turn time limit exceeded at turn', this.currentTurn);
             return;
         }
     }

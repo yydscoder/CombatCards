@@ -35,6 +35,7 @@ export class Enemy {
         this.attackPower = attack; // Base attack power
         this.defense = stats.defense || 0; // Defense value (reduces incoming damage)
         this.speed = stats.speed || 1; // Speed value (affects turn order)
+        this.attackInterval = stats.attackInterval || 1; // Turns between attacks
         
         // Enemy state properties
         this.isAlive = true; // Whether the enemy is currently alive

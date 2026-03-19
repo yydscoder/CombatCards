@@ -25,7 +25,8 @@ export class SlimeEnemy extends Enemy {
             defense: 5,      // Slime has some natural defense
             speed: 0.8,      // Slime is relatively slow
             aggression: 0.6, // Slime is moderately aggressive
-            intelligence: 0.2 // Slime is not very intelligent
+            intelligence: 0.2, // Slime is not very intelligent
+            attackInterval: 2  // Attacks every 2 turns
         };
         
         // Call parent constructor with enemy properties
