@@ -210,7 +210,7 @@
 }
 
 .float-up {
-    animation: floatUp 1s ease-out forwards;
+    animation: floatUp 1.6s ease-out forwards;
 }
 
 /* Card draw animation */

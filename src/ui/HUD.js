@@ -230,14 +230,14 @@ export class HUD {
         element.classList.add('flash-red');
         setTimeout(() => {
             element.classList.remove('flash-red');
-        }, 500);
+        }, 800);
         
         // Add screen shake for significant damage
         if (damage > 5) {
             element.classList.add('screen-shake');
             setTimeout(() => {
                 element.classList.remove('screen-shake');
-            }, 300);
+            }, 600);
         }
         
         // Show floating damage number
@@ -294,7 +294,7 @@ export class HUD {
             if (damageNumber.parentNode) {
                 damageNumber.parentNode.removeChild(damageNumber);
             }
-        }, 1000);
+        }, 1600);
         
         console.log(`Floating damage number shown: ${damage} to ${target}`);
     }
@@ -307,7 +307,7 @@ export class HUD {
             this.elements.hud.classList.add('victory-pulse');
             setTimeout(() => {
                 this.elements.hud.classList.remove('victory-pulse');
-            }, 2000);
+            }, 3000);
         }
         
         console.log('Victory animation triggered');
@@ -321,7 +321,7 @@ export class HUD {
             this.elements.hud.classList.add('defeat-pulse');
             setTimeout(() => {
                 this.elements.hud.classList.remove('defeat-pulse');
-            }, 2000);
+            }, 3000);
         }
         
         console.log('Defeat animation triggered');

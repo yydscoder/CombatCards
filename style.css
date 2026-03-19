@@ -304,24 +304,24 @@ body {
 }
 
 .float-up {
-    animation: floatUp 1s forwards;
+    animation: floatUp 1.6s forwards;
 }
 
 /* Animation classes */
 .flash-red {
-    animation: flashRed 0.5s;
+    animation: flashRed 0.8s;
 }
 
 .screen-shake {
-    animation: screenShake 0.3s;
+    animation: screenShake 0.6s;
 }
 
 .victory-pulse {
-    animation: victoryPulse 2s infinite;
+    animation: victoryPulse 3s infinite;
 }
 
 .defeat-pulse {
-    animation: defeatPulse 2s infinite;
+    animation: defeatPulse 3s infinite;
 }
 
 .card-click-press {

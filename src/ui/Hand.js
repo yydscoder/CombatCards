@@ -949,6 +949,42 @@ export class Hand {
         }
     }
 
+    _formatEffectList(effects) {
+        if (!effects || effects.length === 0) {
+            return 'none';
+        }
+
+        return effects.map(effect => {
+            const name = effect.name || 'unknown';
+            const turns = effect.turnsRemaining ?? effect.duration;
+            const stacks = effect.stacks ? ` x${effect.stacks}` : '';
+            const time = turns !== undefined ? ` (${turns}t)` : '';
+            return `${name}${stacks}${time}`;
+        }).join(', ');
+    }
+
+    _logStatusSnapshot(label) {
+        const playerEffects = this._formatEffectList(this.gameState.activeEffects);
+        const enemyEffects = this._formatEffectList(this.gameState.enemy?.activeEffects);
+        const playerBuffs = {
+            damageBuff: this.gameState.activeDamageBuff,
+            damageReduction: this.gameState.activeDamageReduction
+        };
+        const enemyStatus = {
+            stunned: this.gameState.enemy?.isStunned || false,
+            poisoned: this.gameState.enemy?.isPoisoned || false
+        };
+
+        console.log(
+            `[Status] ${label} | Player HP ${this.gameState.playerHp}/${this.gameState.playerMaxHp}`,
+            `| Player effects: ${playerEffects}`,
+            `| Buffs:`, playerBuffs,
+            `| Enemy ${this.gameState.enemy?.name || 'Enemy'} HP ${this.gameState.enemyHp}/${this.gameState.enemyMaxHp}`,
+            `| Enemy effects: ${enemyEffects}`,
+            `| Debuffs:`, enemyStatus
+        );
+    }
+
     endTurn() {
         console.log('Ending turn...');
 
@@ -970,11 +1006,15 @@ export class Hand {
         if (!this.gameState.isGameOver) {
             this.gameState.enemyAttackCooldown = Math.max(0, (this.gameState.enemyAttackCooldown ?? 0) - 1);
             if (this.gameState.enemyAttackCooldown <= 0) {
+                this.gameState.enemyAttackCooldown = 0;
+                if (this.hud) this.hud.updateAll();
                 this._performEnemyAttack();
                 this.gameState.enemyAttackCooldown = this.gameState.enemyAttackInterval || 1;
             }
             if (this.hud) this.hud.updateAll();
         }
+
+        this._logStatusSnapshot('end_turn');
 
         // Advance turn (this will also regenerate mana)
         if (this.gameState.turnManager) {
