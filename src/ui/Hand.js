@@ -1060,20 +1060,22 @@ export class Hand {
             return;
         }
 
-        // Enemy counterattack cooldown and attack
+        // Enemy turn + cooldown model: CD ticks once per full round (player+enemy)
         if (!this.gameState.isGameOver) {
             const interval = this.gameState.enemyAttackInterval || 1;
-            const currentCd = this.gameState.enemyAttackCooldown ?? interval;
+            let cooldown = this.gameState.enemyAttackCooldown ?? interval;
 
-            if (currentCd <= 1) {
+            // Enemy acts when CD hits 0 on their turn (CD=1 means attack now)
+            if (cooldown <= 1) {
                 this.gameState.enemyAttackCooldown = 0;
                 if (this.hud) this.hud.updateAll();
                 this._performEnemyAttack();
-                this.gameState.enemyAttackCooldown = interval;
+                cooldown = interval;
             } else {
-                this.gameState.enemyAttackCooldown = currentCd - 1;
+                cooldown -= 1;
             }
 
+            this.gameState.enemyAttackCooldown = cooldown;
             if (this.hud) this.hud.updateAll();
         }
 
