@@ -280,35 +280,165 @@ export class HUD {
     updateDotIndicators() {
         // Player DOTs/HoTs
         const playerDotsEl = document.getElementById('player-dots');
+        const playerTooltip = document.getElementById('player-tooltip');
+        
         if (playerDotsEl && this.gameState.activeEffects?.length) {
             const dotEmojis = [];
+            let index = 0;
+            
             for (const effect of this.gameState.activeEffects) {
                 if (effect.healPerTurn) {
-                    dotEmojis.push({ emoji: effect.emoji || '💚', name: effect.name, type: 'hot' });
+                    const turns = effect.turnsRemaining ?? effect.duration ?? '?';
+                    const tooltipData = {
+                        name: effect.name,
+                        source: effect.source || 'Unknown',
+                        healing: effect.healPerTurn,
+                        turns: turns
+                    };
+                    
+                    dotEmojis.push({ 
+                        emoji: effect.emoji || '💚', 
+                        index: index++,
+                        tooltipData: tooltipData
+                    });
                 }
             }
+            
             playerDotsEl.innerHTML = dotEmojis.map(d => 
-                `<span class="dot-emoji" title="${d.name}">${d.emoji}</span>`
+                `<span class="dot-emoji" data-index="${d.index}" data-type="player">${d.emoji}</span>`
             ).join('');
+            
+            // Store tooltip data
+            this._playerTooltips = dotEmojis.reduce((acc, d) => {
+                acc[d.index] = d.tooltipData;
+                return acc;
+            }, {});
+            
+            // Add hover listeners
+            this._addTooltipListeners(playerDotsEl, playerTooltip, 'player');
         } else if (playerDotsEl) {
             playerDotsEl.innerHTML = '';
+            if (playerTooltip) playerTooltip.classList.remove('visible');
         }
 
         // Enemy DOTs
         const enemyDotsEl = document.getElementById('enemy-dots');
+        const enemyTooltip = document.getElementById('enemy-tooltip');
+        
         if (enemyDotsEl && this.gameState.enemy?.activeEffects?.length) {
             const dotEmojis = [];
+            let index = 0;
+            
             for (const effect of this.gameState.enemy.activeEffects) {
-                if (effect.damagePerTurn || effect.damagePerTick || effect.currentDamage || effect.stacks) {
-                    dotEmojis.push({ emoji: effect.emoji || '💀', name: effect.name, type: 'dot' });
+                const isDoT = effect.damagePerTurn || effect.damagePerTick || effect.currentDamage;
+                const isStacking = effect.stacks !== undefined;
+                
+                if (isDoT || isStacking) {
+                    const turns = effect.turnsRemaining ?? effect.duration ?? '?';
+                    const tooltipData = {
+                        name: effect.name,
+                        source: effect.source || 'Unknown',
+                        turns: turns
+                    };
+                    
+                    if (effect.damagePerTurn) {
+                        tooltipData.damagePerTurn = effect.damagePerTurn;
+                        if (effect.stacks > 1) tooltipData.stacks = effect.stacks;
+                    }
+                    if (effect.damagePerTick) {
+                        tooltipData.damagePerTick = effect.damagePerTick;
+                    }
+                    if (effect.currentDamage) {
+                        tooltipData.currentDamage = effect.currentDamage;
+                        tooltipData.nextDamage = Math.floor(effect.currentDamage * (effect.growthMultiplier || 1));
+                    }
+                    if (effect.stacks !== undefined && !effect.damagePerTurn && !effect.currentDamage) {
+                        tooltipData.stacks = effect.stacks;
+                    }
+                    
+                    dotEmojis.push({ 
+                        emoji: effect.emoji || '💀', 
+                        index: index++,
+                        tooltipData: tooltipData
+                    });
                 }
             }
+            
             enemyDotsEl.innerHTML = dotEmojis.map(d => 
-                `<span class="dot-emoji" title="${d.name}">${d.emoji}</span>`
+                `<span class="dot-emoji" data-index="${d.index}" data-type="enemy">${d.emoji}</span>`
             ).join('');
+            
+            // Store tooltip data
+            this._enemyTooltips = dotEmojis.reduce((acc, d) => {
+                acc[d.index] = d.tooltipData;
+                return acc;
+            }, {});
+            
+            // Add hover listeners
+            this._addTooltipListeners(enemyDotsEl, enemyTooltip, 'enemy');
         } else if (enemyDotsEl) {
             enemyDotsEl.innerHTML = '';
+            if (enemyTooltip) enemyTooltip.classList.remove('visible');
         }
+    }
+
+    /**
+     * Adds hover listeners to DOT emojis for tooltip display
+     */
+    _addTooltipListeners(container, tooltipElement, type) {
+        if (!container) return;
+        
+        const emojis = container.querySelectorAll('.dot-emoji');
+        emojis.forEach(emoji => {
+            emoji.addEventListener('mouseenter', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                const tooltips = type === 'player' ? this._playerTooltips : this._enemyTooltips;
+                const data = tooltips[index];
+                
+                if (data && tooltipElement) {
+                    // Build tooltip HTML
+                    let html = `<div class="tooltip-title">${data.name}</div>`;
+                    html += `<div class="tooltip-source">Source: ${data.source}</div>`;
+                    
+                    if (data.healing) {
+                        html += `<div class="tooltip-stat">Healing: <span class="tooltip-stat-value">${data.healing} HP/turn</span></div>`;
+                    }
+                    if (data.damagePerTurn) {
+                        let dmgText = `${data.damagePerTurn} DMG/turn`;
+                        if (data.stacks) dmgText += ` (${data.stacks} stacks = ${data.damagePerTurn * data.stacks}/turn)`;
+                        html += `<div class="tooltip-stat">Damage: <span class="tooltip-stat-value">${dmgText}</span></div>`;
+                    }
+                    if (data.damagePerTick) {
+                        html += `<div class="tooltip-stat">Damage: <span class="tooltip-stat-value">${data.damagePerTick}/tick</span></div>`;
+                    }
+                    if (data.currentDamage) {
+                        html += `<div class="tooltip-stat">Current: <span class="tooltip-stat-value">${data.currentDamage}</span> (next: ${data.nextDamage})</div>`;
+                    }
+                    if (data.stacks && !data.damagePerTurn && !data.currentDamage) {
+                        html += `<div class="tooltip-stat">Stacks: <span class="tooltip-stat-value">${data.stacks}</span></div>`;
+                    }
+                    
+                    html += `<div class="tooltip-stat">Turns: <span class="tooltip-stat-value">${data.turns}</span></div>`;
+                    
+                    tooltipElement.innerHTML = html;
+                    tooltipElement.className = `dot-tooltip visible ${type === 'enemy' ? 'enemy-tooltip' : ''}`;
+                    
+                    // Position tooltip
+                    const rect = e.target.getBoundingClientRect();
+                    const containerRect = container.getBoundingClientRect();
+                    
+                    tooltipElement.style.left = '50%';
+                    tooltipElement.style.top = '-10px';
+                    tooltipElement.style.transform = 'translateX(-50%)';
+                }
+            });
+            
+            emoji.addEventListener('mouseleave', () => {
+                if (tooltipElement) {
+                    tooltipElement.classList.remove('visible');
+                }
+            });
+        });
     }
     
     /**
