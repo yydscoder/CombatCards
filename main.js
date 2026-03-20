@@ -123,6 +123,7 @@ function startRound() {
     // Update enemy display
     updateEnemyDisplay(roundInfo.enemy, roundInfo.enemyStats);
     if (window.gameRefs?.hud) {
+        window.gameRefs.hud.reinitEnemyHealthBar(); // Re-init with new enemy max HP
         window.gameRefs.hud.updateAll();
     }
 

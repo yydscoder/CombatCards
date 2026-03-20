@@ -80,6 +80,7 @@ export class HUD {
 
         if (this.elements.enemyStats) {
             const enemyName = this.gameState.enemy?.name || 'Enemy';
+            const enemyMaxHp = this.gameState.enemyMaxHp || 80;
             this.elements.enemyStats.innerHTML = `
                 <div class="hud-block">
                     <div class="hud-block-title" id="enemy-name-title">${enemyName}</div>
@@ -88,7 +89,7 @@ export class HUD {
                         <div class="bar-track">
                             <div class="bar-fill" id="enemy-health-fill" style="width:100%"></div>
                         </div>
-                        <span class="bar-value"><span id="enemy-hp">${this.gameState.enemyHp}</span>/<span>${this.gameState.enemyMaxHp}</span></span>
+                        <span class="bar-value"><span id="enemy-hp">${this.gameState.enemyHp}</span>/<span id="enemy-max-hp">${enemyMaxHp}</span></span>
                     </div>
                     <div class="bar-row shield-row" id="enemy-shield-row" style="display:none;">
                         <span class="bar-icon">🛡️</span>
@@ -159,6 +160,40 @@ export class HUD {
     }
     
     /**
+     * Re-initializes enemy health bar with new max HP (called when enemy changes)
+     */
+    reinitEnemyHealthBar() {
+        if (this.elements.enemyStats) {
+            const enemyName = this.gameState.enemy?.name || 'Enemy';
+            const enemyMaxHp = this.gameState.enemyMaxHp || 80;
+            this.elements.enemyStats.innerHTML = `
+                <div class="hud-block">
+                    <div class="hud-block-title" id="enemy-name-title">${enemyName}</div>
+                    <div class="bar-row">
+                        <span class="bar-icon">❤️</span>
+                        <div class="bar-track">
+                            <div class="bar-fill" id="enemy-health-fill" style="width:100%"></div>
+                        </div>
+                        <span class="bar-value"><span id="enemy-hp">${this.gameState.enemyHp}</span>/<span id="enemy-max-hp">${enemyMaxHp}</span></span>
+                    </div>
+                    <div class="bar-row shield-row" id="enemy-shield-row" style="display:none;">
+                        <span class="bar-icon">🛡️</span>
+                        <div class="bar-track shield-track">
+                            <div class="bar-fill shield-fill" id="enemy-shield-fill" style="width:100%"></div>
+                        </div>
+                        <span class="bar-value"><span id="enemy-shield">0</span></span>
+                    </div>
+                    <div class="bar-row hud-cd-row">
+                        <span class="bar-icon">CD</span>
+                        <span class="bar-value"><span id="enemy-attack-cd">${this.gameState.enemyAttackCooldown ?? 0}</span></span>
+                    </div>
+                </div>`;
+            this.updateEnemyHealthBar();
+            console.log(`[HUD] Enemy health bar re-initialized with max HP: ${enemyMaxHp}`);
+        }
+    }
+
+    /**
      * Updates the enemy health bar visually
      */
     updateEnemyHealthBar() {
@@ -173,8 +208,14 @@ export class HUD {
             enemyTitle.textContent = this.gameState.enemy?.name || 'Enemy';
         }
 
+        // Update max HP display if it changed
+        const enemyMaxHpSpan = document.getElementById('enemy-max-hp');
+        if (enemyMaxHpSpan) {
+            enemyMaxHpSpan.textContent = this.gameState.enemyMaxHp;
+        }
+
         const pct = (this.gameState.enemyHp / this.gameState.enemyMaxHp) * 100;
-        
+
         // Force update with setProperty for reliability
         healthFill.style.setProperty('width', `${pct}%`, 'important');
         healthFill.style.setProperty('--health-percentage', `${pct}%`);
@@ -193,7 +234,6 @@ export class HUD {
             `[HUD] Enemy bar — HP: ${this.gameState.enemyHp}/${this.gameState.enemyMaxHp}`,
             `| Percentage: ${pct.toFixed(1)}%`,
             `| Width set: ${healthFill.style.width}`,
-            `| enemyMaxHp in state: ${this.gameState.enemyMaxHp}`,
             `| Element:`, healthFill
         );
     }
