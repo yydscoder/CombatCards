@@ -122,7 +122,7 @@ export class HUD {
         }
 
         const hpPct = (this.gameState.playerHp / this.gameState.playerMaxHp) * 100;
-        
+
         // Force update with setProperty for reliability (avoids CSS specificity issues)
         healthFill.style.setProperty('width', `${hpPct}%`, 'important');
         healthFill.style.setProperty('--health-percentage', `${hpPct}%`);
@@ -145,10 +145,9 @@ export class HUD {
         const computedWidth = window.getComputedStyle(healthFill).width;
         console.log(
             `[HUD] Player bar — HP: ${this.gameState.playerHp}/${this.gameState.playerMaxHp}`,
-            `| Mana: ${this.gameState.playerMana}/${this.gameState.playerMaxMana}`,
-            `| Width set: ${hpPct.toFixed(1)}%`,
-            `| Computed width: ${computedWidth}`,
-            `| Element:`, healthFill
+            `| Percentage: ${hpPct.toFixed(1)}%`,
+            `| Width set: ${healthFill.style.width}`,
+            `| Computed width: ${computedWidth}`
         );
         
         // Detect desync
@@ -175,7 +174,9 @@ export class HUD {
         }
 
         const pct = (this.gameState.enemyHp / this.gameState.enemyMaxHp) * 100;
-        healthFill.style.width = `${pct}%`;
+        
+        // Force update with setProperty for reliability
+        healthFill.style.setProperty('width', `${pct}%`, 'important');
         healthFill.style.setProperty('--health-percentage', `${pct}%`);
         healthFill.className = 'bar-fill ' + this._hpColorClass(pct);
 
@@ -190,8 +191,8 @@ export class HUD {
 
         console.log(
             `[HUD] Enemy bar — HP: ${this.gameState.enemyHp}/${this.gameState.enemyMaxHp}`,
-            `| Width set: ${pct.toFixed(1)}%`,
-            `| Computed width: ${healthFill.style.width}`,
+            `| Percentage: ${pct.toFixed(1)}%`,
+            `| Width set: ${healthFill.style.width}`,
             `| enemyMaxHp in state: ${this.gameState.enemyMaxHp}`,
             `| Element:`, healthFill
         );

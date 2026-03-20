@@ -5,12 +5,12 @@
  * Players fight through consecutive rounds with increasing difficulty.
  * Each round spawns one enemy, with stats scaling based on round number.
  *
- * Round progression:
- * - Rounds 1-3: Only Goblins (tutorial)
- * - Rounds 4-6: Goblins + Orcs
- * - Rounds 7-9: Goblins + Orcs + Skeletons
- * - Rounds 10-14: All enemies except Dragon
- * - Rounds 15+: Any enemy including Dragon (boss rounds every 5)
+ * Round progression (ACCELERATED):
+ * - Rounds 1-2: Goblins (tutorial)
+ * - Rounds 3-5: Goblins + Orcs
+ * - Rounds 6-8: Goblins + Orcs + Skeletons
+ * - Rounds 9-11: + Ghosts
+ * - Rounds 12+: Any enemy including Dragon (boss rounds every 5)
  */
 
 /**
@@ -21,8 +21,8 @@ export const ENEMY_POOL = {
         id: 'goblin',
         name: 'Goblin Scout',
         emoji: '👺',
-        baseHp: 60,
-        baseAttack: 14,
+        baseHp: 50,
+        baseAttack: 12,
         attackCardName: 'Jagged Slash',
         minRound: 1,
         weight: 3, // Spawn weight (higher = more common)
@@ -32,10 +32,10 @@ export const ENEMY_POOL = {
         id: 'orc',
         name: 'Orc Warrior',
         emoji: '👹',
-        baseHp: 100,
-        baseAttack: 18,
+        baseHp: 80,
+        baseAttack: 16,
         attackCardName: 'Crushing Cleave',
-        minRound: 4,
+        minRound: 3,
         weight: 2,
         class: 'brute'
     },
@@ -43,10 +43,10 @@ export const ENEMY_POOL = {
         id: 'skeleton',
         name: 'Skeleton Knight',
         emoji: '💀',
-        baseHp: 70,
-        baseAttack: 12,
+        baseHp: 60,
+        baseAttack: 14,
         attackCardName: 'Bone Strike',
-        minRound: 7,
+        minRound: 5,
         weight: 2,
         class: 'defensive'
     },
@@ -55,21 +55,21 @@ export const ENEMY_POOL = {
         name: 'Ghost Wraith',
         emoji: '👻',
         baseHp: 55,
-        baseAttack: 15,
+        baseAttack: 18,
         attackCardName: 'Haunt Swipe',
-        minRound: 10,
-        weight: 1,
+        minRound: 8,
+        weight: 1.5,
         class: 'special'
     },
     dragon: {
         id: 'dragon',
         name: 'Ancient Dragon',
         emoji: '🐉',
-        baseHp: 200,
-        baseAttack: 25,
+        baseHp: 180,
+        baseAttack: 28,
         attackCardName: 'Ancient Fury',
-        minRound: 15,
-        weight: 0.5, // Rare spawn
+        minRound: 12,
+        weight: 1, // More common boss
         class: 'boss',
         isBoss: true
     }
@@ -133,12 +133,12 @@ export function getAvailableEnemies(round) {
  */
 export function selectEnemyForRound(round, forceBoss = false) {
     const available = getAvailableEnemies(round);
-    
-    // Boss rounds every 5 rounds after round 15
-    if (round >= 15 && round % 5 === 0) {
+
+    // Boss rounds every 5 rounds starting at round 10
+    if (round >= 10 && round % 5 === 0) {
         forceBoss = true;
     }
-    
+
     if (forceBoss) {
         // Filter to boss enemies only
         const bosses = available.filter(e => e.isBoss || e.class === 'boss');
@@ -164,16 +164,16 @@ export function selectEnemyForRound(round, forceBoss = false) {
 
 /**
  * Calculates scaled enemy stats based on round number
- * Stats increase by 10% per round
+ * Stats increase by 12% per round for faster progression
  *
  * @param {Object} baseEnemy - Base enemy configuration
  * @param {number} round - Current round number
  * @returns {Object} Scaled enemy stats
  */
 export function scaleEnemyStats(baseEnemy, round) {
-    const scalingFactor = 1 + ((round - 1) * 0.06); // 6% per round for slower ramp
+    const scalingFactor = 1 + ((round - 1) * 0.15); // 15% per round for rapid progression
     const damageSpread = getDamageSpreadForClass(baseEnemy.class, round);
-    
+
     return {
         name: baseEnemy.name,
         type: baseEnemy.id,
