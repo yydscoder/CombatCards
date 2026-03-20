@@ -160,19 +160,43 @@ function updateEnemyDisplay(enemy, stats) {
 function startNewRun() {
     const roundManager = window.roundManager;
     const gameState = window.gameRefs.gameState;
-    
+    const hand = window.gameRefs.hand;
+    const hud = window.gameRefs.hud;
+
+    console.log('[startNewRun] Starting new run...');
+
     // Reset run progress
     roundManager.resetRun();
-    
-    // Reset game state
+
+    // Reset game state (this resets HP, mana, effects, etc.)
     gameState.reset();
-    
+
+    // Clear the hand UI
+    if (hand) {
+        hand.cards = [];
+        if (hand.handContainer) {
+            hand.handContainer.innerHTML = '';
+        }
+    }
+
     // Update display
     updateRoundDisplay(roundManager.getStats());
-    
-    // Start first round
-    startRound();
-    
+
+    // Start first round (this will set up the enemy)
+    const roundResult = startRound();
+
+    // Re-initialize hand with new cards (after round starts so enemy exists)
+    if (hand) {
+        hand.gameState = gameState;
+        hand.initHand();
+        console.log('[startNewRun] Hand re-initialized with', hand.cards.length, 'cards');
+    }
+
+    // Update HUD
+    if (hud) {
+        hud.updateAll();
+    }
+
     console.log('🆕 New run started! Good luck!');
 }
 
