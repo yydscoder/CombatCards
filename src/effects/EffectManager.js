@@ -165,8 +165,13 @@ export class EffectManager {
 
             console.log(`[EffectManager] Checking effect: ${fx.name}, type=${fx.type}, currentDamage=${fx.currentDamage}, growthMultiplier=${fx.growthMultiplier}, damagePerTick=${fx.damagePerTick}`);
 
+            // Delayed eruption (Magma) - check FIRST (most specific)
+            if (fx.type === EffectType.DELAYED_ERUPTION && fx.currentDamage) {
+                console.log(`[EffectManager] MATCH: Delayed Eruption (Magma)`);
+                result = this._processDelayedEruption(fx);
+            }
             // Nature DoT with growth (WildGrowth) - check FIRST (most specific)
-            if (fx.type === EffectType.NATURE_DOT && fx.currentDamage && fx.growthMultiplier) {
+            else if (fx.type === EffectType.NATURE_DOT && fx.currentDamage && fx.growthMultiplier) {
                 console.log(`[EffectManager] MATCH: WildGrowth growing DoT`);
                 result = this._processGrowingDoT(fx);
             }

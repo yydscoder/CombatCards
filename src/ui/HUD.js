@@ -278,26 +278,54 @@ export class HUD {
      * Updates DOT indicator emojis on player and enemy areas
      */
     updateDotIndicators() {
-        // Player DOTs/HoTs
+        // Player buffs (shields, HoTs, etc.)
         const playerDotsEl = document.getElementById('player-dots');
         const playerTooltip = document.getElementById('player-tooltip');
         
-        if (playerDotsEl && this.gameState.activeEffects?.length) {
+        if (playerDotsEl) {
             const dotEmojis = [];
             let index = 0;
             
-            for (const effect of this.gameState.activeEffects) {
-                if (effect.healPerTurn) {
-                    const turns = effect.turnsRemaining ?? effect.duration ?? '?';
+            // Check active effects for HoTs
+            if (this.gameState.activeEffects?.length) {
+                for (const effect of this.gameState.activeEffects) {
+                    if (effect.healPerTurn) {
+                        const turns = effect.turnsRemaining ?? effect.duration ?? '?';
+                        const tooltipData = {
+                            name: effect.name,
+                            source: effect.source || 'Unknown',
+                            healing: effect.healPerTurn,
+                            turns: turns,
+                            type: 'hot'
+                        };
+                        
+                        dotEmojis.push({ 
+                            emoji: effect.emoji || '💚', 
+                            index: index++,
+                            tooltipData: tooltipData
+                        });
+                    }
+                }
+            }
+            
+            // Check shields from shield system
+            if (this.gameState.playerShields) {
+                for (const [name, shield] of Object.entries(this.gameState.playerShields)) {
+                    const turns = shield.turnsRemaining ?? shield.duration ?? '?';
                     const tooltipData = {
-                        name: effect.name,
-                        source: effect.source || 'Unknown',
-                        healing: effect.healPerTurn,
-                        turns: turns
+                        name: name.replace(/_/g, ' ').toUpperCase(),
+                        source: 'Shield',
+                        shield: shield.remaining || (shield.count * (shield.absorbPerBubble || 0)),
+                        turns: turns,
+                        type: 'shield'
                     };
                     
+                    if (shield.reflectPercent) {
+                        tooltipData.reflect = `${Math.round(shield.reflectPercent * 100)}%`;
+                    }
+                    
                     dotEmojis.push({ 
-                        emoji: effect.emoji || '💚', 
+                        emoji: '🛡️', 
                         index: index++,
                         tooltipData: tooltipData
                     });
@@ -316,9 +344,6 @@ export class HUD {
             
             // Add hover listeners
             this._addTooltipListeners(playerDotsEl, playerTooltip, 'player');
-        } else if (playerDotsEl) {
-            playerDotsEl.innerHTML = '';
-            if (playerTooltip) playerTooltip.classList.remove('visible');
         }
 
         // Enemy DOTs
@@ -332,8 +357,9 @@ export class HUD {
             for (const effect of this.gameState.enemy.activeEffects) {
                 const isDoT = effect.damagePerTurn || effect.damagePerTick || effect.currentDamage;
                 const isStacking = effect.stacks !== undefined;
+                const isDelayedEruption = effect.type === 'delayed_eruption';
                 
-                if (isDoT || isStacking) {
+                if (isDoT || isStacking || isDelayedEruption) {
                     const turns = effect.turnsRemaining ?? effect.duration ?? '?';
                     const tooltipData = {
                         name: effect.name,
@@ -351,6 +377,10 @@ export class HUD {
                     if (effect.currentDamage) {
                         tooltipData.currentDamage = effect.currentDamage;
                         tooltipData.nextDamage = Math.floor(effect.currentDamage * (effect.growthMultiplier || 1));
+                    }
+                    if (isDelayedEruption) {
+                        tooltipData.eruption = true;
+                        tooltipData.eruptionDamage = Math.floor(effect.currentDamage * (effect.eruptionMultiplier || 3));
                     }
                     if (effect.stacks !== undefined && !effect.damagePerTurn && !effect.currentDamage) {
                         tooltipData.stacks = effect.stacks;
@@ -400,33 +430,43 @@ export class HUD {
                     let html = `<div class="tooltip-title">${data.name}</div>`;
                     html += `<div class="tooltip-source">Source: ${data.source}</div>`;
                     
-                    if (data.healing) {
+                    // Player shield tooltips
+                    if (data.type === 'shield') {
+                        html += `<div class="tooltip-stat">Shield: <span class="tooltip-stat-value">${data.shield}</span></div>`;
+                        if (data.reflect) {
+                            html += `<div class="tooltip-stat">Reflect: <span class="tooltip-stat-value">${data.reflect}</span></div>`;
+                        }
+                        html += `<div class="tooltip-stat">Turns: <span class="tooltip-stat-value">${data.turns}</span></div>`;
+                    }
+                    // Player HoT tooltips
+                    else if (data.healing) {
                         html += `<div class="tooltip-stat">Healing: <span class="tooltip-stat-value">${data.healing} HP/turn</span></div>`;
+                        html += `<div class="tooltip-stat">Turns: <span class="tooltip-stat-value">${data.turns}</span></div>`;
                     }
-                    if (data.damagePerTurn) {
-                        let dmgText = `${data.damagePerTurn} DMG/turn`;
-                        if (data.stacks) dmgText += ` (${data.stacks} stacks = ${data.damagePerTurn * data.stacks}/turn)`;
-                        html += `<div class="tooltip-stat">Damage: <span class="tooltip-stat-value">${dmgText}</span></div>`;
+                    // Enemy DoT tooltips
+                    else {
+                        if (data.eruption) {
+                            html += `<div class="tooltip-stat">Current: <span class="tooltip-stat-value">${data.currentDamage}</span></div>`;
+                            html += `<div class="tooltip-stat">Eruption: <span class="tooltip-stat-value">${data.eruptionDamage}</span></div>`;
+                        } else if (data.damagePerTurn) {
+                            let dmgText = `${data.damagePerTurn} DMG/turn`;
+                            if (data.stacks) dmgText += ` (${data.stacks} stacks = ${data.damagePerTurn * data.stacks}/turn)`;
+                            html += `<div class="tooltip-stat">Damage: <span class="tooltip-stat-value">${dmgText}</span></div>`;
+                        } else if (data.damagePerTick) {
+                            html += `<div class="tooltip-stat">Damage: <span class="tooltip-stat-value">${data.damagePerTick}/tick</span></div>`;
+                        } else if (data.currentDamage) {
+                            html += `<div class="tooltip-stat">Current: <span class="tooltip-stat-value">${data.currentDamage}</span> (next: ${data.nextDamage})</div>`;
+                        } else if (data.stacks) {
+                            html += `<div class="tooltip-stat">Stacks: <span class="tooltip-stat-value">${data.stacks}</span></div>`;
+                        }
+                        
+                        html += `<div class="tooltip-stat">Turns: <span class="tooltip-stat-value">${data.turns}</span></div>`;
                     }
-                    if (data.damagePerTick) {
-                        html += `<div class="tooltip-stat">Damage: <span class="tooltip-stat-value">${data.damagePerTick}/tick</span></div>`;
-                    }
-                    if (data.currentDamage) {
-                        html += `<div class="tooltip-stat">Current: <span class="tooltip-stat-value">${data.currentDamage}</span> (next: ${data.nextDamage})</div>`;
-                    }
-                    if (data.stacks && !data.damagePerTurn && !data.currentDamage) {
-                        html += `<div class="tooltip-stat">Stacks: <span class="tooltip-stat-value">${data.stacks}</span></div>`;
-                    }
-                    
-                    html += `<div class="tooltip-stat">Turns: <span class="tooltip-stat-value">${data.turns}</span></div>`;
                     
                     tooltipElement.innerHTML = html;
                     tooltipElement.className = `dot-tooltip visible ${type === 'enemy' ? 'enemy-tooltip' : ''}`;
                     
                     // Position tooltip
-                    const rect = e.target.getBoundingClientRect();
-                    const containerRect = container.getBoundingClientRect();
-                    
                     tooltipElement.style.left = '50%';
                     tooltipElement.style.top = '-10px';
                     tooltipElement.style.transform = 'translateX(-50%)';
