@@ -5,6 +5,7 @@
 import { initializeGameLoop } from './src/core/engine.js';
 import { initializeGameState } from './src/core/state.js';
 import { initializeSaveSystem } from './src/core/SaveSystem.js';
+import { GAME_CONFIG } from './src/core/config.js';
 
 // Import UI modules
 import { initializeHUD } from './src/ui/HUD.js';
@@ -162,6 +163,7 @@ function startNewRun() {
     const gameState = window.gameRefs.gameState;
     const hand = window.gameRefs.hand;
     const hud = window.gameRefs.hud;
+    const turnManager = gameState.turnManager;
 
     console.log('[startNewRun] Starting new run...');
 
@@ -170,6 +172,11 @@ function startNewRun() {
 
     // Reset game state (this resets HP, mana, effects, etc.)
     gameState.reset();
+
+    // Reset turn manager
+    if (turnManager) {
+        turnManager.reset();
+    }
 
     // Clear the hand UI
     if (hand) {
@@ -185,6 +192,10 @@ function startNewRun() {
     // Start first round (this will set up the enemy)
     const roundResult = startRound();
 
+    // Set starting mana explicitly for turn 1
+    gameState.updatePlayerMana(GAME_CONFIG.PLAYER_START_MANA);
+    console.log(`[startNewRun] Mana set to ${gameState.playerMana}/${gameState.playerMaxMana}`);
+
     // Re-initialize hand with new cards (after round starts so enemy exists)
     if (hand) {
         hand.gameState = gameState;
@@ -192,7 +203,7 @@ function startNewRun() {
         console.log('[startNewRun] Hand re-initialized with', hand.cards.length, 'cards');
     }
 
-    // Update HUD
+    // Force update HUD
     if (hud) {
         hud.updateAll();
     }
