@@ -73,9 +73,9 @@ export class WildGrowth extends Card {
 
     /**
      * Executes the WildGrowth card's effect
-     * 
+     *
      * Applies a growing DoT that doubles each turn.
-     * 
+     *
      * @param {Object} gameState - The current game state object
      * @param {Object} target - The target of the card's effect
      * @returns {Object} Result object containing success status and details
@@ -87,7 +87,13 @@ export class WildGrowth extends Card {
             return { success: false, reason: 'no_target' };
         }
 
-        // Create wild growth effect
+        // Validate enemy exists
+        if (!gameState.enemy) {
+            console.warn('No enemy available for WildGrowth effect');
+            return { success: false, reason: 'no_enemy' };
+        }
+
+        // Create wild growth effect with damage doubling tracking
         const growthEffect = {
             name: 'wild_growth',
             type: 'nature_dot',
@@ -109,8 +115,8 @@ export class WildGrowth extends Card {
             gameState.lastDamageDealt = initialTick;
         }
 
-        // Add effect to game state
-        if (typeof gameState.enemy?.addEffect === 'function') {
+        // Add effect to enemy
+        if (typeof gameState.enemy.addEffect === 'function') {
             gameState.enemy.addEffect(growthEffect);
         }
 

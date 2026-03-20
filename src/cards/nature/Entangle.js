@@ -75,9 +75,9 @@ export class Entangle extends Card {
 
     /**
      * Executes the Entangle card's effect
-     * 
+     *
      * Wraps the enemy in vines, stunning them.
-     * 
+     *
      * @param {Object} gameState - The current game state object
      * @param {Object} target - The target of the card's effect
      * @returns {Object} Result object containing success status and details
@@ -87,6 +87,12 @@ export class Entangle extends Card {
         if (!target) {
             console.warn('No target provided for Entangle effect');
             return { success: false, reason: 'no_target' };
+        }
+
+        // Validate enemy exists
+        if (!gameState.enemy) {
+            console.warn('No enemy available for Entangle effect');
+            return { success: false, reason: 'no_enemy' };
         }
 
         // Apply initial damage
@@ -112,8 +118,9 @@ export class Entangle extends Card {
         // Create DoT from constriction
         const dotEffect = {
             name: 'constriction',
-            type: 'nature_dot',
+            type: 'damage_over_time',
             damagePerTick: this.dotDamage,
+            damagePerTurn: this.dotDamage,
             duration: this.dotDuration,
             turnsRemaining: this.dotDuration,
             source: this.name,
@@ -121,7 +128,7 @@ export class Entangle extends Card {
         };
 
         // Apply effects
-        if (typeof gameState.enemy?.addEffect === 'function') {
+        if (typeof gameState.enemy.addEffect === 'function') {
             gameState.enemy.addEffect(stunEffect);
             gameState.enemy.addEffect(dotEffect);
         }

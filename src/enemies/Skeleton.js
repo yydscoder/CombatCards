@@ -260,7 +260,7 @@ export class Skeleton extends Enemy {
 
         // Call parent takeDamage
         const wasAlive = this.isAlive;
-        const result = super.takeDamage(damage, attackInfo);
+        const result = super.takeDamage(damage, attackInfo, gameState);
 
         // Check for reassembly when defeated
         if (wasAlive && !this.isAlive && !this.hasReassembled && Math.random() < this.reassembleChance) {

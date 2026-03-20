@@ -68,7 +68,7 @@ export class Enemy {
      * @param {Object} attackInfo - Information about the attack (type, critical hit, etc.)
      * @returns {Object} Result object containing damage taken and status
      */
-    takeDamage(damage, attackInfo = {}) {
+    takeDamage(damage, attackInfo = {}, gameState = null) {
         // Guard: already dead
         if (!this.isAlive) {
             return { success: true, damageTaken: 0, remainingHp: 0, isDead: true, wasCriticalHit: false };
@@ -79,42 +79,47 @@ export class Enemy {
             console.warn(`Invalid damage value: ${damage}. Setting to 0.`);
             damage = 0;
         }
-        
+
         // Calculate final damage after defense reduction
         let finalDamage = damage;
-        
+
         // Apply defense reduction (defense reduces damage by up to 50%)
         if (this.defense > 0) {
             const defenseReduction = Math.min(this.defense / 100, 0.5); // Max 50% reduction
             finalDamage = Math.max(1, finalDamage * (1 - defenseReduction));
         }
-        
+
         // Apply critical hit multiplier if present
         if (attackInfo.isCriticalHit) {
             finalDamage *= attackInfo.criticalMultiplier || 1.5;
         }
-        
+
         // Apply any additional modifiers
         if (attackInfo.elementalBonus) {
             finalDamage *= attackInfo.elementalBonus;
         }
-        
+
         // Round down to nearest integer
         finalDamage = Math.floor(finalDamage);
-        
+
         // Update enemy HP
         const newHp = this.hp - finalDamage;
         this.hp = Math.max(0, newHp);
-        
+
+        // Sync with gameState if provided (single source of truth)
+        if (gameState && typeof gameState.enemyHp !== 'undefined') {
+            gameState.enemyHp = this.hp;
+        }
+
         // Update alive status
         this.isAlive = this.hp > 0;
-        
+
         // Update last action timestamp
         this.lastActionTimestamp = Date.now();
-        
+
         // Log the damage taken for debugging
         console.log(`${this.name} took ${finalDamage} damage. HP: ${this.hp}/${this.maxHp}`);
-        
+
         // Return result object
         return {
             success: true,

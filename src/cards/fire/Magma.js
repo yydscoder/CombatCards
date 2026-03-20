@@ -99,23 +99,44 @@ export class Magma extends Card {
             return { success: false, reason: 'no_target' };
         }
 
+        // Validate enemy exists
+        if (!gameState.enemy) {
+            console.warn('No enemy available for Magma effect');
+            return { success: false, reason: 'no_enemy' };
+        }
+
+        // Check for existing magma pool (don't stack)
+        const existingMagma = gameState.enemy.activeEffects?.find(
+            effect => effect.name === 'magma_pool'
+        );
+
+        if (existingMagma) {
+            console.warn('Magma pool already exists on target');
+            return {
+                success: false,
+                reason: 'already_active',
+                message: 'Magma pool already active!'
+            };
+        }
+
         // Create magma pool effect
         const magmaEffect = {
             name: 'magma_pool',
+            type: 'delayed_eruption',
             initialDamage: this.initialDamage,
             currentDamage: this.initialDamage,
+            tickDamage: this.initialDamage,
             turnsRemaining: this.eruptionTurn,
             maxTurns: this.eruptionTurn,
             growthMultiplier: this.growthMultiplier,
             eruptionMultiplier: this.eruptionMultiplier,
             source: this.name,
-            type: 'delayed_eruption',
-            tickDamage: this.initialDamage
+            emoji: '🌋'
         };
 
-        // Add effect to game state
-        if (typeof gameState.addEffect === 'function') {
-            gameState.addEffect(magmaEffect);
+        // Add effect to enemy (magma affects enemy, not player)
+        if (typeof gameState.enemy.addEffect === 'function') {
+            gameState.enemy.addEffect(magmaEffect);
         }
 
         // Apply initial small damage (the "first bubble" of magma)
@@ -152,82 +173,20 @@ export class Magma extends Card {
 
     /**
      * Calculates the predicted eruption damage
-     * 
+     *
      * @returns {number} The damage at eruption
      */
     calculateEruptionDamage() {
         // Damage doubles each turn, then multiplied by eruption multiplier
         let eruptionDamage = this.initialDamage;
-        
+
         for (let i = 1; i < this.eruptionTurn; i++) {
             eruptionDamage *= this.growthMultiplier;
         }
-        
+
         eruptionDamage *= this.eruptionMultiplier;
-        
+
         return Math.floor(eruptionDamage);
-    }
-
-    /**
-     * Processes the magma pool tick (called at end of turn)
-     * 
-     * @param {Object} gameState - The current game state object
-     * @param {Object} magmaEffect - The magma effect to process
-     * @returns {Object} Tick result
-     */
-    processTick(gameState, magmaEffect) {
-        if (!magmaEffect || magmaEffect.name !== 'magma_pool') {
-            return { success: false, reason: 'invalid_effect' };
-        }
-
-        // Decrease turns remaining
-        magmaEffect.turnsRemaining--;
-        
-        // Calculate current damage (doubles each turn)
-        const turnsElapsed = this.eruptionTurn - magmaEffect.turnsRemaining;
-        magmaEffect.currentDamage = Math.floor(
-            this.initialDamage * Math.pow(this.growthMultiplier, turnsElapsed)
-        );
-        magmaEffect.tickDamage = magmaEffect.currentDamage;
-
-        // Check if eruption turn
-        if (magmaEffect.turnsRemaining <= 0) {
-            // ERUPTION!
-            const eruptionDamage = Math.floor(
-                magmaEffect.currentDamage * this.eruptionMultiplier
-            );
-            
-            const newEnemyHp = gameState.enemyHp - eruptionDamage;
-            gameState.updateEnemyHp(newEnemyHp);
-            gameState.lastDamageDealt = eruptionDamage;
-
-            console.log(`MAGMA ERUPTION! ${eruptionDamage} catastrophic damage!`);
-
-            return {
-                success: true,
-                isEruption: true,
-                damage: eruptionDamage,
-                message: `MAGMA ERUPTION! ${eruptionDamage} damage!`
-            };
-        } else {
-            // Regular tick damage
-            const newEnemyHp = gameState.enemyHp - magmaEffect.currentDamage;
-            gameState.updateEnemyHp(newEnemyHp);
-            gameState.lastDamageDealt = magmaEffect.currentDamage;
-
-            console.log(
-                `Magma tick: ${magmaEffect.currentDamage} damage ` +
-                `(${magmaEffect.turnsRemaining} turns until eruption)`
-            );
-
-            return {
-                success: true,
-                isEruption: false,
-                damage: magmaEffect.currentDamage,
-                turnsRemaining: magmaEffect.turnsRemaining,
-                message: `Magma burns for ${magmaEffect.currentDamage} damage`
-            };
-        }
     }
 
     /**
@@ -248,8 +207,8 @@ export class Magma extends Card {
         // Check if the card is not on cooldown
         const isNotOnCooldown = !this.cooldown || this.cooldown <= 0;
 
-        // Check if magma pool already exists (don't stack)
-        const hasExistingMagma = gameState.activeEffects?.some(
+        // Check if magma pool already exists on enemy (don't stack)
+        const hasExistingMagma = gameState.enemy?.activeEffects?.some(
             effect => effect.name === 'magma_pool'
         ) || false;
 

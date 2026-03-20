@@ -64,6 +64,7 @@ import { Overgrowth } from '../cards/nature/Overgrowth.js';
 
 import { DamageCalculator } from '../combat/DamageCalculator.js';
 import { SlimeEnemy } from '../enemies/SlimeEnemy.js';
+import { createEffectManager } from '../effects/EffectManager.js';
 
 /**
  * Hand class - Manages the player's hand of cards
@@ -94,6 +95,10 @@ export class Hand {
 
         // Damage calculator for combat
         this.damageCalculator = new DamageCalculator();
+
+        // Effect manager for centralized effect processing
+        this.effectManager = createEffectManager(gameState);
+        this.effectManager.setHUD(hud);
 
         // Create enemy if none exists
         if (!gameState.enemy) {
@@ -397,7 +402,7 @@ export class Hand {
         // Prevent default behavior
         event.preventDefault();
         event.stopPropagation();
-        
+
         // Log the card click
         console.log(`Hand card clicked: ${card.name} (ID: ${card.id})`);
 
@@ -411,30 +416,68 @@ export class Hand {
         // Deduct mana
         this.gameState.updatePlayerMana(this.gameState.playerMana - card.cost);
 
+        // Consume applicable buffs before executing card effect
+        const buffResult = this.effectManager.consumeBuffsForCard(card);
+
         const effectTarget = card.effect?.target || 'enemy';
 
         if (effectTarget === 'self') {
             // ── Self-targeted card (heal, mana restore, shield, buff) ──
             this._applyPlayerEffect(card);
+            
+            // Remove consumed buff AFTER card effect completes
+            if (buffResult.consumed && buffResult.buff?.name) {
+                this.effectManager.removeConsumedBuff(buffResult.buff.name, 'player');
+            }
         } else {
             // ── Enemy-targeted card (damage, DoT, stacking effects) ──
             // Route through each card's own executeEffect so that DoT effects
             // (Whirlpool, Overgrowth, Ignite, Magma, etc.) get registered.
             if (this.gameState.enemy) {
+                // Apply buff effects to card if applicable
+                if (buffResult.consumed) {
+                    if (buffResult.guaranteedCrit) {
+                        // Override card's crit chance for guaranteed crit
+                        card._originalCritChance = card.critChance;
+                        card.critChance = 1.0;
+                    }
+                    // Store damage multiplier for card to use
+                    card._activeDamageMultiplier = buffResult.damageMultiplier;
+                }
+
                 const result = card.executeEffect(this.gameState, this.gameState.enemy);
+
+                // Remove consumed buff AFTER card effect completes
+                if (buffResult.consumed && buffResult.buff?.name) {
+                    this.effectManager.removeConsumedBuff(buffResult.buff.name, 'player');
+                }
+
+                // Restore original crit chance if overridden
+                if (buffResult.guaranteedCrit && card._originalCritChance !== undefined) {
+                    card.critChance = card._originalCritChance;
+                    delete card._originalCritChance;
+                }
+                if (card._activeDamageMultiplier !== undefined) {
+                    delete card._activeDamageMultiplier;
+                }
 
                 if (!result?.success) {
                     // Refund mana — card effect failed (e.g. effect already active)
                     this.gameState.updatePlayerMana(this.gameState.playerMana + card.cost);
+                    
+                    // Revert buff consumption if card effect failed
+                    if (buffResult.consumed && buffResult.buff) {
+                        buffResult.buff.consumed = false;
+                        console.log(`Buff ${buffResult.buff.name} reverted (card effect failed)`);
+                    }
+                    
                     console.warn(`${card.name} effect failed (${result?.reason || 'unknown'}). Mana refunded.`);
                     this.addVisualFeedback(card, 'failure');
                     return;
                 }
 
-                // executeEffect uses gameState.updateEnemyHp(); keep enemy object in sync
-                if (this.gameState.enemy.hp !== undefined) {
-                    this.gameState.enemy.hp = this.gameState.enemyHp;
-                }
+                // Sync enemy HP after card effect
+                this._syncEnemyHP();
 
                 const damageDealt = result.damage || 0;
                 const isCrit     = result.isCriticalHit || false;
@@ -443,7 +486,8 @@ export class Hand {
                     `Attack Used — ${card.name} dealt ${damageDealt} damage` +
                     `${isCrit ? ' (CRIT!)' : ''}` +
                     ` | Enemy HP: ${this.gameState.enemyHp}/${this.gameState.enemyMaxHp}` +
-                    (result.statusEffects?.length ? ` | DoT applied: ${result.statusEffects.map(e => e.name).join(', ')}` : '')
+                    (result.statusEffects?.length ? ` | DoT applied: ${result.statusEffects.map(e => e.name).join(', ')}` : '') +
+                    (buffResult.consumed ? ` | Buff consumed: ${buffResult.buff?.name}` : '')
                 );
 
                 // Show HUD damage feedback and update all values
@@ -518,34 +562,29 @@ export class Hand {
             case 'heal_over_time': {
                 const perTick = card.healPerTurn || card.effect?.value || 3;
                 const dur     = card.duration || 3;
-                // Apply immediate first tick
-                this.gameState.updatePlayerHp(this.gameState.playerHp + perTick);
                 console.log(
                     `[Hand] REGEN — ${card.name}:`,
                     `+${perTick} HP per turn for ${dur} turns`,
-                    `| first tick applied now`,
-                    `| HP: ${hpBefore} → ${this.gameState.playerHp}/${this.gameState.playerMaxHp}`
+                    `| HP: ${hpBefore}/${this.gameState.playerMaxHp}`
                 );
-                if (this.hud) this.hud.showDamageFeedback(perTick, 'player', false);
-                // Register remaining ticks so endTurn() can process them
-                if (dur > 1) {
-                    const hotEffect = {
-                        name: card.name.toLowerCase().replace(/\s+/g, '_'),
-                        healPerTurn: perTick,
-                        duration: dur,
-                        turnsRemaining: dur - 1, // first tick already applied
-                        source: card.name,
-                        type: 'heal_over_time',
-                        emoji: '💚'
-                    };
-                    if (typeof this.gameState.addEffect === 'function') {
-                        this.gameState.addEffect(hotEffect);
-                    } else {
-                        this.gameState.activeEffects = this.gameState.activeEffects || [];
-                        this.gameState.activeEffects.push(hotEffect);
-                    }
-                    console.log(`[Hand] REGEN registered: ${dur - 1} more ticks of +${perTick} HP/turn`);
+                // Register ALL ticks (including first) to be processed at turn end
+                // This ensures consistent timing and prevents double-healing
+                const hotEffect = {
+                    name: card.name.toLowerCase().replace(/\s+/g, '_'),
+                    healPerTurn: perTick,
+                    duration: dur,
+                    turnsRemaining: dur, // All ticks processed at turn end
+                    source: card.name,
+                    type: 'heal_over_time',
+                    emoji: '💚'
+                };
+                if (typeof this.gameState.addEffect === 'function') {
+                    this.gameState.addEffect(hotEffect);
+                } else {
+                    this.gameState.activeEffects = this.gameState.activeEffects || [];
+                    this.gameState.activeEffects.push(hotEffect);
                 }
+                console.log(`[Hand] REGEN registered: ${dur} ticks of +${perTick} HP/turn (processed at turn end)`);
                 break;
             }
 
@@ -736,134 +775,28 @@ export class Hand {
 
     /**
      * Processes all active DoT / HoT / buff effects at the end of each turn.
-     * Applies per-turn healing or damage, decrements turnsRemaining, and
-     * removes expired effects.  Called by endTurn() before advancing the turn.
+     * Delegates to EffectManager for centralized processing.
+     * Called by endTurn() before advancing the turn.
      */
     _processActiveEffects() {
-        const gs = this.gameState;
-        let anyChanged = false;
+        const results = this.effectManager.processAllEffects();
 
-        // ── Player effects (HoT, Magma pool, damage buffs, etc.) ──────────────
-        if (gs.activeEffects?.length) {
-            const remaining = [];
-
-            for (const fx of gs.activeEffects) {
-                // Heal-over-time  (Regen, Regrow, Lifebloom …)
-                if (fx.healPerTurn && fx.healPerTurn > 0) {
-                    const heal = fx.healPerTurn;
-                    gs.updatePlayerHp(gs.playerHp + heal);
-                    console.log(
-                        `[HoT] ${fx.emoji || '💚'} ${fx.name}:`,
-                        `+${heal} HP | HP now ${gs.playerHp}/${gs.playerMaxHp}`,
-                        `| ${fx.turnsRemaining - 1} ticks left`
-                    );
-                    if (this.hud) this.hud.showDamageFeedback(heal, 'player', false);
-                    anyChanged = true;
-                }
-
-                // Delayed eruption — Magma pool grows each tick then erupts
-                if (fx.type === 'delayed_eruption') {
-                    if (fx.turnsRemaining === 1) {
-                        // Final tick: full eruption burst
-                        const eruptDmg = Math.floor(
-                            fx.currentDamage * (fx.eruptionMultiplier || 3)
-                        );
-                        gs.updateEnemyHp(gs.enemyHp - eruptDmg);
-                        console.log(`[Magma] 🌋 ERUPTION! ${eruptDmg} damage to enemy!`);
-                        if (this.hud) this.hud.showDamageFeedback(eruptDmg, 'enemy', false);
-                    } else {
-                        // Intermediate tick: deal current damage, then grow it
-                        const tickDmg = fx.tickDamage || fx.currentDamage;
-                        gs.updateEnemyHp(gs.enemyHp - tickDmg);
-                        fx.currentDamage = Math.floor(
-                            fx.currentDamage * (fx.growthMultiplier || 1.5)
-                        );
-                        console.log(
-                            `[Magma] 🌋 tick: −${tickDmg} to enemy`,
-                            `| grows to ${fx.currentDamage}`,
-                            `| ${fx.turnsRemaining - 1} turns to eruption`
-                        );
-                        if (this.hud) this.hud.showDamageFeedback(tickDmg, 'enemy', false);
-                    }
-                    anyChanged = true;
-                }
-
-                // Decrement and keep if still alive
-                fx.turnsRemaining = (fx.turnsRemaining || 1) - 1;
-                if (fx.turnsRemaining > 0) {
-                    remaining.push(fx);
-                } else {
-                    console.log(`[Effect] ${fx.name} expired`);
-                }
-            }
-
-            gs.activeEffects = remaining;
+        // Update HUD if there were any changes
+        if ((results.playerEffects?.length || results.enemyEffects?.length) && this.hud) {
+            this.hud.updateAll();
         }
 
-        // ── Enemy effects (burn, DoT, debuffs) ───────────────────────────────
-        if (gs.enemy?.activeEffects?.length) {
-            const remaining = [];
+        return results;
+    }
 
-            for (const fx of gs.enemy.activeEffects) {
-                // Standard damage-over-time  (Whirlpool: damagePerTurn)
-                if (fx.type === 'damage_over_time' && fx.damagePerTurn) {
-                    const dmg = fx.damagePerTurn;
-                    gs.updateEnemyHp(gs.enemyHp - dmg);
-                    console.log(
-                        `[DoT] ${fx.emoji || '💧'} ${fx.name}:`,
-                        `−${dmg} to enemy | HP now ${gs.enemyHp}`,
-                        `| ${(fx.turnsRemaining || 1) - 1} turns left`
-                    );
-                    if (this.hud) this.hud.showDamageFeedback(dmg, 'enemy', false);
-                    anyChanged = true;
-                }
-
-                // Nature DoT  (Overgrowth: damagePerTick)
-                if (fx.type === 'nature_dot' && fx.damagePerTick) {
-                    const dmg = fx.damagePerTick;
-                    gs.updateEnemyHp(gs.enemyHp - dmg);
-                    console.log(
-                        `[DoT] ${fx.emoji || '🌿'} ${fx.name}:`,
-                        `−${dmg} to enemy | HP now ${gs.enemyHp}`,
-                        `| ${(fx.turnsRemaining || 1) - 1} turns left`
-                    );
-                    if (this.hud) this.hud.showDamageFeedback(dmg, 'enemy', false);
-                    anyChanged = true;
-                }
-
-                // Stacking burn  (Ignite: burnDamage × stacks)
-                if (fx.type === 'stacking_burn') {
-                    const dmg = Math.floor(fx.burnDamage * (fx.stacks || 1));
-                    if (dmg > 0) {
-                        gs.updateEnemyHp(gs.enemyHp - dmg);
-                        console.log(
-                            `[DoT] 🔥 ${fx.name}:`,
-                            `−${dmg} (${fx.burnDamage}×${fx.stacks} stacks) to enemy`,
-                            `| HP now ${gs.enemyHp}`
-                        );
-                        if (this.hud) this.hud.showDamageFeedback(dmg, 'enemy', false);
-                        anyChanged = true;
-                    }
-                }
-
-                // Decrement duration  (effects may use turnsRemaining or duration)
-                const hasTurns = fx.turnsRemaining !== undefined;
-                if (hasTurns) {
-                    fx.turnsRemaining -= 1;
-                    if (fx.turnsRemaining > 0) remaining.push(fx);
-                    else console.log(`[Effect] ${fx.name} expired`);
-                } else if (fx.duration !== undefined) {
-                    fx.duration -= 1;
-                    if (fx.duration > 0) remaining.push(fx);
-                    else console.log(`[Effect] ${fx.name} expired`);
-                }
-                // if neither field exists just let the effect expire
-            }
-
-            gs.enemy.activeEffects = remaining;
+    /**
+     * Syncs enemy HP between gameState.enemyHp and gameState.enemy.hp
+     * This ensures consistency across the game state
+     */
+    _syncEnemyHP() {
+        if (this.gameState.enemy && this.gameState.enemy.hp !== undefined) {
+            this.gameState.enemy.hp = this.gameState.enemyHp;
         }
-
-        if (anyChanged && this.hud) this.hud.updateAll();
     }
 
     /**
@@ -908,6 +841,25 @@ export class Hand {
         const reduction = this.gameState.activeDamageReduction || 0;
         const rawDamage = Math.max(0, Math.floor(damage));
         let remainingDamage = rawDamage;
+
+        // Check for FrostBite damage reduction stacks on enemy
+        // FrostBite reduces enemy damage by 10% per stack, max 5 stacks = 50%
+        let frostBiteReduction = 0;
+        if (this.gameState.enemy?.activeEffects?.length) {
+            const frostBiteEffect = this.gameState.enemy.activeEffects.find(
+                effect => effect.name === 'frostbite' || effect.type === 'frostbite'
+            );
+            if (frostBiteEffect?.stacks) {
+                // 10% reduction per stack, max 50%
+                frostBiteReduction = Math.min(frostBiteEffect.stacks * 0.10, 0.50);
+                console.log(`[FrostBite] ${frostBiteEffect.stacks} stacks: -${frostBiteReduction * 100}% enemy damage`);
+            }
+        }
+
+        // Apply FrostBite reduction
+        if (frostBiteReduction > 0) {
+            remainingDamage = Math.floor(remainingDamage * (1 - frostBiteReduction));
+        }
 
         // Absorption effects (bubble shield, flame shield, etc.)
         if (this.gameState.activeEffects?.length) {
@@ -984,9 +936,49 @@ export class Hand {
             return;
         }
 
-        if (enemy.isStunned) {
-            console.log(`${enemy.name} is stunned and skips the attack.`);
-            enemy.isStunned = false;
+        // Check for crowd control effects that skip enemy turn
+        const ccEffects = ['stun', 'freeze', 'entangled', 'paralyzed', 'sleep'];
+        const hasCC = enemy.activeEffects?.some(
+            effect => ccEffects.includes(effect.name.toLowerCase())
+        );
+
+        // Also check legacy isStunned flag
+        if (enemy.isStunned || hasCC) {
+            // Find the CC effect and decrement its duration
+            const ccEffect = enemy.activeEffects?.find(
+                effect => ccEffects.includes(effect.name.toLowerCase())
+            );
+
+            if (ccEffect) {
+                console.log(`${enemy.name} is affected by ${ccEffect.name} and skips the attack.`);
+                // Remove the effect if it's a single-turn stun without turnsRemaining
+                if (ccEffect.turnsRemaining === undefined && ccEffect.duration === undefined) {
+                    enemy.removeEffect(ccEffect.name);
+                }
+            } else {
+                console.log(`${enemy.name} is stunned and skips the attack.`);
+                enemy.isStunned = false;
+            }
+            return;
+        }
+
+        // Check for miss chance effects (Whirlpool, Roots, MushroomCloud)
+        let missChance = 0;
+        if (enemy.activeEffects?.length) {
+            for (const effect of enemy.activeEffects) {
+                if (effect.missChance) {
+                    missChance += effect.missChance;
+                }
+            }
+        }
+
+        // Cap miss chance at 75%
+        missChance = Math.min(missChance, 0.75);
+
+        // Roll for miss
+        if (missChance > 0 && Math.random() < missChance) {
+            console.log(`${enemy.name}'s attack missed! (Miss chance: ${missChance * 100}%)`);
+            this._logStatusSnapshot('enemy_attack_missed');
             return;
         }
 
@@ -1049,10 +1041,8 @@ export class Hand {
         // Tick DoT / HoT effects before the new turn's mana is granted
         this._processActiveEffects();
 
-        // Keep enemy object HP in sync after DoT ticks
-        if (this.gameState.enemy?.hp !== undefined) {
-            this.gameState.enemy.hp = this.gameState.enemyHp;
-        }
+        // Sync enemy HP after DoT ticks
+        this._syncEnemyHP();
 
         // Check if DoT killed the enemy
         if (this.gameState.enemyHp <= 0 && !this.gameState.isGameOver) {

@@ -99,20 +99,18 @@ export class Ignite extends Card {
             return { success: false, reason: 'no_target' };
         }
 
-        // Find or create ignite effect on enemy
-        let igniteEffect = null;
-        let existingStacks = 0;
-        
-        if (gameState.enemy && gameState.enemy.activeEffects) {
-            const existingIndex = gameState.enemy.activeEffects.findIndex(
-                effect => effect.name === 'ignite_burn'
-            );
-            
-            if (existingIndex !== -1) {
-                igniteEffect = gameState.enemy.activeEffects[existingIndex];
-                existingStacks = igniteEffect.stacks || 0;
-            }
+        // Validate enemy exists
+        if (!gameState.enemy) {
+            console.warn('No enemy available for Ignite effect');
+            return { success: false, reason: 'no_enemy' };
         }
+
+        // Find or create ignite effect on enemy
+        let igniteEffect = gameState.enemy.activeEffects?.find(
+            effect => effect.name === 'ignite_burn'
+        );
+
+        let existingStacks = igniteEffect?.stacks || 0;
 
         // Calculate new stack count
         let newStacks = Math.min(existingStacks + 1, this.maxStacks);
@@ -125,16 +123,18 @@ export class Ignite extends Card {
             explosionDamage = Math.floor(
                 this.burnDamage * newStacks * this.explosionMultiplier
             );
-            
+
             // Apply explosion damage
             const newEnemyHp = gameState.enemyHp - explosionDamage;
             gameState.updateEnemyHp(newEnemyHp);
-            
-            // Reset stacks after explosion
-            newStacks = 0;
-            igniteEffect = null;
+
+            // Remove ignite effect after explosion
+            if (igniteEffect) {
+                gameState.enemy.removeEffect('ignite_burn');
+            }
+
             explosionOccurred = true;
-            
+
             console.log(
                 `IGNITE EXPLOSION! ${this.maxStacks} stacks detonated for ${explosionDamage} damage!`
             );
@@ -143,20 +143,22 @@ export class Ignite extends Card {
             if (!igniteEffect) {
                 igniteEffect = {
                     name: 'ignite_burn',
+                    type: 'stacking_burn',
                     burnDamage: this.burnDamage,
                     stacks: newStacks,
+                    turnsRemaining: this.burnDuration,
                     duration: this.burnDuration,
                     source: this.name,
-                    type: 'stacking_burn',
-                    maxStacks: this.maxStacks
+                    maxStacks: this.maxStacks,
+                    emoji: '✨'
                 };
-                
-                if (typeof gameState.enemy?.addEffect === 'function') {
+
+                if (typeof gameState.enemy.addEffect === 'function') {
                     gameState.enemy.addEffect(igniteEffect);
                 }
             } else {
                 igniteEffect.stacks = newStacks;
-                igniteEffect.duration = this.burnDuration; // Refresh duration
+                igniteEffect.turnsRemaining = this.burnDuration; // Refresh duration
             }
         }
 
@@ -177,7 +179,7 @@ export class Ignite extends Card {
                 : `Ignite: ${newStacks}/${this.maxStacks} stacks (${totalBurnPerTurn}/turn)`,
             damage: explosionDamage,
             healing: 0,
-            statusEffects: igniteEffect ? [igniteEffect] : [],
+            statusEffects: igniteEffect && !explosionOccurred ? [igniteEffect] : [],
             isCriticalHit: false,
             burnApplied: !explosionOccurred,
             currentStacks: newStacks,

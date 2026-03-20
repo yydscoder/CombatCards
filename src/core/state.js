@@ -91,7 +91,12 @@ export function initializeGameState() {
         updateEnemyHp: function(newHp) {
             // Clamp the new HP value between 0 and max HP
             this.enemyHp = Math.max(0, Math.min(this.enemyMaxHp, newHp));
-            
+
+            // Sync with enemy object if it exists (single source of truth)
+            if (this.enemy && typeof this.enemy.hp !== 'undefined') {
+                this.enemy.hp = this.enemyHp;
+            }
+
             // Log the HP change if debug mode is enabled
             if (this.debugMode && GAME_CONFIG.LOG_LEVEL === 'info') {
                 console.log(`Enemy HP updated: ${this.enemyHp}/${this.enemyMaxHp}`);

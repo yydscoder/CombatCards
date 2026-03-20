@@ -237,13 +237,13 @@ export class CardRenderer {
                 // Calculate damage using damage calculator
                 const damageResult = this.damageCalculator.calculateCardDamage(card, this.gameState.enemy);
 
-                // Apply damage to enemy
+                // Apply damage to enemy - pass gameState to sync HP values
                 const takeDamageResult = this.gameState.enemy.takeDamage(damageResult.finalDamage, {
                     isCriticalHit: damageResult.details.isCriticalHit,
                     criticalMultiplier: damageResult.details.criticalMultiplier
-                });
+                }, this.gameState);
 
-                // Update game state with new enemy HP
+                // Update game state with new enemy HP (already synced via takeDamage)
                 this.gameState.updateEnemyHp(this.gameState.enemy.hp);
 
                 // Update enemy HP in HUD

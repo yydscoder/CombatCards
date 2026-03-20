@@ -76,9 +76,9 @@ export class Overgrowth extends Card {
 
     /**
      * Executes the Overgrowth card's effect
-     * 
+     *
      * Covers the enemy in suffocating plant growth.
-     * 
+     *
      * @param {Object} gameState - The current game state object
      * @param {Object} target - The target of the card's effect
      * @returns {Object} Result object containing success status and details
@@ -88,6 +88,12 @@ export class Overgrowth extends Card {
         if (!target) {
             console.warn('No target provided for Overgrowth effect');
             return { success: false, reason: 'no_target' };
+        }
+
+        // Validate enemy exists
+        if (!gameState.enemy) {
+            console.warn('No enemy available for Overgrowth effect');
+            return { success: false, reason: 'no_enemy' };
         }
 
         // Apply initial damage
@@ -101,8 +107,9 @@ export class Overgrowth extends Card {
         // Create overgrowth DoT effect
         const overgrowthEffect = {
             name: 'overgrowth',
-            type: 'nature_dot',
+            type: 'damage_over_time',
             damagePerTick: this.dotDamage,
+            damagePerTurn: this.dotDamage,
             duration: this.dotDuration,
             turnsRemaining: this.dotDuration,
             source: this.name,
@@ -123,7 +130,7 @@ export class Overgrowth extends Card {
         };
 
         // Apply effects
-        if (typeof gameState.enemy?.addEffect === 'function') {
+        if (typeof gameState.enemy.addEffect === 'function') {
             gameState.enemy.addEffect(overgrowthEffect);
             gameState.enemy.addEffect(weakenDebuff);
         }

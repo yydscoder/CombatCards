@@ -82,10 +82,10 @@ export class FlameStrike extends Card {
 
     /**
      * Executes the FlameStrike card's effect
-     * 
+     *
      * Empowers the caster's next fire spell with enhanced damage
      * and guaranteed critical strike.
-     * 
+     *
      * @param {Object} gameState - The current game state object
      * @param {Object} target - The target of the card's effect (self)
      * @returns {Object} Result object containing success status and details
@@ -100,23 +100,21 @@ export class FlameStrike extends Card {
         // Create the FlameStrike buff effect
         const flameStrikeEffect = {
             name: 'flame_strike_buff',
+            type: 'next_card_buff',
             damageBonus: this.damageBonus,
             guaranteedCrit: this.guaranteedCrit,
             duration: this.duration,
             turnsRemaining: this.duration,
             source: this.name,
-            type: 'next_card_buff',
-            appliesTo: this.appliesTo,
-            consumed: false
+            appliesTo: 'fire',
+            consumed: false,
+            emoji: '⚔️'
         };
 
         // Add effect to game state
         if (typeof gameState.addEffect === 'function') {
             gameState.addEffect(flameStrikeEffect);
         }
-
-        // Store in gameState for card play checking
-        gameState.activeFlameStrike = flameStrikeEffect;
 
         console.log(
             `FlameStrike activated! Next fire card: +${this.damageBonus} damage, ` +
@@ -145,44 +143,6 @@ export class FlameStrike extends Card {
     }
 
     /**
-     * Consumes the FlameStrike buff when a fire card is played
-     * 
-     * @param {Object} gameState - The current game state object
-     * @param {Object} card - The fire card being played
-     * @returns {Object} The consumed buff effect or null
-     */
-    consumeBuff(gameState, card) {
-        // Check if FlameStrike is active
-        if (!gameState.activeFlameStrike) {
-            return null;
-        }
-
-        // Check if the card is a fire card
-        if (card.element !== 'fire') {
-            return null;
-        }
-
-        // Consume the buff
-        const buff = gameState.activeFlameStrike;
-        buff.consumed = true;
-        gameState.activeFlameStrike = null;
-
-        // Remove from active effects
-        if (gameState.activeEffects) {
-            const index = gameState.activeEffects.findIndex(
-                effect => effect.name === 'flame_strike_buff'
-            );
-            if (index !== -1) {
-                gameState.activeEffects.splice(index, 1);
-            }
-        }
-
-        console.log(`FlameStrike consumed! +${buff.damageBonus} damage applied.`);
-
-        return buff;
-    }
-
-    /**
      * Checks if the card can be played given the current game state
      * 
      * FlameStrike is only useful if the player has fire cards to buff.
@@ -201,7 +161,9 @@ export class FlameStrike extends Card {
         const isNotOnCooldown = !this.cooldown || this.cooldown <= 0;
 
         // Check if FlameStrike buff is already active (don't stack)
-        const hasExistingBuff = gameState.activeFlameStrike !== null;
+        const hasExistingBuff = gameState.activeEffects?.some(
+            effect => effect.name === 'flame_strike_buff' && !effect.consumed
+        ) || false;
 
         // Check if player has fire cards in hand to buff
         const hasFireCards = gameState.hand?.some(

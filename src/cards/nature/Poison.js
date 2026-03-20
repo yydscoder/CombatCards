@@ -76,9 +76,9 @@ export class Poison extends Card {
 
     /**
      * Executes the Poison card's effect
-     * 
+     *
      * Applies a stacking poison DoT to the enemy.
-     * 
+     *
      * @param {Object} gameState - The current game state object
      * @param {Object} target - The target of the card's effect
      * @returns {Object} Result object containing success status and details
@@ -90,18 +90,17 @@ export class Poison extends Card {
             return { success: false, reason: 'no_target' };
         }
 
-        // Find existing poison effect
-        let existingPoison = null;
-        let currentStacks = 0;
-        
-        if (gameState.enemy && gameState.enemy.activeEffects) {
-            existingPoison = gameState.enemy.activeEffects.find(
-                effect => effect.name === 'poison' || effect.type === 'poison'
-            );
-            if (existingPoison) {
-                currentStacks = existingPoison.stacks || 0;
-            }
+        // Validate enemy exists
+        if (!gameState.enemy) {
+            console.warn('No enemy available for Poison effect');
+            return { success: false, reason: 'no_enemy' };
         }
+
+        // Find existing poison effect
+        let existingPoison = gameState.enemy.activeEffects?.find(
+            effect => effect.name === 'poison' || effect.type === 'poison'
+        );
+        let currentStacks = existingPoison?.stacks || 0;
 
         // Calculate new stacks
         let newStacks = Math.min(currentStacks + 1, this.maxStacks);
@@ -110,8 +109,9 @@ export class Poison extends Card {
         // Create or update poison effect
         const poisonEffect = {
             name: 'poison',
-            type: 'poison',
+            type: 'damage_over_time',
             damagePerTick: this.dotDamage,
+            damagePerTurn: this.dotDamage,
             duration: this.dotDuration,
             turnsRemaining: this.dotDuration,
             source: this.name,
@@ -122,9 +122,12 @@ export class Poison extends Card {
         };
 
         // Apply effect
-        if (existingPoison && typeof gameState.enemy?.updateEffect === 'function') {
-            gameState.enemy.updateEffect(poisonEffect);
-        } else if (typeof gameState.enemy?.addEffect === 'function') {
+        if (existingPoison) {
+            // Update existing effect
+            existingPoison.stacks = newStacks;
+            existingPoison.turnsRemaining = this.dotDuration;
+            existingPoison.damagePerTurn = this.dotDamage * newStacks;
+        } else if (typeof gameState.enemy.addEffect === 'function') {
             gameState.enemy.addEffect(poisonEffect);
         }
 

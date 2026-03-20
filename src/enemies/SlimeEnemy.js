@@ -55,9 +55,9 @@ export class SlimeEnemy extends Enemy {
      * @param {Object} attackInfo - Information about the attack
      * @returns {Object} Result object containing damage taken and status
      */
-    takeDamage(damage, attackInfo = {}) {
+    takeDamage(damage, attackInfo = {}, gameState = null) {
         // Call parent takeDamage method first
-        const result = super.takeDamage(damage, attackInfo);
+        const result = super.takeDamage(damage, attackInfo, gameState);
         
         // Slime-specific behavior: chance to split when damaged
         if (result.success && this.isAlive && Math.random() < 0.2) { // 20% chance to split

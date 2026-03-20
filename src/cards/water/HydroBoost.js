@@ -72,9 +72,9 @@ export class HydroBoost extends Card {
 
     /**
      * Executes the HydroBoost card's effect
-     * 
+     *
      * Empowers the caster's next water spell with increased damage.
-     * 
+     *
      * @param {Object} gameState - The current game state object
      * @param {Object} target - The target of the card's effect (self)
      * @returns {Object} Result object containing success status and details
@@ -89,22 +89,21 @@ export class HydroBoost extends Card {
         // Create the HydroBoost buff effect
         const hydroBoostEffect = {
             name: 'hydro_boost',
+            type: 'damage_buff',
             damageBonus: this.damageBonus,
+            damageBonusPercent: this.damageBonus,
             duration: this.duration,
             turnsRemaining: this.duration,
             source: this.name,
-            type: 'damage_buff',
-            appliesTo: this.appliesTo,
-            consumed: false
+            appliesTo: 'water',
+            consumed: false,
+            emoji: '🔵'
         };
 
         // Add effect to game state
         if (typeof gameState.addEffect === 'function') {
             gameState.addEffect(hydroBoostEffect);
         }
-
-        // Store in gameState for card play checking
-        gameState.activeHydroBoost = hydroBoostEffect;
 
         console.log(
             `HydroBoost activated! Next water spell: +${this.damageBonus * 100}% damage!`
@@ -132,7 +131,7 @@ export class HydroBoost extends Card {
 
     /**
      * Checks if the card can be played given the current game state
-     * 
+     *
      * @param {Object} gameState - The current game state object
      * @returns {boolean} True if the card can be played, false otherwise
      */
@@ -142,7 +141,9 @@ export class HydroBoost extends Card {
         const isNotOnCooldown = !this.cooldown || this.cooldown <= 0;
 
         // Check if HydroBoost is already active
-        const hasExistingBuff = !!gameState.activeHydroBoost;
+        const hasExistingBuff = gameState.activeEffects?.some(
+            effect => effect.name === 'hydro_boost' && !effect.consumed
+        ) || false;
 
         return hasEnoughMana && isInHand && isNotOnCooldown && !hasExistingBuff;
     }

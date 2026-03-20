@@ -105,33 +105,35 @@ export class Ember extends Card {
         // Create the burning ember effect
         const emberEffect = {
             name: 'ember_burn',
+            type: 'damage_over_time',
             damagePerTurn: this.dotDamage,
             duration: this.dotDuration,
+            turnsRemaining: this.dotDuration,
             source: this.name,
             stacks: 1,
             maxStacks: this.maxStacks,
-            tickRate: this.dotTickRate
+            tickRate: this.dotTickRate,
+            emoji: '🔶'
         };
 
-        // Check for existing ember effects and stack
-        let existingEmberIndex = -1;
-        if (gameState.activeEffects) {
-            existingEmberIndex = gameState.activeEffects.findIndex(
+        // Check for existing ember effects on enemy and stack
+        let existingEmber = null;
+        if (gameState.enemy?.activeEffects) {
+            existingEmber = gameState.enemy.activeEffects.find(
                 effect => effect.name === 'ember_burn'
             );
         }
 
-        if (existingEmberIndex !== -1 && this.canStack) {
+        if (existingEmber && this.canStack) {
             // Stack the effect
-            const existingEmber = gameState.activeEffects[existingEmberIndex];
             if (existingEmber.stacks < this.maxStacks) {
                 existingEmber.stacks++;
-                existingEmber.duration = Math.max(existingEmber.duration, this.dotDuration);
+                existingEmber.turnsRemaining = Math.max(existingEmber.turnsRemaining, this.dotDuration);
                 emberEffect.stacks = existingEmber.stacks;
                 console.log(`Ember stacked! Current stacks: ${emberEffect.stacks}/${this.maxStacks}`);
             }
         } else if (gameState.enemy && typeof gameState.enemy.addEffect === 'function') {
-            // Add new effect
+            // Add new effect to enemy
             gameState.enemy.addEffect(emberEffect);
         }
 

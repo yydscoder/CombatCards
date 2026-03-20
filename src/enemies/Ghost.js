@@ -332,7 +332,7 @@ export class Ghost extends Enemy {
         }
 
         // Call parent takeDamage
-        const result = super.takeDamage(damage, attackInfo);
+        const result = super.takeDamage(damage, attackInfo, gameState);
 
         // Reduce phase duration
         if (this.isPhasing) {
