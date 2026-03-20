@@ -25,7 +25,6 @@ export const ENEMY_POOL = {
         baseAttack: 12,
         attackCardName: 'Jagged Slash',
         minRound: 1,
-        weight: 3, // Spawn weight (higher = more common)
         class: 'aggressive'
     },
     orc: {
@@ -36,7 +35,6 @@ export const ENEMY_POOL = {
         baseAttack: 16,
         attackCardName: 'Crushing Cleave',
         minRound: 3,
-        weight: 2,
         class: 'brute'
     },
     skeleton: {
@@ -47,7 +45,6 @@ export const ENEMY_POOL = {
         baseAttack: 14,
         attackCardName: 'Bone Strike',
         minRound: 5,
-        weight: 2,
         class: 'defensive'
     },
     ghost: {
@@ -58,7 +55,6 @@ export const ENEMY_POOL = {
         baseAttack: 18,
         attackCardName: 'Haunt Swipe',
         minRound: 8,
-        weight: 1.5,
         class: 'special'
     },
     dragon: {
@@ -69,7 +65,6 @@ export const ENEMY_POOL = {
         baseAttack: 28,
         attackCardName: 'Ancient Fury',
         minRound: 12,
-        weight: 1, // More common boss
         class: 'boss',
         isBoss: true
     }
@@ -125,7 +120,7 @@ export function getAvailableEnemies(round) {
 
 /**
  * Selects a random enemy for the current round
- * Uses weighted random selection based on enemy weights
+ * Uses UNIFORM random selection - each available enemy has equal chance
  *
  * @param {number} round - The current round number
  * @param {boolean} forceBoss - Force a boss spawn (every 5 rounds after 15)
@@ -146,20 +141,10 @@ export function selectEnemyForRound(round, forceBoss = false) {
             return bosses[Math.floor(Math.random() * bosses.length)];
         }
     }
-    
-    // Weighted random selection
-    const totalWeight = available.reduce((sum, e) => sum + e.weight, 0);
-    let random = Math.random() * totalWeight;
-    
-    for (const enemy of available) {
-        random -= enemy.weight;
-        if (random <= 0) {
-            return enemy;
-        }
-    }
-    
-    // Fallback to first available
-    return available[0];
+
+    // UNIFORM random selection - each enemy has equal chance
+    const randomIndex = Math.floor(Math.random() * available.length);
+    return available[randomIndex];
 }
 
 /**
