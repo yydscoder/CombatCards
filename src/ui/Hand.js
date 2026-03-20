@@ -418,15 +418,17 @@ export class Hand {
 
         // Consume applicable buffs before executing card effect
         const buffResult = this.effectManager.consumeBuffsForCard(card);
+        console.log(`[Hand] Buff result for ${card.name}: consumed=${buffResult.consumed}, multiplier=${buffResult.damageMultiplier}, guaranteedCrit=${buffResult.guaranteedCrit}`);
 
         const effectTarget = card.effect?.target || 'enemy';
 
         if (effectTarget === 'self') {
             // ── Self-targeted card (heal, mana restore, shield, buff) ──
             this._applyPlayerEffect(card);
-            
+
             // Remove consumed buff AFTER card effect completes
             if (buffResult.consumed && buffResult.buff?.name) {
+                console.log(`[Hand] Removing buff ${buffResult.buff.name} after self-targeted card`);
                 this.effectManager.removeConsumedBuff(buffResult.buff.name, 'player');
             }
         } else {
@@ -436,6 +438,7 @@ export class Hand {
             if (this.gameState.enemy) {
                 // Apply buff effects to card if applicable
                 if (buffResult.consumed) {
+                    console.log(`[Hand] Applying buff to card ${card.name}: multiplier=${buffResult.damageMultiplier}, guaranteedCrit=${buffResult.guaranteedCrit}`);
                     if (buffResult.guaranteedCrit) {
                         // Override card's crit chance for guaranteed crit
                         card._originalCritChance = card.critChance;
@@ -449,6 +452,7 @@ export class Hand {
 
                 // Remove consumed buff AFTER card effect completes
                 if (buffResult.consumed && buffResult.buff?.name) {
+                    console.log(`[Hand] Removing buff ${buffResult.buff.name} after enemy-targeted card`);
                     this.effectManager.removeConsumedBuff(buffResult.buff.name, 'player');
                 }
 

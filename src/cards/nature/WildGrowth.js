@@ -118,11 +118,22 @@ export class WildGrowth extends Card {
         // Add effect to enemy
         if (typeof gameState.enemy.addEffect === 'function') {
             gameState.enemy.addEffect(growthEffect);
+            console.log(`[WildGrowth] Effect added to enemy.activeEffects (count: ${gameState.enemy.activeEffects.length})`);
+        } else {
+            console.error('[WildGrowth] Enemy does not have addEffect function!');
+            console.log('[WildGrowth] Enemy object:', gameState.enemy);
         }
 
         console.log(
             `WildGrowth planted: ${initialTick} initial, growing to ${this.calculateTotalDamage()} total`
         );
+        console.log(`[WildGrowth] Effect object:`, {
+            name: growthEffect.name,
+            type: growthEffect.type,
+            currentDamage: growthEffect.currentDamage,
+            growthMultiplier: growthEffect.growthMultiplier,
+            turnsRemaining: growthEffect.turnsRemaining
+        });
 
         // Return result object
         return {

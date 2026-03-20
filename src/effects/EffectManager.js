@@ -148,33 +148,50 @@ export class EffectManager {
         const results = [];
 
         if (!gs.enemy?.activeEffects?.length) {
+            // Debug: log if enemy has no effects
+            if (gs.enemy) {
+                console.log('[EffectManager] Enemy has no activeEffects array or it is empty');
+            }
             return results;
         }
 
         const remaining = [];
 
+        console.log(`[EffectManager] Processing ${gs.enemy.activeEffects.length} enemy effects:`, 
+            gs.enemy.activeEffects.map(e => `${e.name} (${e.type})`).join(', '));
+
         for (const fx of gs.enemy.activeEffects) {
             let result = null;
 
+            console.log(`[EffectManager] Checking effect: ${fx.name}, type=${fx.type}, currentDamage=${fx.currentDamage}, growthMultiplier=${fx.growthMultiplier}, damagePerTick=${fx.damagePerTick}`);
+
             // Nature DoT with growth (WildGrowth) - check FIRST (most specific)
             if (fx.type === EffectType.NATURE_DOT && fx.currentDamage && fx.growthMultiplier) {
+                console.log(`[EffectManager] MATCH: WildGrowth growing DoT`);
                 result = this._processGrowingDoT(fx);
             }
             // Nature DoT (Overgrowth) - check before standard DoT
             else if (fx.type === EffectType.NATURE_DOT && fx.damagePerTick) {
+                console.log(`[EffectManager] MATCH: Nature DoT`);
                 result = this._processNatureDoT(fx);
             }
             // Stacking burn (Ignite)
             else if (fx.type === EffectType.STACKING_BURN) {
+                console.log(`[EffectManager] MATCH: Stacking burn`);
                 result = this._processStackingBurn(fx);
             }
             // Standard damage-over-time (Whirlpool) - check after nature DoT
             else if (fx.type === EffectType.DAMAGE_OVER_TIME && fx.damagePerTurn) {
+                console.log(`[EffectManager] MATCH: Standard DoT`);
                 result = this._processDamageOverTime(fx);
             }
             // Crowd control tick processing
             else if (fx.type === EffectType.CROWD_CONTROL) {
+                console.log(`[EffectManager] MATCH: Crowd control`);
                 result = this._processCrowdControl(fx);
+            }
+            else {
+                console.log(`[EffectManager] NO MATCH for effect: ${fx.name}, type=${fx.type}`);
             }
 
             if (result) {
@@ -205,6 +222,7 @@ export class EffectManager {
         }
 
         gs.enemy.activeEffects = remaining;
+        console.log(`[EffectManager] After processing: ${remaining.length} effects remaining`);
         return results;
     }
 
@@ -343,6 +361,7 @@ export class EffectManager {
 
         if (this.hud) {
             this.hud.showDamageFeedback(dmg, 'enemy', false);
+            this.hud.updateEnemyHealthBar(); // Force immediate HP bar update
         }
 
         cardKeeper('dot_tick', {
@@ -379,6 +398,7 @@ export class EffectManager {
 
         if (this.hud) {
             this.hud.showDamageFeedback(dmg, 'enemy', false);
+            this.hud.updateEnemyHealthBar(); // Force immediate HP bar update
         }
 
         cardKeeper('dot_tick', {
@@ -404,6 +424,7 @@ export class EffectManager {
         const gs = this.gameState;
         const dmg = effect.currentDamage;
 
+        const oldHp = gs.enemyHp;
         gs.updateEnemyHp(gs.enemyHp - dmg);
 
         // Double damage for next tick
@@ -419,6 +440,7 @@ export class EffectManager {
 
         if (this.hud) {
             this.hud.showDamageFeedback(dmg, 'enemy', false);
+            this.hud.updateEnemyHealthBar(); // Force immediate HP bar update
         }
 
         cardKeeper('dot_tick', {
@@ -457,6 +479,7 @@ export class EffectManager {
 
             if (this.hud) {
                 this.hud.showDamageFeedback(dmg, 'enemy', false);
+                this.hud.updateEnemyHealthBar(); // Force immediate HP bar update
             }
 
             cardKeeper('dot_tick', {
@@ -591,8 +614,12 @@ export class EffectManager {
         };
 
         if (!gs.activeEffects?.length) {
+            console.log('[Buff] No active effects to check for buffs');
             return result;
         }
+
+        console.log(`[Buff] Checking for buffs applicable to card: ${card.name} (element: ${card.element})`);
+        console.log('[Buff] Active effects:', gs.activeEffects.map(e => `${e.name} (${e.type}, appliesTo: ${e.appliesTo}, consumed: ${e.consumed})`).join(', '));
 
         // Find applicable buffs
         const applicableBuffs = gs.activeEffects.filter(fx => {
@@ -603,10 +630,12 @@ export class EffectManager {
                 return false;
             }
             // Check if buff applies to this card's element or is universal
-            return fx.appliesTo === card.element || 
-                   fx.appliesTo === 'all' || 
+            return fx.appliesTo === card.element ||
+                   fx.appliesTo === 'all' ||
                    !fx.appliesTo;
         });
+
+        console.log(`[Buff] Found ${applicableBuffs.length} applicable buffs`);
 
         // Consume the first applicable buff
         for (const buff of applicableBuffs) {
@@ -659,6 +688,7 @@ export class EffectManager {
      * @param {string} target - 'player' or 'enemy'
      */
     removeConsumedBuff(effectName, target = 'player') {
+        console.log(`[Buff] Removing consumed buff: ${effectName} from ${target}`);
         this.removeEffect(effectName, target);
     }
 
