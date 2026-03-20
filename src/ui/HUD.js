@@ -68,6 +68,13 @@ export class HUD {
                         </div>
                         <span class="bar-value"><span id="player-mana">${this.gameState.playerMana}</span>/<span>${this.gameState.playerMaxMana}</span></span>
                     </div>
+                    <div class="bar-row shield-row" id="player-shield-row" style="display:none;">
+                        <span class="bar-icon">🛡️</span>
+                        <div class="bar-track shield-track">
+                            <div class="bar-fill shield-fill" id="player-shield-fill" style="width:100%"></div>
+                        </div>
+                        <span class="bar-value"><span id="player-shield">0</span></span>
+                    </div>
                 </div>`;
         }
 
@@ -83,6 +90,13 @@ export class HUD {
                         </div>
                         <span class="bar-value"><span id="enemy-hp">${this.gameState.enemyHp}</span>/<span>${this.gameState.enemyMaxHp}</span></span>
                     </div>
+                    <div class="bar-row shield-row" id="enemy-shield-row" style="display:none;">
+                        <span class="bar-icon">🛡️</span>
+                        <div class="bar-track shield-track">
+                            <div class="bar-fill shield-fill" id="enemy-shield-fill" style="width:100%"></div>
+                        </div>
+                        <span class="bar-value"><span id="enemy-shield">0</span></span>
+                    </div>
                     <div class="bar-row hud-cd-row">
                         <span class="bar-icon">CD</span>
                         <span class="bar-value"><span id="enemy-attack-cd">${this.gameState.enemyAttackCooldown ?? 0}</span></span>
@@ -92,6 +106,7 @@ export class HUD {
 
         this.updatePlayerHealthBar();
         this.updateEnemyHealthBar();
+        this.updateShieldBars();
 
         console.log('Health bars initialized');
     }
@@ -206,6 +221,94 @@ export class HUD {
         if (manaSpan) manaSpan.textContent = this.gameState.playerMana;
 
         console.log(`Mana updated: ${this.gameState.playerMana}/${this.gameState.playerMaxMana}`);
+    }
+
+    /**
+     * Updates shield bars for player and enemy
+     */
+    updateShieldBars() {
+        // Player shields
+        const playerShieldRow = document.getElementById('player-shield-row');
+        const playerShieldFill = document.getElementById('player-shield-fill');
+        const playerShieldSpan = document.getElementById('player-shield');
+        
+        if (playerShieldRow && playerShieldFill && playerShieldSpan) {
+            const shields = this.gameState.playerShields || {};
+            const totalShield = Object.values(shields).reduce((sum, s) => {
+                if (s.count !== undefined) {
+                    return sum + (s.count * (s.absorbPerBubble || 0));
+                }
+                return sum + (s.remaining || 0);
+            }, 0);
+            
+            const maxShield = 50; // Reference max for bar width
+            const shieldPct = Math.min(100, (totalShield / maxShield) * 100);
+            
+            if (totalShield > 0) {
+                playerShieldRow.style.display = 'flex';
+                playerShieldFill.style.setProperty('width', `${shieldPct}%`, 'important');
+                playerShieldSpan.textContent = totalShield;
+            } else {
+                playerShieldRow.style.display = 'none';
+            }
+        }
+
+        // Enemy shields (if enemy has shield property)
+        const enemyShieldRow = document.getElementById('enemy-shield-row');
+        const enemyShieldFill = document.getElementById('enemy-shield-fill');
+        const enemyShieldSpan = document.getElementById('enemy-shield');
+        
+        if (enemyShieldRow && enemyShieldFill && enemyShieldSpan && this.gameState.enemy) {
+            const enemyShields = this.gameState.enemy.activeEffects?.filter(e => e.type === 'shield' || e.remainingShield) || [];
+            const totalEnemyShield = enemyShields.reduce((sum, s) => sum + (s.remainingShield || s.shieldAmount || 0), 0);
+            
+            if (totalEnemyShield > 0) {
+                const maxShield = 50;
+                const shieldPct = Math.min(100, (totalEnemyShield / maxShield) * 100);
+                enemyShieldRow.style.display = 'flex';
+                enemyShieldFill.style.setProperty('width', `${shieldPct}%`, 'important');
+                enemyShieldSpan.textContent = totalEnemyShield;
+            } else {
+                enemyShieldRow.style.display = 'none';
+            }
+        }
+    }
+
+    /**
+     * Updates DOT indicator emojis on player and enemy areas
+     */
+    updateDotIndicators() {
+        // Player DOTs/HoTs
+        const playerDotsEl = document.getElementById('player-dots');
+        if (playerDotsEl && this.gameState.activeEffects?.length) {
+            const dotEmojis = [];
+            for (const effect of this.gameState.activeEffects) {
+                if (effect.healPerTurn) {
+                    dotEmojis.push({ emoji: effect.emoji || '💚', name: effect.name, type: 'hot' });
+                }
+            }
+            playerDotsEl.innerHTML = dotEmojis.map(d => 
+                `<span class="dot-emoji" title="${d.name}">${d.emoji}</span>`
+            ).join('');
+        } else if (playerDotsEl) {
+            playerDotsEl.innerHTML = '';
+        }
+
+        // Enemy DOTs
+        const enemyDotsEl = document.getElementById('enemy-dots');
+        if (enemyDotsEl && this.gameState.enemy?.activeEffects?.length) {
+            const dotEmojis = [];
+            for (const effect of this.gameState.enemy.activeEffects) {
+                if (effect.damagePerTurn || effect.damagePerTick || effect.currentDamage || effect.stacks) {
+                    dotEmojis.push({ emoji: effect.emoji || '💀', name: effect.name, type: 'dot' });
+                }
+            }
+            enemyDotsEl.innerHTML = dotEmojis.map(d => 
+                `<span class="dot-emoji" title="${d.name}">${d.emoji}</span>`
+            ).join('');
+        } else if (enemyDotsEl) {
+            enemyDotsEl.innerHTML = '';
+        }
     }
     
     /**
@@ -345,8 +448,10 @@ export class HUD {
         this.updatePlayerHealthBar();
         this.updateEnemyHealthBar();
         this.updateManaDisplay();
+        this.updateShieldBars();
+        this.updateDotIndicators();
         this.updateTurnCounter();
-        
+
         console.log('All HUD elements updated');
     }
 }

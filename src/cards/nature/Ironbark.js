@@ -89,25 +89,14 @@ export class Ironbark extends Card {
         // Calculate shield amount with small variance
         const actualShield = Math.floor(this.shieldAmount * (0.9 + Math.random() * 0.2));
 
-        // Create ironbark shield effect
-        const shieldEffect = {
-            name: 'ironbark',
-            type: 'shield',
-            shieldAmount: actualShield,
-            remainingShield: actualShield,
-            duration: this.duration,
-            turnsRemaining: this.duration,
-            source: this.name,
-            emoji: '🛡️'
-        };
-
-        // Add effect to game state
-        if (typeof gameState.addEffect === 'function') {
-            gameState.addEffect(shieldEffect);
+        // Add shield to the shield system
+        if (typeof gameState.addShield === 'function') {
+            gameState.addShield('ironbark', {
+                remaining: actualShield,
+                duration: this.duration,
+                turnsRemaining: this.duration
+            });
         }
-
-        // Store shield in game state
-        gameState.currentShield = actualShield;
 
         console.log(
             `Ironbark activated: ${actualShield} shield for ${this.duration} turns`
@@ -119,7 +108,7 @@ export class Ironbark extends Card {
             message: `Ironbark hardens around you! ${actualShield} shield`,
             damage: 0,
             healing: 0,
-            statusEffects: [shieldEffect],
+            statusEffects: [],
             isCriticalHit: false,
             shieldApplied: true,
             shieldAmount: actualShield,

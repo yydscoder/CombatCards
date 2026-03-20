@@ -95,38 +95,16 @@ export class IceWall extends Card {
         // Calculate actual shield amount with small variance
         const actualShield = Math.floor(this.shieldAmount * (0.9 + Math.random() * 0.2));
 
-        // Create shield effect
-        const shieldEffect = {
-            name: 'ice_wall_shield',
-            shieldAmount: actualShield,
-            remainingShield: actualShield,
-            duration: this.shieldDuration,
-            source: this.name,
-            type: 'absorption',
-            chillDamage: this.chillDamage,
-            chillChance: this.chillChance
-        };
-
-        // Create chill retaliation effect
-        const chillEffect = {
-            name: 'ice_wall_chill',
-            damage: this.chillDamage,
-            duration: this.shieldDuration,
-            source: this.name,
-            type: 'retaliation',
-            triggerOn: 'damage_taken',
-            chance: this.chillChance
-        };
-
-        // Add effects to game state
-        if (typeof gameState.addEffect === 'function') {
-            gameState.addEffect(shieldEffect);
-            gameState.addEffect(chillEffect);
+        // Add shield to the shield system
+        if (typeof gameState.addShield === 'function') {
+            gameState.addShield('ice_wall', {
+                remaining: actualShield,
+                duration: this.shieldDuration,
+                turnsRemaining: this.shieldDuration,
+                chillDamage: this.chillDamage,
+                chillChance: this.chillChance
+            });
         }
-
-        // Store shield in game state for damage calculation
-        gameState.currentShield = actualShield;
-        gameState.activeChillRetaliation = this.chillDamage;
 
         console.log(
             `IceWall erected: ${actualShield} shield (${this.shieldDuration} turns) | ` +
@@ -143,7 +121,7 @@ export class IceWall extends Card {
             message: `IceWall rises! ${actualShield} shield + chill retaliation`,
             damage: 0,
             healing: 0,
-            statusEffects: [shieldEffect, chillEffect],
+            statusEffects: [],
             isCriticalHit: false,
             shieldApplied: true,
             shieldAmount: actualShield,

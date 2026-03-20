@@ -112,14 +112,16 @@ export class Phoenix extends Card {
         if (isLowHealth) {
             // Emergency mode: provide shield instead of heal
             shieldAmount = this.shieldAmount;
-            
-            // Apply shield by increasing effective max HP temporarily
-            // (simplified implementation - would need proper shield system)
-            gameState.playerHp = Math.min(
-                gameState.playerMaxHp, 
-                gameState.playerHp + shieldAmount
-            );
-            
+
+            // Add shield to the shield system
+            if (typeof gameState.addShield === 'function') {
+                gameState.addShield('phoenix_shield', {
+                    remaining: shieldAmount,
+                    duration: 3,
+                    turnsRemaining: 3
+                });
+            }
+
             shieldApplied = true;
             console.log(`Phoenix EMERGENCY: Shield of ${shieldAmount} HP applied!`);
         } else {

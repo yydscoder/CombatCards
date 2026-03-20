@@ -103,16 +103,9 @@ export class Regen extends Card {
             gameState.addEffect(regenEffect);
         }
 
-        // Apply initial small heal
-        const initialHeal = Math.floor(this.healPerTurn * 0.5);
-        if (initialHeal > 0 && gameState.playerHp < gameState.playerMaxHp) {
-            const newPlayerHp = gameState.playerHp + initialHeal;
-            gameState.updatePlayerHp(newPlayerHp);
-        }
-
         console.log(
             `Regen applied: ${this.healPerTurn} HP/turn for ${this.duration} turns ` +
-            `(Total: ${this.totalHeal} HP, Initial: ${initialHeal})`
+            `(Total: ${this.totalHeal} HP, processed at turn end)`
         );
 
         // Return result object
@@ -120,14 +113,13 @@ export class Regen extends Card {
             success: true,
             message: `Renewing waters flow! ${this.healPerTurn} HP/turn for ${this.duration} turns`,
             damage: 0,
-            healing: initialHeal,
+            healing: 0,
             statusEffects: [regenEffect],
             isCriticalHit: false,
             regenApplied: true,
             healPerTurn: this.healPerTurn,
             duration: this.duration,
             totalHeal: this.totalHeal,
-            initialHeal: initialHeal,
             spellType: this.spellType
         };
     }

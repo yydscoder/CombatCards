@@ -109,7 +109,7 @@ export class Regrow extends Card {
         // Create regen effect
         const regenEffect = {
             name: 'nature_regen',
-            type: 'regen',
+            type: 'heal_over_time',
             healPerTurn: this.regenAmount,
             duration: this.regenDuration,
             turnsRemaining: this.regenDuration,

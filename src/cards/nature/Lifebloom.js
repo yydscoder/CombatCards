@@ -118,13 +118,6 @@ export class Lifebloom extends Card {
             gameState.addEffect(bloomEffect);
         }
 
-        // Apply initial small heal
-        const initialHeal = Math.floor(this.healPerTick * 0.5);
-        if (initialHeal > 0) {
-            const newPlayerHp = gameState.playerHp + initialHeal;
-            gameState.updatePlayerHp(newPlayerHp);
-        }
-
         console.log(
             `Lifebloom planted: ${this.healPerTick} HP/turn for ${this.duration} turns, ` +
             `then ${this.bloomHeal} HP bloom (Total: ${this.totalHeal})`
@@ -135,7 +128,7 @@ export class Lifebloom extends Card {
             success: true,
             message: `Lifebloom flowers bloom on you! ${this.healPerTick} HP/turn + ${this.bloomHeal} final`,
             damage: 0,
-            healing: initialHeal,
+            healing: 0,
             statusEffects: [bloomEffect],
             isCriticalHit: false,
             healApplied: true,
@@ -143,7 +136,6 @@ export class Lifebloom extends Card {
             duration: this.duration,
             bloomHeal: this.bloomHeal,
             totalHeal: this.totalHeal,
-            initialHeal: initialHeal,
             spellType: this.spellType
         };
     }
