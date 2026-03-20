@@ -107,14 +107,16 @@ export class HUD {
         }
 
         const hpPct = (this.gameState.playerHp / this.gameState.playerMaxHp) * 100;
-        healthFill.style.width = `${hpPct}%`;
+        
+        // Force update with setProperty for reliability (avoids CSS specificity issues)
+        healthFill.style.setProperty('width', `${hpPct}%`, 'important');
         healthFill.style.setProperty('--health-percentage', `${hpPct}%`);
         healthFill.className = 'bar-fill ' + this._hpColorClass(hpPct);
 
         const manaFill = document.getElementById('player-mana-fill');
         if (manaFill) {
             const manaPct = (this.gameState.playerMana / this.gameState.playerMaxMana) * 100;
-            manaFill.style.width = `${manaPct}%`;
+            manaFill.style.setProperty('width', `${manaPct}%`, 'important');
         }
 
         const hpSpan = document.getElementById('player-hp');
@@ -124,13 +126,22 @@ export class HUD {
         if (manaSpan) manaSpan.textContent = this.gameState.playerMana;
         else console.warn('[HUD] player-mana span NOT FOUND');
 
+        // Verify DOM update
+        const computedWidth = window.getComputedStyle(healthFill).width;
         console.log(
             `[HUD] Player bar — HP: ${this.gameState.playerHp}/${this.gameState.playerMaxHp}`,
             `| Mana: ${this.gameState.playerMana}/${this.gameState.playerMaxMana}`,
             `| Width set: ${hpPct.toFixed(1)}%`,
-            `| Computed width: ${healthFill.style.width}`,
+            `| Computed width: ${computedWidth}`,
             `| Element:`, healthFill
         );
+        
+        // Detect desync
+        const expectedWidth = (hpPct / 100) * healthFill.parentNode.offsetWidth;
+        const actualWidth = parseFloat(computedWidth);
+        if (Math.abs(expectedWidth - actualWidth) > 2) {
+            console.warn(`[HUD] ⚠️ Player HP bar DESYNC: expected ${expectedWidth.toFixed(1)}px, got ${actualWidth.toFixed(1)}px`);
+        }
     }
     
     /**

@@ -88,21 +88,14 @@ export class BubbleShield extends Card {
             return { success: false, reason: 'no_game_state' };
         }
 
-        // Create bubble shield effect
-        const bubbleEffect = {
-            name: 'bubble_shield',
-            bubbleCount: this.bubbleCount,
-            remainingBubbles: this.bubbleCount,
-            duration: this.bubbleDuration,
-            source: this.name,
-            type: 'absorption',
-            absorbPerBubble: this.absorbPerBubble,
-            totalAbsorb: this.bubbleCount * this.absorbPerBubble
-        };
-
-        // Add effect to game state
-        if (typeof gameState.addEffect === 'function') {
-            gameState.addEffect(bubbleEffect);
+        // Add shield to the shield system
+        if (typeof gameState.addShield === 'function') {
+            gameState.addShield('bubble_shield', {
+                count: this.bubbleCount,
+                absorbPerBubble: this.absorbPerBubble,
+                duration: this.bubbleDuration,
+                turnsRemaining: this.bubbleDuration
+            });
         }
 
         console.log(
@@ -120,7 +113,7 @@ export class BubbleShield extends Card {
             message: `BubbleShield: ${this.bubbleCount} protective bubbles!`,
             damage: 0,
             healing: 0,
-            statusEffects: [bubbleEffect],
+            statusEffects: [],
             isCriticalHit: false,
             shieldApplied: true,
             bubbleCount: this.bubbleCount,

@@ -32,7 +32,8 @@ export function initializeGameState() {
         playerMaxHp: GAME_CONFIG.PLAYER_MAX_HP, // Maximum player health points (HP)
         playerMana: GAME_CONFIG.PLAYER_START_MANA, // Current player mana points
         playerMaxMana: GAME_CONFIG.PLAYER_MAX_MANA, // Maximum player mana points
-        
+        playerShields: {}, // Active shields: { bubble: {count, absorb}, flame: {remaining}, etc. }
+
         // Enemy-related state variables
         // These represent the enemy's current status in the game
         enemyHp: GAME_CONFIG.ENEMY_START_HP, // Current enemy health points (HP)
@@ -106,13 +107,86 @@ export function initializeGameState() {
         updatePlayerMana: function(newMana) {
             // Clamp the new mana value between 0 and max mana
             this.playerMana = Math.max(0, Math.min(this.playerMaxMana, newMana));
-            
+
             // Log the mana change if debug mode is enabled
             if (this.debugMode && GAME_CONFIG.LOG_LEVEL === 'info') {
                 console.log(`Player Mana updated: ${this.playerMana}/${this.playerMaxMana}`);
             }
         },
-        
+
+        /**
+         * Adds a shield to the player
+         * @param {string} shieldName - Name of the shield (e.g., 'bubble', 'flame')
+         * @param {Object} shieldData - Shield data { count, absorbPerBubble } or { remaining }
+         */
+        addShield: function(shieldName, shieldData) {
+            this.playerShields[shieldName] = { ...shieldData };
+            console.log(`[Shield] ${shieldName} added:`, shieldData);
+        },
+
+        /**
+         * Removes a shield from the player
+         * @param {string} shieldName - Name of the shield to remove
+         */
+        removeShield: function(shieldName) {
+            if (this.playerShields[shieldName]) {
+                delete this.playerShields[shieldName];
+                console.log(`[Shield] ${shieldName} removed`);
+            }
+        },
+
+        /**
+         * Absorbs damage using active shields
+         * @param {number} damage - Incoming damage
+         * @returns {Object} { absorbed, remainingDamage, shieldUpdates }
+         */
+        absorbDamage: function(damage) {
+            let remainingDamage = damage;
+            let totalAbsorbed = 0;
+            const shieldUpdates = [];
+
+            // Process each active shield
+            for (const [name, shield] of Object.entries(this.playerShields)) {
+                if (remainingDamage <= 0) break;
+
+                if (shield.count !== undefined && shield.count > 0) {
+                    // Bubble-style shield (discrete charges)
+                    const absorbed = Math.min(shield.absorbPerBubble || 0, remainingDamage);
+                    if (absorbed > 0) {
+                        shield.count -= 1;
+                        remainingDamage -= absorbed;
+                        totalAbsorbed += absorbed;
+                        shieldUpdates.push({ name, absorbed, remaining: shield.count });
+                        console.log(`[Shield] ${name} absorbed ${absorbed} damage (${shield.count} charges left)`);
+                        
+                        if (shield.count <= 0) {
+                            delete this.playerShields[name];
+                            console.log(`[Shield] ${name} depleted`);
+                        }
+                    }
+                } else if (shield.remaining !== undefined && shield.remaining > 0) {
+                    // Pool-style shield (FlameShield, IceWall)
+                    const absorbed = Math.min(shield.remaining, remainingDamage);
+                    shield.remaining -= absorbed;
+                    remainingDamage -= absorbed;
+                    totalAbsorbed += absorbed;
+                    shieldUpdates.push({ name, absorbed, remaining: shield.remaining });
+                    console.log(`[Shield] ${name} absorbed ${absorbed} damage (${shield.remaining} left)`);
+                    
+                    if (shield.remaining <= 0) {
+                        delete this.playerShields[name];
+                        console.log(`[Shield] ${name} depleted`);
+                    }
+                }
+            }
+
+            return {
+                absorbed: totalAbsorbed,
+                remainingDamage: Math.max(0, remainingDamage),
+                shieldUpdates
+            };
+        },
+
         addEffect: function(effect) {
             // Add a new effect to the active effects array
             this.activeEffects.push(effect);
@@ -146,6 +220,7 @@ export function initializeGameState() {
             this.playerMaxHp = GAME_CONFIG.PLAYER_MAX_HP;
             this.playerMana = GAME_CONFIG.PLAYER_START_MANA;
             this.playerMaxMana = GAME_CONFIG.PLAYER_MAX_MANA;
+            this.playerShields = {}; // Clear all shields
             this.enemyHp = GAME_CONFIG.ENEMY_START_HP;
             this.enemyMaxHp = GAME_CONFIG.ENEMY_MAX_HP;
             this.enemyAttackInterval = 1;

@@ -100,37 +100,32 @@ export class FlameShield extends Card {
 
         // Calculate actual shield amount with small variance
         const actualShield = Math.floor(this.shieldAmount * (0.9 + Math.random() * 0.2));
-        
-        // Create shield effect
-        const shieldEffect = {
-            name: 'flame_shield',
-            shieldAmount: actualShield,
-            remainingShield: actualShield,
-            duration: this.shieldDuration,
-            source: this.name,
-            type: 'absorption',
-            reflectPercent: this.reflectPercent
-        };
+
+        // Add shield to the shield system
+        if (typeof gameState.addShield === 'function') {
+            gameState.addShield('flame_shield', {
+                remaining: actualShield,
+                duration: this.shieldDuration,
+                turnsRemaining: this.shieldDuration,
+                reflectPercent: this.reflectPercent
+            });
+        }
 
         // Create damage buff effect
         const damageBuffEffect = {
             name: 'flame_empowerment',
             damageBonusPercent: this.damageBuffPercent,
             duration: this.damageBuffDuration,
+            turnsRemaining: this.damageBuffDuration,
             source: this.name,
             type: 'damage_buff',
             appliesTo: 'fire'
         };
 
-        // Add effects to game state
+        // Add buff effect to game state
         if (typeof gameState.addEffect === 'function') {
-            gameState.addEffect(shieldEffect);
             gameState.addEffect(damageBuffEffect);
         }
-
-        // Store shield in game state for damage calculation
-        gameState.currentShield = actualShield;
-        gameState.activeFireBuff = this.damageBuffPercent;
 
         console.log(
             `FlameShield executed: ${actualShield} shield (${this.shieldDuration} turns) | ` +
@@ -147,7 +142,7 @@ export class FlameShield extends Card {
             message: `FlameShield activated! ${actualShield} shield + ${this.damageBuffPercent * 100}% fire damage buff`,
             damage: 0,
             healing: 0,
-            statusEffects: [shieldEffect, damageBuffEffect],
+            statusEffects: [damageBuffEffect],
             isCriticalHit: false,
             shieldApplied: true,
             shieldAmount: actualShield,

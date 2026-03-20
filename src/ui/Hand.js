@@ -608,11 +608,19 @@ export class Hand {
             case 'shield_and_buff': {
                 const shield = card.shieldAmount || card.effect?.value || 8;
                 const dur    = card.shieldDuration || card.duration || 3;
-                this.gameState.updatePlayerHp(this.gameState.playerHp + shield);
+                
+                // Add shield to the shield system (NOT as HP)
+                const shieldName = card.name.toLowerCase().replace(/\s+/g, '_');
+                this.gameState.addShield(shieldName, {
+                    remaining: shield,
+                    duration: dur,
+                    turnsRemaining: dur
+                });
+                
                 console.log(
                     `[Hand] SHIELD — ${card.name}:`,
-                    `absorbs ${shield} damage for ${dur} turns`,
-                    `| HP buffer: ${hpBefore} → ${this.gameState.playerHp}/${this.gameState.playerMaxHp}`
+                    `${shield} shield for ${dur} turns`,
+                    `| Total shields:`, Object.keys(this.gameState.playerShields).join(', ')
                 );
                 if (this.hud) this.hud.showDamageFeedback(shield, 'player', false);
                 break;
@@ -865,48 +873,36 @@ export class Hand {
             remainingDamage = Math.floor(remainingDamage * (1 - frostBiteReduction));
         }
 
-        // Absorption effects (bubble shield, flame shield, etc.)
-        if (this.gameState.activeEffects?.length) {
-            for (const fx of this.gameState.activeEffects) {
-                if (remainingDamage <= 0) break;
-
-                if (fx.name === 'bubble_shield' && fx.remainingBubbles > 0) {
-                    const absorbed = Math.min(fx.absorbPerBubble || 0, remainingDamage);
-                    if (absorbed > 0) {
-                        fx.remainingBubbles -= 1;
-                        remainingDamage -= absorbed;
-                        console.log(`[Shield] Bubble absorbed ${absorbed} damage. Bubbles left: ${fx.remainingBubbles}`);
-                        if (fx.remainingBubbles <= 0) {
-                            fx.turnsRemaining = 0;
-                        }
-                    }
-                }
-
-                if (fx.name === 'flame_shield' && fx.remainingShield > 0) {
-                    const absorbed = Math.min(fx.remainingShield, remainingDamage);
-                    fx.remainingShield -= absorbed;
-                    remainingDamage -= absorbed;
-                    console.log(`[Shield] FlameShield absorbed ${absorbed} damage. Shield left: ${fx.remainingShield}`);
-                    if (fx.remainingShield <= 0) {
-                        fx.turnsRemaining = 0;
-                    }
-                }
-            }
+        // Use the new shield absorption system
+        const shieldResult = this.gameState.absorbDamage(remainingDamage);
+        remainingDamage = shieldResult.remainingDamage;
+        
+        if (shieldResult.absorbed > 0) {
+            console.log(`[Shield] Total absorbed: ${shieldResult.absorbed}, remaining: ${remainingDamage}`);
         }
 
+        // Apply final damage to player HP
         const finalDamage = Math.max(0, Math.floor(remainingDamage * (1 - reduction)));
         this.gameState.updatePlayerHp(this.gameState.playerHp - finalDamage);
         this.gameState.lastDamageTaken = finalDamage;
         this.gameState.isCriticalHit = !!attackInfo.isCriticalHit;
 
-        // Reflect damage back to enemy
+        // Reflect damage back to enemy (from shields and effects)
         let reflectDamage = 0;
+        
+        // Check shield-based reflection (FlameShield)
+        if (this.gameState.playerShields?.flame_shield?.reflectPercent && finalDamage > 0) {
+            reflectDamage += Math.floor(finalDamage * this.gameState.playerShields.flame_shield.reflectPercent);
+            console.log(`[Reflect] FlameShield reflects ${reflectDamage} damage`);
+        }
+        
+        // Check effect-based reflection
         if (this.gameState.activeEffects?.length && this.gameState.enemy) {
             for (const fx of this.gameState.activeEffects) {
                 if (fx.type === 'reflection' && fx.reflectDamage) {
                     reflectDamage += fx.reflectDamage;
                 }
-                if (fx.reflectPercent) {
+                if (fx.reflectPercent && fx !== this.gameState.playerShields.flame_shield) {
                     reflectDamage += Math.floor(finalDamage * fx.reflectPercent);
                 }
             }
