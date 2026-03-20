@@ -50,7 +50,6 @@ Mana resets each turn , use it or lose it! Plan your combos wisely!!
 ### Rare Cards (2 copies each)
 | Card | Emoji | Cost | Effect |
 |------|-------|------|--------|
-| Phoenix | 🦅 | 6 | Heal 15 + regen 2/turn × 3 turns |
 | Magma | 🌋 | 4 | 3 damage, doubles/turn, erupts turn 3 |
 | Firestorm | 🌪️ | 7 | 3-5 hits × 4-8 damage each |
 | Pyroclasm | ☄️ | 6 | 15 damage, sacrifice 10 HP, 2× at <50% HP |

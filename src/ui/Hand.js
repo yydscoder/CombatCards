@@ -10,7 +10,6 @@ import { FireCard } from '../cards/fire/FireCard.js';
 import { Fireball } from '../cards/fire/Fireball.js';
 import { Inferno } from '../cards/fire/Inferno.js';
 import { Ember } from '../cards/fire/Ember.js';
-import { Phoenix } from '../cards/fire/Phoenix.js';
 import { FlameShield } from '../cards/fire/FlameShield.js';
 import { Combust } from '../cards/fire/Combust.js';
 import { Firestorm } from '../cards/fire/Firestorm.js';
@@ -175,7 +174,6 @@ export class Hand {
         for (let i = 0; i < 2; i++) deck.push(new FireBreath());
         
         // High-cost fire cards
-        for (let i = 0; i < 2; i++) deck.push(new Phoenix());
         for (let i = 0; i < 2; i++) deck.push(new Magma());
         for (let i = 0; i < 2; i++) deck.push(new Firestorm());
         for (let i = 0; i < 2; i++) deck.push(new Pyroclasm());
