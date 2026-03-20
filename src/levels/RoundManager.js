@@ -68,9 +68,9 @@ export class RoundManager {
             return { success: false, reason: 'round_already_active' };
         }
 
-        // Check if this is a boss round
-        const isBossRound = this.currentRound >= 15 && this.currentRound % 5 === 0;
-        
+        // Check if this is a boss round (every 5 rounds starting at round 10)
+        const isBossRound = this.currentRound >= 10 && this.currentRound % 5 === 0;
+
         // Select enemy for this round
         const enemyConfig = selectEnemyForRound(this.currentRound, isBossRound);
         

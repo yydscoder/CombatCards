@@ -208,10 +208,11 @@ function startNewRun() {
 function completeRound() {
     const roundManager = window.roundManager;
     const gameState = window.gameRefs.gameState;
-    
+    const turnManager = gameState.turnManager;
+
     // Complete current round
     const completeResult = roundManager.completeRound();
-    
+
     if (!completeResult.success) {
         return completeResult;
     }
@@ -226,9 +227,15 @@ function completeRound() {
     gameState.updatePlayerHp(gameState.playerMaxHp);
     gameState.updatePlayerMana(gameState.playerMaxMana);
 
+    // Reset turn counter for new round
+    if (turnManager) {
+        turnManager.reset();
+        console.log('[completeRound] Turn counter reset for new round');
+    }
+
     // Advance to next round
     const nextResult = roundManager.nextRound();
-    
+
     // Update display
     updateRoundDisplay(roundManager.getStats());
 
