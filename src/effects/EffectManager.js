@@ -724,6 +724,181 @@ export class EffectManager {
 
         return multiplier;
     }
+
+    /**
+     * ============================================================
+     * MODULAR EFFECT SYSTEM
+     * ============================================================
+     * Methods for applying modular effects (Stun, Draw, Discard, Buff, Debuff)
+     */
+
+    /**
+     * Applies a modular effect
+     * @param {Object} effect - Effect instance (StunEffect, DrawEffect, etc.)
+     * @param {Object} context - Context object with gameState, hand, etc.
+     * @returns {Object} Effect application result
+     */
+    applyEffect(effect, context) {
+        if (!effect || !effect.apply) {
+            console.error('[EffectManager] Invalid effect provided');
+            return { success: false, error: 'invalid_effect' };
+        }
+
+        console.log(`[EffectManager] Applying modular effect: ${effect.name} (${effect.type})`);
+        
+        // Route to appropriate apply method based on effect type
+        switch (effect.type) {
+            case 'crowd_control':
+                return effect.apply(context.gameState.enemy, context.gameState);
+            
+            case 'card_advantage':
+                return effect.apply(context.gameState, context.hand);
+            
+            case 'card_manipulation':
+                return effect.apply(context.gameState, context.hand, context.targets);
+            
+            case 'buff':
+                return effect.apply(context.gameState);
+            
+            case 'debuff':
+                return effect.apply(context.gameState);
+            
+            default:
+                console.warn(`[EffectManager] Unknown effect type: ${effect.type}`);
+                return { success: false, error: 'unknown_type' };
+        }
+    }
+
+    /**
+     * Gets all active effects for debug display
+     * @param {string} target - 'player', 'enemy', or 'all'
+     * @returns {Object} Debug information about active effects
+     */
+    getDebugInfo(target = 'all') {
+        const debug = {
+            player: [],
+            enemy: [],
+            shields: [],
+            summary: {}
+        };
+
+        if (target === 'all' || target === 'player') {
+            // Player effects
+            if (this.gameState.activeEffects?.length) {
+                for (const effect of this.gameState.activeEffects) {
+                    if (effect.getDebugInfo) {
+                        debug.player.push(effect.getDebugInfo());
+                    } else {
+                        debug.player.push({
+                            name: effect.name || 'unknown',
+                            type: effect.type || 'unknown',
+                            turnsRemaining: effect.turnsRemaining ?? effect.duration ?? 'N/A'
+                        });
+                    }
+                }
+            }
+
+            // Player shields
+            if (this.gameState.playerShields) {
+                for (const [name, shield] of Object.entries(this.gameState.playerShields)) {
+                    debug.shields.push({
+                        name: name,
+                        remaining: shield.remaining || shield.count,
+                        turnsRemaining: shield.turnsRemaining ?? shield.duration ?? 'N/A',
+                        reflectPercent: shield.reflectPercent ? `${Math.round(shield.reflectPercent * 100)}%` : '0%'
+                    });
+                }
+            }
+        }
+
+        if (target === 'all' || target === 'enemy') {
+            // Enemy effects
+            if (this.gameState.enemy?.activeEffects?.length) {
+                for (const effect of this.gameState.enemy.activeEffects) {
+                    if (effect.getDebugInfo) {
+                        debug.enemy.push(effect.getDebugInfo());
+                    } else {
+                        debug.enemy.push({
+                            name: effect.name || 'unknown',
+                            type: effect.type || 'unknown',
+                            turnsRemaining: effect.turnsRemaining ?? effect.duration ?? 'N/A',
+                            stacks: effect.stacks ?? 0
+                        });
+                    }
+                }
+            }
+        }
+
+        // Summary
+        debug.summary = {
+            playerEffectCount: debug.player.length,
+            enemyEffectCount: debug.enemy.length,
+            shieldCount: debug.shields.length,
+            enemyCooldown: this.gameState.enemyAttackCooldown ?? 0
+        };
+
+        return debug;
+    }
+
+    /**
+     * Logs all active effects to console (debug helper)
+     * @param {string} label - Optional label for the log
+     */
+    logAllEffects(label = 'Current Effects') {
+        const debug = this.getDebugInfo();
+        
+        console.group(`[EffectManager] ${label}`);
+        
+        if (debug.player.length > 0) {
+            console.log('📋 Player Effects:');
+            for (const effect of debug.player) {
+                console.log(`  ${effect.emoji || ''} ${effect.name} (${effect.type}): ${effect.description || effect.turnsRemaining} turns`);
+            }
+        } else {
+            console.log('📋 Player Effects: (none)');
+        }
+
+        if (debug.shields.length > 0) {
+            console.log('🛡️ Player Shields:');
+            for (const shield of debug.shields) {
+                console.log(`  ${shield.name}: ${shield.remaining} remaining, ${shield.turnsRemaining} turns, Reflect: ${shield.reflectPercent}`);
+            }
+        }
+
+        if (debug.enemy.length > 0) {
+            console.log('💀 Enemy Effects:');
+            for (const effect of debug.enemy) {
+                console.log(`  ${effect.emoji || ''} ${effect.name} (${effect.type}): ${effect.description || effect.turnsRemaining} turns${effect.stacks ? ` (${effect.stacks} stacks)` : ''}`);
+            }
+        } else {
+            console.log('💀 Enemy Effects: (none)');
+        }
+
+        console.log(`⏱️ Enemy Cooldown: ${debug.summary.enemyCooldown}`);
+        console.groupEnd();
+    }
+
+    /**
+     * Gets HTML representation of effects for UI display
+     * @param {string} target - 'player' or 'enemy'
+     * @returns {string} HTML string
+     */
+    getEffectsHTML(target = 'enemy') {
+        const debug = this.getDebugInfo(target);
+        const effects = target === 'enemy' ? debug.enemy : debug.player;
+        
+        if (effects.length === 0) {
+            return '<span class="no-effects">No active effects</span>';
+        }
+
+        return effects.map(effect => `
+            <div class="effect-debug-row">
+                <span class="effect-emoji">${effect.emoji || '❓'}</span>
+                <span class="effect-name">${effect.name}</span>
+                <span class="effect-turns">${effect.turnsRemaining}t</span>
+            </div>
+        `).join('');
+    }
 }
 
 /**

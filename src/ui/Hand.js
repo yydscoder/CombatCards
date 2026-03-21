@@ -791,6 +791,9 @@ export class Hand {
     _processActiveEffects() {
         const results = this.effectManager.processAllEffects();
 
+        // Log all active effects for debugging
+        this.effectManager.logAllEffects(`Turn ${this.gameState.turnCount} End`);
+
         // Update HUD if there were any changes
         if ((results.playerEffects?.length || results.enemyEffects?.length) && this.hud) {
             this.hud.updateAll();

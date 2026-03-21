@@ -342,6 +342,41 @@ body {
     transform: translateX(-50%);
 }
 
+/* Effect debug rows (for debug panel) */
+.effect-debug-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    background: rgba(45, 45, 68, 0.8);
+    border-radius: 4px;
+    margin: 2px 0;
+    font-size: 12px;
+}
+
+.effect-emoji {
+    font-size: 16px;
+}
+
+.effect-name {
+    flex: 1;
+    color: #e6e6e6;
+}
+
+.effect-turns {
+    color: #4caf50;
+    font-weight: bold;
+    min-width: 24px;
+    text-align: right;
+}
+
+.no-effects {
+    color: #666;
+    font-style: italic;
+    padding: 8px;
+    text-align: center;
+}
+
 @keyframes dotPulse {
     0%, 100% { transform: scale(1); opacity: 1; }
     50% { transform: scale(1.2); opacity: 0.8; }
