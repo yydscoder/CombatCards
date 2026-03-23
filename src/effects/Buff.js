@@ -2,7 +2,7 @@
  * Buff Effect Module
  * 
  * Applies a positive buff to the player.
- * Types: damage_bonus, defense_bonus, mana_bonus, crit_bonus
+ * Types: damage_bonus, defense_bonus, mana_bonus, crit_bonus test test
  * 
  * @module effects/Buff
  */
