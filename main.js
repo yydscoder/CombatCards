@@ -28,10 +28,14 @@ const GameStateEnum = {
 
 // Current game state (global)
 let currentGameState = GameStateEnum.MAP;
+window.currentGameState = currentGameState;
 
 // Initialize the game
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎮 Emoji Card Battle - Campaign Mode Initializing...');
+
+    // Clear any corrupted save data
+    localStorage.removeItem('combatCards_campaign');
 
     // Initialize game state
     const gameState = new GameState();
@@ -150,6 +154,7 @@ function startNewRun() {
  */
 function setGameState(state) {
     currentGameState = state;
+    window.currentGameState = state;
 
     const mapView = document.getElementById('map-view');
     const battleField = document.getElementById('battle-field');

@@ -479,24 +479,25 @@ export class MapManager {
             this.totalKills = data.totalKills || 0;
             this.bestAct = data.bestAct || 1;
 
-            // Deserialize nodes
-            if (data.nodes) {
-                this.nodes = data.nodes.map(n => {
-                    // Reconstruct node class based on type
-                    return MapNode.deserialize(n);
-                });
-
-                this.pathfinder = new Pathfinder(this.nodes);
-                if (this.currentNodeId) {
-                    this.pathfinder.setCurrentNode(this.currentNodeId);
+            // Deserialize nodes - skip if error
+            try {
+                if (data.nodes && typeof MapNode !== 'undefined') {
+                    this.nodes = data.nodes.map(n => MapNode.deserialize(n));
+                    this.pathfinder = new Pathfinder(this.nodes);
+                    if (this.currentNodeId) {
+                        this.pathfinder.setCurrentNode(this.currentNodeId);
+                    }
                 }
+            } catch (deserializeError) {
+                console.warn('[MapManager] Could not deserialize nodes:', deserializeError.message);
+                this.nodes = [];
             }
 
             console.log(`[MapManager] Progress loaded: Act ${this.currentAct}, Floor ${this.currentFloor}`);
 
             return true;
         } catch (e) {
-            console.error('[MapManager] Failed to load progress:', e);
+            console.warn('[MapManager] Failed to load progress:', e.message);
             return false;
         }
     }
