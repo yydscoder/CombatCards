@@ -122,9 +122,13 @@ function initializeDropZones(hand) {
     });
 
     enemyArea.addEventListener('dragleave', (e) => {
-        console.log('[DropZones] dragleave ENEMY');
-        if (e.target === enemyArea) {
+        // Only remove highlight if we're leaving the zone entirely (not entering a child)
+        const relatedTarget = e.relatedTarget;
+        if (!relatedTarget || !enemyArea.contains(relatedTarget)) {
+            console.log('[DropZones] dragleave ENEMY (exiting zone)');
             enemyArea.classList.remove('drop-target');
+        } else {
+            console.log('[DropZones] dragleave ENEMY (still inside, moving to child)');
         }
     });
 
@@ -163,9 +167,12 @@ function initializeDropZones(hand) {
     });
 
     playerArea.addEventListener('dragleave', (e) => {
-        console.log('[DropZones] dragleave PLAYER');
-        if (e.target === playerArea) {
+        const relatedTarget = e.relatedTarget;
+        if (!relatedTarget || !playerArea.contains(relatedTarget)) {
+            console.log('[DropZones] dragleave PLAYER (exiting zone)');
             playerArea.classList.remove('drop-target');
+        } else {
+            console.log('[DropZones] dragleave PLAYER (still inside)');
         }
     });
 
