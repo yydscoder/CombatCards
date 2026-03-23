@@ -115,17 +115,35 @@ function initializeDropZones(hand) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
         playerArea.classList.add('drop-target');
+        console.log('[DropZones] Drag over player');
     });
 
     playerArea.addEventListener('dragleave', () => {
         playerArea.classList.remove('drop-target');
+        console.log('[DropZones] Drag leave player');
     });
 
     playerArea.addEventListener('drop', (e) => {
         e.preventDefault();
         playerArea.classList.remove('drop-target');
-        const cardId = e.dataTransfer.getData('text/plain');
+        console.log('[DropZones] Drop on player');
+        
+        const data = e.dataTransfer.getData('text/plain');
+        console.log('[DropZones] Drag data:', data);
+        
+        let cardId;
+        try {
+            const parsed = JSON.parse(data);
+            cardId = parsed.cardId;
+        } catch {
+            cardId = data;
+        }
+        
+        console.log('[DropZones] Card ID:', cardId);
+        
         const card = hand.cards.find(c => c.id === cardId);
+        console.log('[DropZones] Found card:', card?.name);
+        
         if (card && hand.handUI) {
             hand.handUI.handleDropOnTarget(card, 'player');
         }
@@ -136,17 +154,35 @@ function initializeDropZones(hand) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
         enemyArea.classList.add('drop-target');
+        console.log('[DropZones] Drag over enemy');
     });
 
     enemyArea.addEventListener('dragleave', () => {
         enemyArea.classList.remove('drop-target');
+        console.log('[DropZones] Drag leave enemy');
     });
 
     enemyArea.addEventListener('drop', (e) => {
         e.preventDefault();
         enemyArea.classList.remove('drop-target');
-        const cardId = e.dataTransfer.getData('text/plain');
+        console.log('[DropZones] Drop on enemy');
+        
+        const data = e.dataTransfer.getData('text/plain');
+        console.log('[DropZones] Drag data:', data);
+        
+        let cardId;
+        try {
+            const parsed = JSON.parse(data);
+            cardId = parsed.cardId;
+        } catch {
+            cardId = data;
+        }
+        
+        console.log('[DropZones] Card ID:', cardId);
+        
         const card = hand.cards.find(c => c.id === cardId);
+        console.log('[DropZones] Found card:', card?.name);
+        
         if (card && hand.handUI) {
             hand.handUI.handleDropOnTarget(card, 'enemy');
         }
