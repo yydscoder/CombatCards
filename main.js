@@ -110,42 +110,47 @@ function initializeDropZones(hand) {
         return;
     }
 
+    // Make areas accept drops
+    playerArea.setAttribute('data-drop-target', 'player');
+    enemyArea.setAttribute('data-drop-target', 'enemy');
+
     // Player drop zone
     playerArea.addEventListener('dragover', (e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
         playerArea.classList.add('drop-target');
-        console.log('[DropZones] Drag over player');
+        console.log('[DropZones] Dragging over PLAYER');
     });
 
-    playerArea.addEventListener('dragleave', () => {
+    playerArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
         playerArea.classList.remove('drop-target');
-        console.log('[DropZones] Drag leave player');
     });
 
     playerArea.addEventListener('drop', (e) => {
         e.preventDefault();
         playerArea.classList.remove('drop-target');
-        console.log('[DropZones] Drop on player');
+        console.log('[DropZones] Dropped on PLAYER');
         
         const data = e.dataTransfer.getData('text/plain');
-        console.log('[DropZones] Drag data:', data);
+        console.log('[DropZones] Raw data:', data);
         
         let cardId;
         try {
             const parsed = JSON.parse(data);
             cardId = parsed.cardId;
-        } catch {
+            console.log('[DropZones] Parsed JSON cardId:', cardId);
+        } catch (err) {
             cardId = data;
+            console.log('[DropZones] Plain cardId:', cardId);
         }
         
-        console.log('[DropZones] Card ID:', cardId);
-        
         const card = hand.cards.find(c => c.id === cardId);
-        console.log('[DropZones] Found card:', card?.name);
+        console.log('[DropZones] Card found:', card ? card.name : 'NOT FOUND');
         
-        if (card && hand.handUI) {
-            hand.handUI.handleDropOnTarget(card, 'player');
+        if (card) {
+            console.log('[DropZones] Casting', card.name, 'on PLAYER');
+            castCardOnTarget(card, 'player', hand);
         }
     });
 
@@ -154,41 +159,65 @@ function initializeDropZones(hand) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
         enemyArea.classList.add('drop-target');
-        console.log('[DropZones] Drag over enemy');
+        console.log('[DropZones] Dragging over ENEMY');
     });
 
-    enemyArea.addEventListener('dragleave', () => {
+    enemyArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
         enemyArea.classList.remove('drop-target');
-        console.log('[DropZones] Drag leave enemy');
     });
 
     enemyArea.addEventListener('drop', (e) => {
         e.preventDefault();
         enemyArea.classList.remove('drop-target');
-        console.log('[DropZones] Drop on enemy');
+        console.log('[DropZones] Dropped on ENEMY');
         
         const data = e.dataTransfer.getData('text/plain');
-        console.log('[DropZones] Drag data:', data);
+        console.log('[DropZones] Raw data:', data);
         
         let cardId;
         try {
             const parsed = JSON.parse(data);
             cardId = parsed.cardId;
-        } catch {
+            console.log('[DropZones] Parsed JSON cardId:', cardId);
+        } catch (err) {
             cardId = data;
+            console.log('[DropZones] Plain cardId:', cardId);
         }
         
-        console.log('[DropZones] Card ID:', cardId);
-        
         const card = hand.cards.find(c => c.id === cardId);
-        console.log('[DropZones] Found card:', card?.name);
+        console.log('[DropZones] Card found:', card ? card.name : 'NOT FOUND');
         
-        if (card && hand.handUI) {
-            hand.handUI.handleDropOnTarget(card, 'enemy');
+        if (card) {
+            console.log('[DropZones] Casting', card.name, 'on ENEMY');
+            castCardOnTarget(card, 'enemy', hand);
         }
     });
 
-    console.log('[DropZones] Initialized');
+    console.log('[DropZones] Drop zones initialized');
+}
+
+/**
+ * Casts a card on a target (enemy or player)
+ * @param {Object} card - Card to cast
+ * @param {string} targetType - 'enemy' or 'player'
+ * @param {Object} hand - Hand instance
+ */
+function castCardOnTarget(card, targetType, hand) {
+    console.log(`[DropZones] Casting ${card.name} on ${targetType}`);
+    
+    // Create a fake event object
+    const fakeEvent = {
+        preventDefault: () => {},
+        stopPropagation: () => {}
+    };
+    
+    // Call hand's handleCardClick which handles the actual casting
+    if (hand && hand.handleCardClick) {
+        hand.handleCardClick(card, fakeEvent);
+    } else {
+        console.warn('[DropZones] No hand handler!');
+    }
 }
 
 /**

@@ -1844,6 +1844,7 @@ body {
         border-color 0.2s ease,
         transform 0.2s ease;
     position: relative;
+    pointer-events: auto !important; /* Ensure drops work */
 }
 
 .drop-zone.drop-target {
