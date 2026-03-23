@@ -105,8 +105,16 @@ export class MapManager {
          */
         this.selectedNodeId = null;
 
-        // Load saved progress
-        this.loadProgress();
+        /**
+         * @type {boolean}
+         * @description Whether to skip loading saves (for deployment reliability)
+         */
+        this.skipSaveLoad = true;
+
+        // Load saved progress (disabled for now)
+        if (!this.skipSaveLoad) {
+            this.loadProgress();
+        }
 
         console.log(`[MapManager] Initialized. Current Act: ${this.currentAct}`);
     }

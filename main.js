@@ -26,16 +26,14 @@ const GameStateEnum = {
     GAME_OVER: 'game_over'
 };
 
-// Current game state (global)
-let currentGameState = GameStateEnum.MAP;
-window.currentGameState = currentGameState;
-
 // Initialize the game
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎮 Emoji Card Battle - Campaign Mode Initializing...');
 
     // Clear any corrupted save data
-    localStorage.removeItem('combatCards_campaign');
+    if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('combatCards_campaign');
+    }
 
     // Initialize game state
     const gameState = new GameState();
@@ -44,13 +42,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize energy manager
     const energyManager = new EnergyManager(gameState);
     gameState.energyManager = energyManager;
+    window.energyManager = energyManager;
 
     // Initialize turn manager
     const turnManager = new TurnManager(gameState, energyManager);
     gameState.turnManager = turnManager;
+    window.turnManager = turnManager;
 
     // Initialize save system
     const saveSystem = initializeSaveSystem();
+    window.saveSystem = saveSystem;
 
     // Initialize map manager (campaign progression)
     const mapManager = new MapManager();
@@ -153,7 +154,7 @@ function startNewRun() {
  * @param {string} state - One of 'map', 'combat', 'game_over'
  */
 function setGameState(state) {
-    currentGameState = state;
+    // Use window object for reliability across deployments
     window.currentGameState = state;
 
     const mapView = document.getElementById('map-view');
