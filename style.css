@@ -1822,6 +1822,51 @@ body {
     line-height: 1.4;
 }
 
+/* Map view wrapper */
+#map-view {
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+    border-radius: 12px;
+    border: 2px solid #3a3a5a;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+/* Map controls */
+#map-controls {
+    display: flex;
+    justify-content: center;
+    padding: 16px 20px;
+    background: rgba(0, 0, 0, 0.4);
+    border-top: 2px solid #3a3a5a;
+}
+
+#proceed-btn {
+    padding: 14px 40px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #ffffff;
+    background: linear-gradient(135deg, #4caf50, #388e3c);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, background-color 0.2s;
+    box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
+    letter-spacing: 1px;
+}
+
+#proceed-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(76, 175, 80, 0.6);
+    background: linear-gradient(135deg, #66bb6a, #43a047);
+}
+
+#proceed-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    background: linear-gradient(135deg, #555, #444);
+}
+
 /* Act indicator */
 #act-indicator {
     text-align: center;
@@ -1831,6 +1876,77 @@ body {
     font-weight: bold;
     font-size: 14px;
     letter-spacing: 2px;
+}
+
+/* Game over screen */
+#game-over-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+#game-over-screen h1 {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: #ff5252;
+    text-shadow: 0 0 20px rgba(255, 82, 82, 0.6);
+}
+
+#game-over-screen h1:contains("Victory") {
+    color: #ffd700;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+}
+
+#game-over-reason {
+    font-size: 20px;
+    color: #cccccc;
+    margin-bottom: 32px;
+}
+
+#game-over-stats {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 24px 40px;
+    border-radius: 12px;
+    margin-bottom: 32px;
+    text-align: center;
+}
+
+#game-over-stats p {
+    margin: 8px 0;
+    color: #e6e6e6;
+    font-size: 16px;
+}
+
+#game-over-stats span {
+    color: #ffd700;
+    font-weight: bold;
+    margin-left: 8px;
+}
+
+#restart-btn {
+    padding: 16px 48px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffffff;
+    background: linear-gradient(135deg, #5a5aff, #3a3acc);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 20px rgba(90, 90, 255, 0.4);
+}
+
+#restart-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(90, 90, 255, 0.6);
 }
 
 /* ───────────────────────────────────────────────────────────────────────────

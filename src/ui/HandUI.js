@@ -254,21 +254,18 @@ export class HandUI {
 
         // Check if card can be played
         const canPlay = card.canPlay && card.canPlay(this.gameState);
-        console.log(`[HandUI] canPlay:`, canPlay);
-
+        
         if (!canPlay) {
             console.warn(`[HandUI] Cannot play ${card.name}: cost=${card.cost}, energy=${energy}`);
             this.addVisualFeedback(card, 'failure');
             return;
         }
 
-        console.log(`[HandUI] Passing to Hand.handleCardClick...`);
+        console.log(`[HandUI] Card is playable, passing to Hand...`);
 
         // Delegate to hand logic for actual card playing
         if (this.hand && this.hand.handleCardClick) {
             this.hand.handleCardClick(card, event);
-        } else {
-            console.warn('[HandUI] No hand handler!');
         }
     }
 

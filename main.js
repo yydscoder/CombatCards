@@ -1,36 +1,36 @@
-// Main entry point for Emoji Card Battle - Survivor Mode
-// This file initializes the game engine, state management, and round-based progression
+// Main entry point for Emoji Card Battle - Campaign Mode (Slay the Spire style)
+// This file initializes the game engine, state management, and map-based progression
 
 // Import core modules
-import { initializeGameLoop, GameLoop, TurnManager, EnergyManager } from './src/core/engine.js';
-import { GameState, initializeGameState } from './src/core/state.js';
+import { GameState } from './src/core/state.js';
+import { EnergyManager, TurnManager } from './src/core/engine.js';
 import { initializeSaveSystem } from './src/core/SaveSystem.js';
 import { GAME_CONFIG } from './src/core/config.js';
 
 // Import UI modules
-import { initializeHUD } from './src/ui/HUD.js';
-import { initializeHand } from './src/ui/Hand.js';
-import { initializeGameOverScreen } from './src/ui/GameOverScreen.js';
+import { HUD } from './src/ui/HUD.js';
+import { Hand } from './src/ui/Hand.js';
+import { MapUI } from './src/ui/MapUI.js';
 
-// Import survivor mode - round manager
-import { createRoundManager } from './src/levels/index.js';
+// Import map system
+import { MapManager } from './src/map/MapManager.js';
+import { NodeType } from './src/map/MapNode.js';
 
 // Global game references
 window.gameRefs = {};
 
+// Game states
+const GameStateEnum = {
+    MAP: 'map',
+    COMBAT: 'combat',
+    GAME_OVER: 'game_over'
+};
+
 // Initialize the game
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🎮 Emoji Card Battle - Survivor Mode Initializing...');
+    console.log('🎮 Emoji Card Battle - Campaign Mode Initializing...');
 
-    // Initialize round manager (survivor progression)
-    const roundManager = createRoundManager();
-    window.roundManager = roundManager;
-
-    // Get current stats
-    const stats = roundManager.getStats();
-    console.log(`📊 Best Round: ${stats.bestRound} | Total Kills: ${stats.totalKills} | Total Gold: ${stats.totalGold}`);
-
-    // Initialize game state (using class)
+    // Initialize game state
     const gameState = new GameState();
 
     // Initialize energy manager
@@ -44,396 +44,508 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize save system
     const saveSystem = initializeSaveSystem();
 
-    // Initialize game loop
-    const gameLoop = new GameLoop(gameState);
-    gameLoop.setUpdateCallback((deltaTime) => {
-        // Frame update logic
-    });
+    // Initialize map manager (campaign progression)
+    const mapManager = new MapManager();
+    window.mapManager = mapManager;
 
     // Initialize HUD
-    const hud = initializeHUD(gameState);
-
-    // Initialize game-over screen
-    const gameOverScreen = initializeGameOverScreen(saveSystem);
+    const hud = new HUD(gameState);
+    window.hud = hud;
 
     // Initialize hand
-    const hand = initializeHand(gameState, hud, saveSystem, gameOverScreen);
+    const hand = new Hand(gameState, hud, saveSystem, null);
+    window.hand = hand;
+
+    // Initialize map UI
+    const mapUI = new MapUI('map-canvas');
+    window.mapUI = mapUI;
+
+    // Set initial game state
+    let currentGameState = GameStateEnum.MAP;
 
     // Store global references
     window.gameRefs = {
         gameState,
-        gameLoop,
         energyManager,
         turnManager,
+        mapManager,
         hud,
         hand,
-        saveSystem,
-        gameOverScreen,
-        roundManager
+        mapUI,
+        saveSystem
     };
 
-    // Update round display in HUD
-    updateRoundDisplay(stats);
+    // Initialize UI event handlers
+    initializeUIHandlers();
 
-    // Add new run button listener
-    const newRunBtn = document.getElementById('new-run-btn');
-    if (newRunBtn) {
-        newRunBtn.addEventListener('click', () => {
-            if (confirm('Start a new run? Your current progress will be lost (best round and gold are saved).')) {
-                startNewRun();
+    // Start new run
+    startNewRun();
+
+    console.log('✅ Campaign Mode initialized successfully!');
+});
+
+/**
+ * Initializes all UI event handlers
+ */
+function initializeUIHandlers() {
+    // New run / Restart button
+    const restartBtn = document.getElementById('restart-btn');
+    if (restartBtn) {
+        restartBtn.addEventListener('click', startNewRun);
+    }
+
+    // Proceed button (map → combat)
+    const proceedBtn = document.getElementById('proceed-btn');
+    if (proceedBtn) {
+        proceedBtn.addEventListener('click', () => {
+            const mapManager = window.mapManager;
+            if (mapManager && mapManager.selectedNodeId !== null) {
+                enterNode(mapManager.selectedNodeId);
             }
         });
     }
 
-    // Start the first round
-    startRound();
-
-    // Start the game loop
-    gameLoop.start();
-
-    // Initialize drop zones for drag-to-target
-    initializeDropZones(hand);
-
-    console.log('✅ Survivor Mode initialized successfully!');
-});
+    // End turn button
+    const endTurnBtn = document.getElementById('end-turn-btn');
+    if (endTurnBtn) {
+        endTurnBtn.addEventListener('click', endTurn);
+    }
+}
 
 /**
- * Initializes drop zones for drag-to-target functionality
- * @param {Object} hand - Hand instance
+ * Starts a new campaign run
  */
-function initializeDropZones(hand) {
-    const playerArea = document.getElementById('player-area');
-    const enemyArea = document.getElementById('enemy-area');
+function startNewRun() {
+    console.log('🆕 Starting new campaign run...');
 
-    if (!playerArea || !enemyArea) {
-        console.warn('[DropZones] Drop zone elements not found');
+    const mapManager = window.mapManager;
+    const gameState = window.gameState;
+    const hud = window.hud;
+    const hand = window.hand;
+    const mapUI = window.mapUI;
+
+    // Reset game state
+    gameState.reset();
+    gameState.energyManager.reset();
+
+    // Start new campaign
+    mapManager.startNewRun();
+
+    // Hide combat UI, show map
+    setGameState(GameStateEnum.MAP);
+
+    // Render the map
+    renderMap();
+
+    // Update map stats display
+    updateMapStats();
+
+    console.log('🗺️ New campaign started!');
+}
+
+/**
+ * Sets the current game state and updates UI visibility
+ * @param {string} state - One of 'map', 'combat', 'game_over'
+ */
+function setGameState(state) {
+    currentGameState = state;
+
+    const mapView = document.getElementById('map-view');
+    const battleField = document.getElementById('battle-field');
+    const handEl = document.getElementById('hand');
+    const turnControls = document.getElementById('turn-controls');
+    const gameOverScreen = document.getElementById('game-over-screen');
+
+    switch (state) {
+        case GameStateEnum.MAP:
+            mapView.style.display = 'block';
+            battleField.style.display = 'none';
+            handEl.style.display = 'none';
+            turnControls.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            break;
+
+        case GameStateEnum.COMBAT:
+            mapView.style.display = 'none';
+            battleField.style.display = 'block';
+            handEl.style.display = 'block';
+            turnControls.style.display = 'block';
+            gameOverScreen.style.display = 'none';
+            break;
+
+        case GameStateEnum.GAME_OVER:
+            mapView.style.display = 'none';
+            battleField.style.display = 'none';
+            handEl.style.display = 'none';
+            turnControls.style.display = 'none';
+            gameOverScreen.style.display = 'block';
+            break;
+    }
+}
+
+/**
+ * Renders the current map with player position
+ */
+function renderMap() {
+    const mapManager = window.mapManager;
+    const mapUI = window.mapUI;
+
+    if (!mapManager || !mapUI) return;
+
+    const nodes = mapManager.nodes || [];
+    const currentNodeId = mapManager.currentNodeId;
+    const validMoves = mapManager.getValidMoves();
+
+    mapUI.renderMap(nodes, currentNodeId, validMoves);
+
+    // Handle node selection
+    mapUI.onNodeClick = (nodeId) => selectNode(nodeId);
+}
+
+/**
+ * Selects a node on the map (highlights it, enables proceed button)
+ * @param {number} nodeId - Node ID to select
+ */
+function selectNode(nodeId) {
+    const mapManager = window.mapManager;
+    const mapUI = window.mapUI;
+    const proceedBtn = document.getElementById('proceed-btn');
+
+    if (!mapManager || !mapUI) return;
+
+    // Check if move is valid
+    const validMoves = mapManager.getValidMoves();
+    if (!validMoves.includes(nodeId)) {
+        console.warn('Invalid move!');
         return;
     }
 
-    console.log('[DropZones] Setting up enemy area:', enemyArea.id);
-    console.log('[DropZones] Setting up player area:', playerArea.id);
+    // Select the node
+    mapManager.selectedNodeId = nodeId;
+    const node = mapManager.nodes.find(n => n.id === nodeId);
 
-    // Setup enemy drop zone
-    enemyArea.addEventListener('dragover', (e) => {
-        console.log('[DropZones] dragover ENEMY');
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'copy';
-        enemyArea.classList.add('drop-target');
-        window.__dropTarget = 'enemy';
-    });
-
-    enemyArea.addEventListener('dragleave', (e) => {
-        // Only remove highlight if we're leaving the zone entirely (not entering a child)
-        const relatedTarget = e.relatedTarget;
-        if (!relatedTarget || !enemyArea.contains(relatedTarget)) {
-            console.log('[DropZones] dragleave ENEMY (exiting zone)');
-            enemyArea.classList.remove('drop-target');
-            if (window.__dropTarget === 'enemy') {
-                window.__dropTarget = null;
-            }
-        } else {
-            console.log('[DropZones] dragleave ENEMY (still inside, moving to child)');
-        }
-    });
-
-    enemyArea.addEventListener('drop', (e) => {
-        console.log('[DropZones] DROP ON ENEMY!!!');
-        e.preventDefault();
-        e.stopPropagation();
-        enemyArea.classList.remove('drop-target');
-        window.__dropTarget = null;
-        
-        const data = e.dataTransfer.getData('text/plain');
-        console.log('[DropZones] Drop data:', data);
-        
-        let cardId;
-        try {
-            const parsed = JSON.parse(data);
-            cardId = parsed.cardId;
-        } catch (err) {
-            cardId = data;
-        }
-        
-        const card = hand.cards.find(c => c.id === cardId);
-        console.log('[DropZones] Found card:', card?.name);
-        
-        if (card) {
-            console.log('[DropZones] Casting', card.name);
-            castCardOnTarget(card, 'enemy', hand);
-        }
-    });
-
-    // Setup player drop zone
-    playerArea.addEventListener('dragover', (e) => {
-        console.log('[DropZones] dragover PLAYER');
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'copy';
-        playerArea.classList.add('drop-target');
-        window.__dropTarget = 'player';
-    });
-
-    playerArea.addEventListener('dragleave', (e) => {
-        const relatedTarget = e.relatedTarget;
-        if (!relatedTarget || !playerArea.contains(relatedTarget)) {
-            console.log('[DropZones] dragleave PLAYER (exiting zone)');
-            playerArea.classList.remove('drop-target');
-            if (window.__dropTarget === 'player') {
-                window.__dropTarget = null;
-            }
-        } else {
-            console.log('[DropZones] dragleave PLAYER (still inside)');
-        }
-    });
-
-    playerArea.addEventListener('drop', (e) => {
-        console.log('[DropZones] DROP ON PLAYER!!!');
-        e.preventDefault();
-        e.stopPropagation();
-        playerArea.classList.remove('drop-target');
-        window.__dropTarget = null;
-        
-        const data = e.dataTransfer.getData('text/plain');
-        let cardId;
-        try {
-            const parsed = JSON.parse(data);
-            cardId = parsed.cardId;
-        } catch (err) {
-            cardId = data;
-        }
-        
-        const card = hand.cards.find(c => c.id === cardId);
-        console.log('[DropZones] Found card:', card?.name);
-        
-        if (card) {
-            console.log('[DropZones] Casting', card.name);
-            castCardOnTarget(card, 'player', hand);
-        }
-    });
-
-    console.log('[DropZones] ✅ Drop zones initialized with listeners');
-}
-
-/**
- * Casts a card on a target (enemy or player)
- * @param {Object} card - Card to cast
- * @param {string} targetType - 'enemy' or 'player'
- * @param {Object} hand - Hand instance
- */
-function castCardOnTarget(card, targetType, hand) {
-    console.log(`[DropZones] Casting ${card.name} on ${targetType}`);
-    
-    const fakeEvent = {
-        preventDefault: () => {},
-        stopPropagation: () => {}
-    };
-    
-    if (hand && hand.handleCardClick) {
-        hand.handleCardClick(card, fakeEvent);
-    }
-}
-
-/**
- * Updates the round display in the HUD
- *
- * @param {Object} stats - Round manager stats
- */
-function updateRoundDisplay(stats) {
-    const currentRoundEl = document.getElementById('current-round');
-    const bestRoundEl = document.getElementById('best-round');
-    
-    if (currentRoundEl) currentRoundEl.textContent = stats.currentRound;
-    if (bestRoundEl) bestRoundEl.textContent = stats.bestRound;
-}
-
-/**
- * Starts a new round
- *
- * @returns {Object} Round start result
- */
-function startRound() {
-    const roundManager = window.roundManager;
-    const gameState = window.gameRefs.gameState;
-    
-    // Start the round
-    const roundInfo = roundManager.startRound();
-    
-    if (!roundInfo.success) {
-        console.error('Failed to start round:', roundInfo.reason);
-        return roundInfo;
+    // Update proceed button
+    if (proceedBtn) {
+        proceedBtn.disabled = false;
+        proceedBtn.textContent = `Proceed to ${getNodeName(node.type)}`;
     }
 
-    // Update HUD
-    updateRoundDisplay(roundManager.getStats());
+    // Re-render map to show selection
+    renderMap();
+
+    console.log(`Selected node ${nodeId} (${node.type})`);
+}
+
+/**
+ * Enters a node (starts combat, event, shop, etc.)
+ * @param {number} nodeId - Node ID to enter
+ */
+function enterNode(nodeId) {
+    const mapManager = window.mapManager;
+    const gameState = window.gameState;
+
+    if (!mapManager) return;
+
+    const node = mapManager.nodes.find(n => n.id === nodeId);
+    if (!node) return;
+
+    console.log(`Entering node ${nodeId}: ${node.type}`);
+
+    // Move player to node
+    mapManager.moveToNode(nodeId);
+
+    // Handle node type
+    switch (node.type) {
+        case NodeType.COMBAT:
+            startCombat(node);
+            break;
+        case NodeType.ELITE:
+            startCombat(node, true); // Elite = true
+            break;
+        case NodeType.BOSS:
+            startCombat(node, false, true); // Boss = true
+            break;
+        case NodeType.REST:
+            showRestCamp(node);
+            break;
+        case NodeType.SHOP:
+            showShop(node);
+            break;
+        case NodeType.EVENT:
+            showEvent(node);
+            break;
+        default:
+            console.warn('Unknown node type:', node.type);
+    }
+
+    // Update map stats
+    updateMapStats();
+}
+
+/**
+ * Starts a combat encounter
+ * @param {MapNode} node - Combat node
+ * @param {boolean} isElite - Is elite enemy
+ * @param {boolean} isBoss - Is boss fight
+ */
+function startCombat(node, isElite = false, isBoss = false) {
+    console.log('⚔️ Starting combat!', { node: node.id, elite: isElite, boss: isBoss });
+
+    const mapManager = window.mapManager;
+    const gameState = window.gameState;
+    const hud = window.hud;
+    const hand = window.hand;
+
+    // Spawn enemy based on node type
+    let enemy;
+    if (isBoss) {
+        enemy = mapManager.spawnBoss();
+    } else if (isElite) {
+        enemy = mapManager.spawnElite();
+    } else {
+        enemy = mapManager.spawnEnemy();
+    }
+
+    if (!enemy) {
+        console.error('Failed to spawn enemy!');
+        return;
+    }
 
     // Set enemy in game state
-    gameState.enemy = roundInfo.enemy;
-    gameState.enemyMaxHp = roundInfo.enemyStats.hp;
-    gameState.enemyHp = roundInfo.enemyStats.hp;
-    gameState.enemyAttackInterval = roundInfo.enemy.attackInterval || 1;
+    gameState.enemy = enemy;
+    gameState.enemyMaxHp = enemy.hp;
+    gameState.enemyHp = enemy.hp;
+    gameState.enemyAttackInterval = enemy.attackInterval || 1;
     gameState.enemyAttackCooldown = gameState.enemyAttackInterval;
 
     // Update enemy display
-    updateEnemyDisplay(roundInfo.enemy, roundInfo.enemyStats);
-    if (window.gameRefs?.hud) {
-        window.gameRefs.hud.reinitEnemyHealthBar(); // Re-init with new enemy max HP
-        window.gameRefs.hud.updateAll();
-    }
+    updateEnemyDisplay(enemy);
 
-    // Show milestone if applicable
-    if (roundInfo.milestone) {
-        console.log(`🏆 MILESTONE: ${roundInfo.milestone.name} - ${roundInfo.milestone.description}`);
-    }
+    // Update HUD
+    hud.updateAll();
 
-    console.log(`⚔️ Round ${roundInfo.round}: ${roundInfo.enemyStats.name} appears!`);
+    // Initialize hand for combat
+    hand.initHand();
 
-    return roundInfo;
+    // Start first turn
+    gameState.turnManager.startTurn();
+
+    // Switch to combat state
+    setGameState(GameStateEnum.COMBAT);
+
+    console.log(`Combat started against ${enemy.name} (${enemy.hp} HP)`);
 }
 
 /**
- * Updates the enemy display in the battle field
- *
- * @param {Object} enemy - Enemy instance
- * @param {Object} stats - Enemy stats
+ * Shows rest camp options (heal or upgrade)
+ * @param {RestNode} node - Rest node
  */
-function updateEnemyDisplay(enemy, stats) {
-    const enemyEmojiEl = document.getElementById('enemy-emoji');
-    const enemyNameEl = document.getElementById('enemy-name');
-    
-    if (enemyEmojiEl) enemyEmojiEl.textContent = stats.emoji;
-    if (enemyNameEl) {
-        const bossTag = stats.isBoss ? ' 👑 BOSS' : '';
-        enemyNameEl.textContent = `${stats.name}${bossTag}`;
-    }
+function showRestCamp(node) {
+    console.log('🔥 Rest camp options');
+    // TODO: Show heal/upgrade modal
+    // For now, auto-heal 30% HP
+    const gameState = window.gameState;
+    const healAmount = Math.floor(gameState.playerMaxHp * 0.3);
+    gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + healAmount);
+    console.log(`Healed ${healAmount} HP`);
+
+    // Complete node and return to map
+    completeNode();
 }
 
 /**
- * Starts a new run (resets round counter)
+ * Shows shop interface
+ * @param {ShopNode} node - Shop node
  */
-function startNewRun() {
-    const roundManager = window.roundManager;
-    const gameState = window.gameRefs.gameState;
-    const hand = window.gameRefs.hand;
-    const hud = window.gameRefs.hud;
-    const turnManager = gameState.turnManager;
+function showShop(node) {
+    console.log('🏪 Shop opened');
+    // TODO: Show shop UI with cards/relics for sale
+    // For now, just return to map
+    completeNode();
+}
 
-    console.log('[startNewRun] Starting new run...');
+/**
+ * Shows random event
+ * @param {EventNode} node - Event node
+ */
+function showEvent(node) {
+    console.log('❓ Random event');
+    // TODO: Show event modal with choices
+    // For now, just return to map
+    completeNode();
+}
 
-    // Reset run progress
-    roundManager.resetRun();
+/**
+ * Completes the current node and returns to map
+ */
+function completeNode() {
+    const mapManager = window.mapManager;
 
-    // Reset game state (this resets HP, energy, effects, etc.)
-    gameState.reset();
+    if (!mapManager) return;
 
-    // Reset energy manager
-    if (energyManager) {
-        energyManager.reset();
+    // Mark node as complete
+    const node = mapManager.nodes.find(n => n.id === mapManager.currentNodeId);
+    if (node) {
+        node.completed = true;
     }
 
-    // Reset turn manager
-    if (turnManager) {
-        turnManager.reset();
-    }
-
-    // Clear the hand UI
-    if (hand) {
-        hand.cards = [];
-        if (hand.handContainer) {
-            hand.handContainer.innerHTML = '';
+    // Check if boss was defeated (act complete)
+    if (node && node.type === NodeType.BOSS) {
+        mapManager.currentAct++;
+        if (mapManager.currentAct > 3) {
+            // Victory! Completed all acts
+            showVictory();
+            return;
         }
+        // Generate next act
+        mapManager.generateNextAct();
     }
 
-    // Update display
-    updateRoundDisplay(roundManager.getStats());
-
-    // Start first round (this will set up the enemy)
-    const roundResult = startRound();
-
-    // Set starting energy explicitly for turn 1
-    if (energyManager) {
-        energyManager.reset();
-        console.log(`[startNewRun] Energy set to ${gameState.energy}/${gameState.maxEnergy}`);
-    }
-
-    // Re-initialize hand with new cards (after round starts so enemy exists)
-    if (hand) {
-        hand.gameState = gameState;
-        hand.initHand();
-        console.log('[startNewRun] Hand re-initialized with', hand.cards.length, 'cards');
-    }
-
-    // Force update HUD
-    if (hud) {
-        hud.updateAll();
-    }
-
-    console.log('🆕 New run started! Good luck!');
+    // Return to map view
+    setGameState(GameStateEnum.MAP);
+    renderMap();
+    updateMapStats();
 }
 
 /**
- * Completes the current round and starts the next
- *
- * @returns {Object} Completion result
+ * Called when player wins combat
  */
-function completeRound() {
-    const roundManager = window.roundManager;
-    const gameState = window.gameRefs.gameState;
-    const turnManager = gameState.turnManager;
+function onCombatWin() {
+    console.log('✅ Combat won!');
 
-    // Complete current round
-    const completeResult = roundManager.completeRound();
+    const mapManager = window.mapManager;
+    const gameState = window.gameState;
 
-    if (!completeResult.success) {
-        return completeResult;
-    }
+    // Add gold reward
+    const goldReward = Math.floor(Math.random() * 30) + 20;
+    mapManager.gold += goldReward;
+    gameState.gold = mapManager.gold;
 
-    console.log(`💰 Round complete! +${completeResult.goldReward} gold (Total: ${completeResult.totalGold})`);
+    console.log(`Earned ${goldReward} gold (total: ${mapManager.gold})`);
 
-    // Player progression: small boosts per round
-    const hpGain = 5;
-    const manaGain = (completeResult.round % 2 === 0) ? 1 : 0;
-    gameState.playerMaxHp += hpGain;
-    gameState.playerMaxMana = Math.min(20, gameState.playerMaxMana + manaGain);
-    gameState.updatePlayerHp(gameState.playerMaxHp);
-    gameState.updatePlayerMana(gameState.playerMaxMana);
-
-    // Reset turn counter for new round
-    if (turnManager) {
-        turnManager.reset();
-        console.log('[completeRound] Turn counter reset for new round');
-    }
-
-    // Advance to next round
-    const nextResult = roundManager.nextRound();
-
-    // Update display
-    updateRoundDisplay(roundManager.getStats());
-
-    // Start next round after a brief delay
-    setTimeout(() => {
-        startRound();
-    }, 1000);
-
-    return { success: true, completeResult, nextResult };
+    // Complete node
+    completeNode();
 }
 
 /**
- * Handles player defeat
- *
- * @returns {Object} Game over result
+ * Called when player loses combat
  */
-function onPlayerDefeat() {
-    const roundManager = window.roundManager;
-    const result = roundManager.playerDefeated();
-    
-    console.log(`💀 Game Over! ${result.message}`);
-    
-    return result;
+function onCombatLoss() {
+    console.log('❌ Combat lost!');
+    showGameOver('Defeated in combat');
 }
 
-// Expose functions globally for other modules to use
-window.survivorMode = {
-    startRound,
-    completeRound,
-    onPlayerDefeat,
-    startNewRun
-};
+/**
+ * Shows game over screen
+ * @param {string} reason - Reason for game over
+ */
+function showGameOver(reason) {
+    console.log('💀 Game Over:', reason);
+
+    const mapManager = window.mapManager;
+    const gameOverScreen = document.getElementById('game-over-screen');
+    const gameOverTitle = document.getElementById('game-over-title');
+    const gameOverReason = document.getElementById('game-over-reason');
+    const goAct = document.getElementById('go-act');
+    const goFloors = document.getElementById('go-floors');
+    const goKills = document.getElementById('go-kills');
+    const goGold = document.getElementById('go-gold');
+
+    gameOverTitle.textContent = 'Defeat';
+    gameOverReason.textContent = reason;
+    goAct.textContent = mapManager.currentAct;
+    goFloors.textContent = mapManager.currentFloor;
+    goKills.textContent = mapManager.totalKills;
+    goGold.textContent = mapManager.gold;
+
+    setGameState(GameStateEnum.GAME_OVER);
+}
+
+/**
+ * Shows victory screen (completed all 3 acts)
+ */
+function showVictory() {
+    console.log('🏆 VICTORY! Completed all acts!');
+
+    const mapManager = window.mapManager;
+    const gameOverScreen = document.getElementById('game-over-screen');
+    const gameOverTitle = document.getElementById('game-over-title');
+    const gameOverReason = document.getElementById('game-over-reason');
+    const goAct = document.getElementById('go-act');
+    const goFloors = document.getElementById('go-floors');
+    const goKills = document.getElementById('go-kills');
+    const goGold = document.getElementById('go-gold');
+
+    gameOverTitle.textContent = '🏆 Victory!';
+    gameOverReason.textContent = 'Defeated all three act bosses!';
+    goAct.textContent = '3';
+    goFloors.textContent = '45';
+    goKills.textContent = mapManager.totalKills;
+    goGold.textContent = mapManager.gold;
+
+    setGameState(GameStateEnum.GAME_OVER);
+}
+
+/**
+ * Updates map stats display (HP, gold, floor)
+ */
+function updateMapStats() {
+    const mapManager = window.mapManager;
+    const gameState = window.gameState;
+
+    if (!mapManager || !gameState) return;
+
+    const mapHp = document.getElementById('map-hp');
+    const mapGold = document.getElementById('map-gold');
+    const mapFloor = document.getElementById('map-floor');
+    const actNumber = document.getElementById('act-number');
+
+    if (mapHp) mapHp.textContent = `${gameState.playerHp}/${gameState.playerMaxHp}`;
+    if (mapGold) mapGold.textContent = mapManager.gold;
+    if (mapFloor) mapFloor.textContent = `Floor ${mapManager.currentFloor}/15`;
+    if (actNumber) actNumber.textContent = mapManager.currentAct;
+}
+
+/**
+ * Updates enemy display (emoji, name, HP)
+ * @param {Object} enemy - Enemy object
+ */
+function updateEnemyDisplay(enemy) {
+    const enemyEmoji = document.getElementById('enemy-emoji');
+    const enemyName = document.getElementById('enemy-name');
+
+    if (enemyEmoji) enemyEmoji.textContent = enemy.emoji || '👾';
+    if (enemyName) enemyName.textContent = enemy.name || 'Enemy';
+}
+
+/**
+ * Gets display name for node type
+ * @param {string} nodeType - Node type
+ * @returns {string} Display name
+ */
+function getNodeName(nodeType) {
+    const names = {
+        [NodeType.COMBAT]: 'Combat',
+        [NodeType.ELITE]: 'Elite',
+        [NodeType.BOSS]: 'Boss',
+        [NodeType.REST]: 'Campfire',
+        [NodeType.SHOP]: 'Shop',
+        [NodeType.EVENT]: 'Event'
+    };
+    return names[nodeType] || nodeType;
+}
+
+/**
+ * Ends the current turn
+ */
+function endTurn() {
+    const gameState = window.gameState;
+    const hud = window.hud;
+
+    if (!gameState || !gameState.turnManager) return;
+
+    gameState.turnManager.endTurn();
+    gameState.turnManager.startTurn();
+
+    if (hud) hud.updateAll();
+}
