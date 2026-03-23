@@ -91,8 +91,69 @@ document.addEventListener('DOMContentLoaded', () => {
     // Start the game loop
     gameLoop.start();
 
+    // Initialize drop zones for drag-to-target
+    initializeDropZones(hand);
+
     console.log('✅ Survivor Mode initialized successfully!');
 });
+
+/**
+ * Initializes drop zones for drag-to-target functionality
+ * @param {Object} hand - Hand instance
+ */
+function initializeDropZones(hand) {
+    const playerArea = document.getElementById('player-area');
+    const enemyArea = document.getElementById('enemy-area');
+
+    if (!playerArea || !enemyArea) {
+        console.warn('[DropZones] Drop zone elements not found');
+        return;
+    }
+
+    // Player drop zone
+    playerArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        playerArea.classList.add('drop-target');
+    });
+
+    playerArea.addEventListener('dragleave', () => {
+        playerArea.classList.remove('drop-target');
+    });
+
+    playerArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        playerArea.classList.remove('drop-target');
+        const cardId = e.dataTransfer.getData('text/plain');
+        const card = hand.cards.find(c => c.id === cardId);
+        if (card && hand.handUI) {
+            hand.handUI.handleDropOnTarget(card, 'player');
+        }
+    });
+
+    // Enemy drop zone
+    enemyArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        enemyArea.classList.add('drop-target');
+    });
+
+    enemyArea.addEventListener('dragleave', () => {
+        enemyArea.classList.remove('drop-target');
+    });
+
+    enemyArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        enemyArea.classList.remove('drop-target');
+        const cardId = e.dataTransfer.getData('text/plain');
+        const card = hand.cards.find(c => c.id === cardId);
+        if (card && hand.handUI) {
+            hand.handUI.handleDropOnTarget(card, 'enemy');
+        }
+    });
+
+    console.log('[DropZones] Initialized');
+}
 
 /**
  * Updates the round display in the HUD

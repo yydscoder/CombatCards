@@ -152,7 +152,11 @@ export class Hand {
             // Sync legacy cards array with CardPileManager hand
             this.cards = this.cardPileManager.getHand();
 
+            // Debug: log card states
             console.log(`[Hand] Started combat with ${this.cards.length} cards in hand`);
+            this.cards.forEach((card, i) => {
+                console.log(`[Hand] Card ${i}: ${card.name}, isInHand=${card.isInHand}`);
+            });
         } else {
             // Fallback: legacy behavior
             this._initHandLegacy();

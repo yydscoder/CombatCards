@@ -94,6 +94,9 @@ export class HandUI {
      * @returns {HTMLElement} The card element
      */
     createCardElement(card) {
+        // Ensure card is marked as in hand
+        card.isInHand = true;
+
         // Create card element
         const cardElement = document.createElement('div');
         cardElement.className = 'card';
@@ -106,6 +109,9 @@ export class HandUI {
             cardElement.dataset.element = card.element;
         }
 
+        // Make card draggable for targeting
+        cardElement.draggable = true;
+
         // Create card content
         const cardContent = document.createElement('div');
         cardContent.className = 'card-content';
@@ -114,7 +120,7 @@ export class HandUI {
         const manaBadge = document.createElement('div');
         manaBadge.className = 'card-mana-cost';
         manaBadge.textContent = card.cost;
-        manaBadge.title = `${card.cost} Mana`;
+        manaBadge.title = `${card.cost} Energy`;
 
         // Create emoji element
         const emojiElement = document.createElement('div');
@@ -138,8 +144,12 @@ export class HandUI {
         cardContent.appendChild(statsElement);
         cardElement.appendChild(cardContent);
 
-        // Add click event for playing the card
+        // Add click event for playing the card (fallback)
         cardElement.addEventListener('click', (e) => this.handleCardClick(card, e));
+
+        // Add drag events for targeting
+        cardElement.addEventListener('dragstart', (e) => this.handleDragStart(card, e));
+        cardElement.addEventListener('dragend', (e) => this.handleDragEnd(card, e));
 
         // Store in cache
         this.cardElements.set(card.id, cardElement);
@@ -240,10 +250,12 @@ export class HandUI {
         event.stopPropagation();
 
         console.log(`[HandUI] Card clicked: ${card.name}`);
+        console.log(`[HandUI] Card state: isInHand=${card.isInHand}, energy=${this.gameState.energy ?? 0}, cost=${card.cost}`);
 
         // Check if card can be played
         if (!card.canPlay || !card.canPlay(this.gameState)) {
-            console.warn(`[HandUI] Cannot play ${card.name}: conditions not met`);
+            const result = card.canPlay ? card.canPlay(this.gameState) : { reason: 'no_canPlay_method' };
+            console.warn(`[HandUI] Cannot play ${card.name}: ${result.reason || result}`, result);
             this.addVisualFeedback(card, 'failure');
             return;
         }
@@ -457,6 +469,84 @@ export class HandUI {
         this.slots.forEach(slot => slot.clearCard());
         this.cardElements.clear();
         this.selectedSlot = null;
+    }
+
+    /**
+     * Handles drag start for card targeting
+     * @param {Object} card - The card being dragged
+     * @param {Event} event - The dragstart event
+     */
+    handleDragStart(card, event) {
+        // Check if card can be played
+        if (!card.canPlay(this.gameState)) {
+            event.preventDefault();
+            return;
+        }
+
+        // Store dragged card info
+        this.draggedCard = card;
+        event.dataTransfer.setData('text/plain', card.id);
+        event.dataTransfer.effectAllowed = 'copy';
+
+        // Set drag image
+        const dragImage = event.target.cloneNode(true);
+        dragImage.style.position = 'absolute';
+        dragImage.style.top = '-1000px';
+        document.body.appendChild(dragImage);
+        event.dataTransfer.setDragImage(dragImage, 50, 75);
+        setTimeout(() => document.body.removeChild(dragImage), 0);
+
+        // Add visual feedback
+        event.target.classList.add('card-dragging');
+
+        console.log(`[HandUI] Drag started: ${card.name}`);
+    }
+
+    /**
+     * Handles drag end
+     * @param {Object} card - The card
+     * @param {Event} event - The dragend event
+     */
+    handleDragEnd(card, event) {
+        if (event.target) {
+            event.target.classList.remove('card-dragging');
+        }
+        this.draggedCard = null;
+
+        // Clear drop zone highlights
+        const enemyArea = document.getElementById('enemy-area');
+        const playerArea = document.getElementById('player-area');
+        if (enemyArea) enemyArea.classList.remove('drop-target');
+        if (playerArea) playerArea.classList.remove('drop-target');
+
+        console.log(`[HandUI] Drag ended: ${card.name}`);
+    }
+
+    /**
+     * Handles drop on target
+     * @param {Object} card - The card
+     * @param {string} targetType - 'enemy' or 'player'
+     */
+    handleDropOnTarget(card, targetType) {
+        if (!card) return;
+
+        console.log(`[HandUI] Card dropped on ${targetType}: ${card.name}`);
+
+        // Determine target
+        let target;
+        if (targetType === 'enemy') {
+            target = this.gameState.enemy;
+        } else if (targetType === 'player') {
+            target = this.gameState;
+        }
+
+        if (!target) {
+            console.warn('[HandUI] No valid target');
+            return;
+        }
+
+        // Play the card
+        this.handleCardClick(card, { preventDefault: () => {}, stopPropagation: () => {} });
     }
 
     /**
