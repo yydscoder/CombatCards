@@ -15,7 +15,7 @@
 
 import { MapGenerator } from './MapGenerator.js';
 import { Pathfinder } from './Pathfinder.js';
-import { NodeType } from './MapNode.js';
+import { NodeType, MapNode } from './MapNode.js';
 
 /**
  * MapManager Class
@@ -483,7 +483,6 @@ export class MapManager {
             if (data.nodes) {
                 this.nodes = data.nodes.map(n => {
                     // Reconstruct node class based on type
-                    const { MapNode } = require('./MapNode.js');
                     return MapNode.deserialize(n);
                 });
 
