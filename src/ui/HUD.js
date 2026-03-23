@@ -62,11 +62,11 @@ export class HUD {
                         <span class="bar-value"><span id="player-hp">${this.gameState.playerHp}</span>/<span>${this.gameState.playerMaxHp}</span></span>
                     </div>
                     <div class="bar-row">
-                        <span class="bar-icon">💧</span>
+                        <span class="bar-icon">⚡</span>
                         <div class="bar-track mana-track">
                             <div class="bar-fill mana-fill" id="player-mana-fill" style="width:100%"></div>
                         </div>
-                        <span class="bar-value"><span id="player-mana">${this.gameState.playerMana}</span>/<span>${this.gameState.playerMaxMana}</span></span>
+                        <span class="bar-value"><span id="player-mana">${this.gameState.energy ?? 3}</span>/<span>${this.gameState.maxEnergy ?? 3}</span></span>
                     </div>
                     <div class="bar-row shield-row" id="player-shield-row" style="display:none;">
                         <span class="bar-icon">🛡️</span>
@@ -131,7 +131,9 @@ export class HUD {
 
         const manaFill = document.getElementById('player-mana-fill');
         if (manaFill) {
-            const manaPct = (this.gameState.playerMana / this.gameState.playerMaxMana) * 100;
+            const energy = this.gameState.energy ?? 3;
+            const maxEnergy = this.gameState.maxEnergy ?? 3;
+            const manaPct = (energy / maxEnergy) * 100;
             manaFill.style.setProperty('width', `${manaPct}%`, 'important');
         }
 
@@ -139,18 +141,20 @@ export class HUD {
         if (hpSpan) hpSpan.textContent = this.gameState.playerHp;
         else console.warn('[HUD] player-hp span NOT FOUND');
         const manaSpan = document.getElementById('player-mana');
-        if (manaSpan) manaSpan.textContent = this.gameState.playerMana;
+        const energy = this.gameState.energy ?? 3;
+        if (manaSpan) manaSpan.textContent = energy;
         else console.warn('[HUD] player-mana span NOT FOUND');
 
         // Verify DOM update
         const computedWidth = window.getComputedStyle(healthFill).width;
         console.log(
             `[HUD] Player bar — HP: ${this.gameState.playerHp}/${this.gameState.playerMaxHp}`,
+            `| Energy: ${energy}/${this.gameState.maxEnergy ?? 3}`,
             `| Percentage: ${hpPct.toFixed(1)}%`,
             `| Width set: ${healthFill.style.width}`,
             `| Computed width: ${computedWidth}`
         );
-        
+
         // Detect desync
         const expectedWidth = (hpPct / 100) * healthFill.parentNode.offsetWidth;
         const actualWidth = parseFloat(computedWidth);
@@ -250,18 +254,21 @@ export class HUD {
     }
     
     /**
-     * Updates the mana display
+     * Updates the energy display
      */
     updateManaDisplay() {
         const manaFill = document.getElementById('player-mana-fill');
         if (manaFill) {
-            const manaPct = (this.gameState.playerMana / this.gameState.playerMaxMana) * 100;
+            const energy = this.gameState.energy ?? 3;
+            const maxEnergy = this.gameState.maxEnergy ?? 3;
+            const manaPct = (energy / maxEnergy) * 100;
             manaFill.style.width = `${manaPct}%`;
         }
         const manaSpan = document.getElementById('player-mana');
-        if (manaSpan) manaSpan.textContent = this.gameState.playerMana;
+        const energy = this.gameState.energy ?? 3;
+        if (manaSpan) manaSpan.textContent = energy;
 
-        console.log(`Mana updated: ${this.gameState.playerMana}/${this.gameState.playerMaxMana}`);
+        console.log(`Energy updated: ${energy}/${this.gameState.maxEnergy ?? 3}`);
     }
 
     /**

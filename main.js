@@ -2,8 +2,8 @@
 // This file initializes the game engine, state management, and round-based progression
 
 // Import core modules
-import { initializeGameLoop } from './src/core/engine.js';
-import { initializeGameState } from './src/core/state.js';
+import { initializeGameLoop, GameLoop, TurnManager, EnergyManager } from './src/core/engine.js';
+import { GameState, initializeGameState } from './src/core/state.js';
 import { initializeSaveSystem } from './src/core/SaveSystem.js';
 import { GAME_CONFIG } from './src/core/config.js';
 
@@ -30,14 +30,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const stats = roundManager.getStats();
     console.log(`📊 Best Round: ${stats.bestRound} | Total Kills: ${stats.totalKills} | Total Gold: ${stats.totalGold}`);
 
-    // Initialize game state
-    const gameState = initializeGameState();
+    // Initialize game state (using class)
+    const gameState = new GameState();
+
+    // Initialize energy manager
+    const energyManager = new EnergyManager(gameState);
+    gameState.energyManager = energyManager;
+
+    // Initialize turn manager
+    const turnManager = new TurnManager(gameState, energyManager);
+    gameState.turnManager = turnManager;
 
     // Initialize save system
     const saveSystem = initializeSaveSystem();
 
     // Initialize game loop
-    const gameLoop = initializeGameLoop(gameState);
+    const gameLoop = new GameLoop(gameState);
+    gameLoop.setUpdateCallback((deltaTime) => {
+        // Frame update logic
+    });
 
     // Initialize HUD
     const hud = initializeHUD(gameState);
@@ -52,6 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.gameRefs = {
         gameState,
         gameLoop,
+        energyManager,
+        turnManager,
         hud,
         hand,
         saveSystem,
@@ -170,8 +183,13 @@ function startNewRun() {
     // Reset run progress
     roundManager.resetRun();
 
-    // Reset game state (this resets HP, mana, effects, etc.)
+    // Reset game state (this resets HP, energy, effects, etc.)
     gameState.reset();
+
+    // Reset energy manager
+    if (energyManager) {
+        energyManager.reset();
+    }
 
     // Reset turn manager
     if (turnManager) {
@@ -192,9 +210,11 @@ function startNewRun() {
     // Start first round (this will set up the enemy)
     const roundResult = startRound();
 
-    // Set starting mana explicitly for turn 1
-    gameState.updatePlayerMana(GAME_CONFIG.PLAYER_START_MANA);
-    console.log(`[startNewRun] Mana set to ${gameState.playerMana}/${gameState.playerMaxMana}`);
+    // Set starting energy explicitly for turn 1
+    if (energyManager) {
+        energyManager.reset();
+        console.log(`[startNewRun] Energy set to ${gameState.energy}/${gameState.maxEnergy}`);
+    }
 
     // Re-initialize hand with new cards (after round starts so enemy exists)
     if (hand) {

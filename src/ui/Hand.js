@@ -515,13 +515,19 @@ export class Hand {
 
         // Check if card can be played
         if (!card.canPlay(this.gameState)) {
-            console.warn(`Cannot play ${card.name}: not enough mana or not in hand`);
+            console.warn(`Cannot play ${card.name}: not enough energy or not in hand`);
             this.addVisualFeedback(card, 'failure');
             return;
         }
 
-        // Deduct mana
-        this.gameState.updatePlayerMana(this.gameState.playerMana - card.cost);
+        // Play the card (CardBase.play() handles energy spending)
+        const playResult = card.play(this.gameState, this.gameState.enemy);
+
+        if (!playResult.success) {
+            console.warn(`Card play failed: ${playResult.reason}`);
+            this.addVisualFeedback(card, 'failure');
+            return;
+        }
 
         // Consume applicable buffs before executing card effect
         const buffResult = this.effectManager.consumeBuffsForCard(card);
@@ -1201,7 +1207,7 @@ export class Hand {
     endTurn() {
         console.log('Ending turn...');
 
-        // Tick DoT / HoT effects before the new turn's mana is granted
+        // Tick DoT / HoT effects before the new turn's energy is granted
         this._processActiveEffects();
 
         // Sync enemy HP after DoT ticks
@@ -1234,26 +1240,27 @@ export class Hand {
 
         this._logStatusSnapshot('end_turn');
 
-        // Advance turn (this will also regenerate mana)
+        // End current turn and start next (this will reset energy)
         if (this.gameState.turnManager) {
-            this.gameState.turnManager.advanceTurn();
-            if (this.hud) this.hud.updateAll(); // refresh mana bar + turn counter
+            this.gameState.turnManager.endTurn();
+            this.gameState.turnManager.startNextTurn();
+            if (this.hud) this.hud.updateAll(); // refresh energy bar + turn counter
         }
         this.updateCardAffordability();
-        
+
         // Visual feedback on button
         const endTurnBtn = document.getElementById('end-turn-btn');
         if (endTurnBtn) {
             endTurnBtn.textContent = 'Turn Ended ✓';
             endTurnBtn.disabled = true;
-            
+
             setTimeout(() => {
                 endTurnBtn.textContent = 'End Turn';
                 endTurnBtn.disabled = false;
             }, 1000);
         }
-        
-        console.log(`Turn ended. Now on turn ${this.gameState.turnCount}`);
+
+        console.log(`Turn ended. Now on turn ${this.gameState.turn}`);
     }
 }
 
