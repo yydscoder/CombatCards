@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize game state
     const gameState = new GameState();
+    window.gameState = gameState;
 
     // Initialize energy manager
     const energyManager = new EnergyManager(gameState);
