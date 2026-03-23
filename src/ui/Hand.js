@@ -549,40 +549,74 @@ export class Hand {
         event.preventDefault();
         event.stopPropagation();
 
+        const energy = this.gameState.energy ?? 0;
+        
         // Log the card click with full state
-        console.log(`[Hand] Card clicked: ${card.name} (ID: ${card.id})`);
-        console.log(`[Hand] Card state: isInHand=${card.isInHand}, cost=${card.cost}`);
-        console.log(`[Hand] GameState energy: ${this.gameState.energy}/${this.gameState.maxEnergy}`);
-        console.log(`[Hand] GameState enemy:`, this.gameState.enemy);
+        console.log(`[Hand] === Card Clicked ===`);
+        console.log(`[Hand] Card: ${card.name} (cost: ${card.cost})`);
+        console.log(`[Hand] Energy: ${energy}/${this.gameState.maxEnergy}`);
+        console.log(`[Hand] isInHand: ${card.isInHand}`);
+        console.log(`[Hand] Enemy:`, this.gameState.enemy);
+        console.log(`[Hand] Enemy HP: ${this.gameState.enemyHp}`);
 
         // Check if card can be played
-        const canPlayResult = card.canPlay(this.gameState);
-        console.log(`[Hand] canPlay result:`, canPlayResult);
+        const canPlay = card.canPlay && card.canPlay(this.gameState);
+        console.log(`[Hand] canPlay:`, canPlay);
 
-        if (!canPlayResult.canPlay) {
-            console.warn(`[Hand] Cannot play ${card.name}: ${canPlayResult.reason}`);
+        if (!canPlay) {
+            console.warn(`[Hand] Cannot play ${card.name}: cost=${card.cost}, energy=${energy}`);
             this.addVisualFeedback(card, 'failure');
             return;
         }
 
-        console.log(`[Hand] Playing card: ${card.name}...`);
+        console.log(`[Hand] Playing ${card.name}...`);
 
-        // Play the card (CardBase.play() handles energy spending and effect)
-        const playResult = card.play(this.gameState, this.gameState.enemy);
-        console.log(`[Hand] playResult:`, playResult);
-
-        if (!playResult.success) {
-            console.warn(`[Hand] Card play failed: ${playResult.reason}`);
-            this.addVisualFeedback(card, 'failure');
+        // Execute card effect directly
+        if (!this.gameState.enemy) {
+            console.warn('[Hand] No enemy!');
             return;
         }
 
-        console.log(`[Hand] Card played successfully: ${card.name}`);
-        console.log(`[Hand] Energy after play: ${this.gameState.energy}`);
+        // Spend energy
+        if (this.gameState.energyManager) {
+            const spendResult = this.gameState.energyManager.spend(card.cost);
+            console.log(`[Hand] Energy spend result:`, spendResult);
+            if (!spendResult.success) {
+                console.warn('[Hand] Cannot afford card!');
+                this.addVisualFeedback(card, 'failure');
+                return;
+            }
+        } else {
+            this.gameState.energy = (this.gameState.energy ?? 0) - card.cost;
+        }
 
-        // Update HUD
-        if (this.hud) {
+        console.log(`[Hand] Energy after spend: ${this.gameState.energy}`);
+
+        // Execute card effect
+        const result = card.executeEffect(this.gameState, this.gameState.enemy);
+        console.log(`[Hand] Effect result:`, result);
+
+        // Sync enemy HP
+        this._syncEnemyHP();
+
+        // Show damage feedback
+        if (result.damage && this.hud) {
+            this.hud.showDamageFeedback(result.damage, 'enemy', result.isCriticalHit);
             this.hud.updateAll();
+        }
+
+        // Flash enemy graphic
+        const enemyArea = document.getElementById('enemy-area');
+        if (enemyArea && result.damage) {
+            enemyArea.classList.remove('hit');
+            void enemyArea.offsetWidth; // Force reflow
+            enemyArea.classList.add('hit');
+        }
+
+        // Check if enemy died
+        if (this.gameState.enemyHp <= 0) {
+            console.log('[Hand] Enemy defeated!');
+            this._handleEnemyDeath();
         }
 
         // Remove card from hand
@@ -591,6 +625,8 @@ export class Hand {
         // Visual feedback
         this.addVisualFeedback(card, 'success');
         this.updateCardAffordability();
+
+        console.log(`[Hand] === Card Play Complete ===`);
     }
 
     /**
