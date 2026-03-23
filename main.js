@@ -110,92 +110,77 @@ function initializeDropZones(hand) {
         return;
     }
 
-    // Make areas accept drops
-    playerArea.setAttribute('data-drop-target', 'player');
-    enemyArea.setAttribute('data-drop-target', 'enemy');
-
-    // Add drop handlers to enemy area and ALL its children
-    setupDropZone(enemyArea, 'enemy', hand);
-    setupDropZone(playerArea, 'player', hand);
-
-    console.log('[DropZones] Drop zones initialized');
-}
-
-/**
- * Sets up a drop zone including all child elements
- * @param {HTMLElement} zone - Drop zone element
- * @param {string} targetType - 'enemy' or 'player'
- * @param {Object} hand - Hand instance
- */
-function setupDropZone(zone, targetType, hand) {
-    // Prevent default drag behaviors on the zone and all children
-    zone.addEventListener('dragover', (e) => {
+    // Setup enemy drop zone
+    enemyArea.addEventListener('dragover', (e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
-        zone.classList.add('drop-target');
-        console.log(`[DropZones] Dragging over ${targetType.toUpperCase()}`);
+        enemyArea.classList.add('drop-target');
     });
 
-    zone.addEventListener('dragleave', (e) => {
-        // Only remove highlight if leaving the main zone (not entering a child)
-        if (e.target === zone) {
-            zone.classList.remove('drop-target');
+    enemyArea.addEventListener('dragleave', (e) => {
+        if (e.target === enemyArea) {
+            enemyArea.classList.remove('drop-target');
         }
     });
 
-    zone.addEventListener('drop', (e) => {
+    enemyArea.addEventListener('drop', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        zone.classList.remove('drop-target');
-        console.log(`[DropZones] Dropped on ${targetType.toUpperCase()}`);
+        enemyArea.classList.remove('drop-target');
         
         const data = e.dataTransfer.getData('text/plain');
-        console.log('[DropZones] Raw data:', data);
-        
         let cardId;
         try {
             const parsed = JSON.parse(data);
             cardId = parsed.cardId;
-            console.log('[DropZones] Parsed JSON cardId:', cardId);
         } catch (err) {
             cardId = data;
-            console.log('[DropZones] Plain cardId:', cardId);
         }
         
         const card = hand.cards.find(c => c.id === cardId);
-        console.log('[DropZones] Card found:', card ? card.name : 'NOT FOUND');
+        console.log('[DropZones] ENEMY DROP - Card:', card?.name || 'NOT FOUND');
         
         if (card) {
-            console.log('[DropZones] Casting', card.name, 'on', targetType.toUpperCase());
-            castCardOnTarget(card, targetType, hand);
+            castCardOnTarget(card, 'enemy', hand);
         }
     });
 
-    // Also add dragover handlers to all children to prevent default
-    const children = zone.querySelectorAll('*');
-    children.forEach(child => {
-        child.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'copy';
-            zone.classList.add('drop-target');
-        });
-        
-        child.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            // Trigger the parent zone's drop
-            zone.dispatchEvent(new Event('drop', { bubbles: false }));
-            // Manually call the drop handler
-            const event = new MouseEvent('drop', {
-                bubbles: true,
-                cancelable: true,
-                clientX: e.clientX,
-                clientY: e.clientY,
-                dataTransfer: e.dataTransfer
-            });
-            zone.dispatchEvent(event);
-        });
+    // Setup player drop zone
+    playerArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        playerArea.classList.add('drop-target');
     });
+
+    playerArea.addEventListener('dragleave', (e) => {
+        if (e.target === playerArea) {
+            playerArea.classList.remove('drop-target');
+        }
+    });
+
+    playerArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        playerArea.classList.remove('drop-target');
+        
+        const data = e.dataTransfer.getData('text/plain');
+        let cardId;
+        try {
+            const parsed = JSON.parse(data);
+            cardId = parsed.cardId;
+        } catch (err) {
+            cardId = data;
+        }
+        
+        const card = hand.cards.find(c => c.id === cardId);
+        console.log('[DropZones] PLAYER DROP - Card:', card?.name || 'NOT FOUND');
+        
+        if (card) {
+            castCardOnTarget(card, 'player', hand);
+        }
+    });
+
+    console.log('[DropZones] Initialized');
 }
 
 /**
@@ -207,17 +192,13 @@ function setupDropZone(zone, targetType, hand) {
 function castCardOnTarget(card, targetType, hand) {
     console.log(`[DropZones] Casting ${card.name} on ${targetType}`);
     
-    // Create a fake event object
     const fakeEvent = {
         preventDefault: () => {},
         stopPropagation: () => {}
     };
     
-    // Call hand's handleCardClick which handles the actual casting
     if (hand && hand.handleCardClick) {
         hand.handleCardClick(card, fakeEvent);
-    } else {
-        console.warn('[DropZones] No hand handler!');
     }
 }
 

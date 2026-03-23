@@ -482,25 +482,30 @@ export class HandUI {
     handleDragStart(card, event) {
         // Check if card can be played
         if (!card.canPlay(this.gameState)) {
-            event.preventDefault();
+            if (event.preventDefault) event.preventDefault();
             return;
         }
 
         // Store dragged card info
         this.draggedCard = card;
-        event.dataTransfer.setData('text/plain', card.id);
+        event.dataTransfer.setData('text/plain', JSON.stringify({ cardId: card.id }));
         event.dataTransfer.effectAllowed = 'copy';
 
-        // Set drag image
-        const dragImage = event.target.cloneNode(true);
-        dragImage.style.position = 'absolute';
-        dragImage.style.top = '-1000px';
-        document.body.appendChild(dragImage);
-        event.dataTransfer.setDragImage(dragImage, 50, 75);
-        setTimeout(() => document.body.removeChild(dragImage), 0);
-
-        // Add visual feedback
-        event.target.classList.add('card-dragging');
+        // Set drag image using the actual card element if available
+        const cardElement = this.cardElements.get(card.id);
+        if (cardElement) {
+            const dragImage = cardElement.cloneNode(true);
+            dragImage.style.position = 'absolute';
+            dragImage.style.top = '-1000px';
+            dragImage.style.left = '-1000px';
+            document.body.appendChild(dragImage);
+            event.dataTransfer.setDragImage(dragImage, 50, 75);
+            setTimeout(() => {
+                if (document.body.contains(dragImage)) {
+                    document.body.removeChild(dragImage);
+                }
+            }, 0);
+        }
 
         console.log(`[HandUI] Drag started: ${card.name}`);
     }
@@ -511,9 +516,7 @@ export class HandUI {
      * @param {Event} event - The dragend event
      */
     handleDragEnd(card, event) {
-        if (event.target) {
-            event.target.classList.remove('card-dragging');
-        }
+        // Clear dragged card reference
         this.draggedCard = null;
 
         // Clear drop zone highlights

@@ -1844,7 +1844,11 @@ body {
         border-color 0.2s ease,
         transform 0.2s ease;
     position: relative;
-    pointer-events: auto !important; /* Ensure drops work */
+}
+
+/* Make all children of drop zones pass-through for pointer events during drag */
+.drop-zone > * {
+    pointer-events: none;
 }
 
 .drop-zone.drop-target {
