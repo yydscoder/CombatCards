@@ -110,25 +110,33 @@ function initializeDropZones(hand) {
         return;
     }
 
+    console.log('[DropZones] Setting up enemy area:', enemyArea.id);
+    console.log('[DropZones] Setting up player area:', playerArea.id);
+
     // Setup enemy drop zone
     enemyArea.addEventListener('dragover', (e) => {
+        console.log('[DropZones] dragover ENEMY');
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
         enemyArea.classList.add('drop-target');
     });
 
     enemyArea.addEventListener('dragleave', (e) => {
+        console.log('[DropZones] dragleave ENEMY');
         if (e.target === enemyArea) {
             enemyArea.classList.remove('drop-target');
         }
     });
 
     enemyArea.addEventListener('drop', (e) => {
+        console.log('[DropZones] DROP ON ENEMY!!!');
         e.preventDefault();
         e.stopPropagation();
         enemyArea.classList.remove('drop-target');
         
         const data = e.dataTransfer.getData('text/plain');
+        console.log('[DropZones] Drop data:', data);
+        
         let cardId;
         try {
             const parsed = JSON.parse(data);
@@ -138,27 +146,31 @@ function initializeDropZones(hand) {
         }
         
         const card = hand.cards.find(c => c.id === cardId);
-        console.log('[DropZones] ENEMY DROP - Card:', card?.name || 'NOT FOUND');
+        console.log('[DropZones] Found card:', card?.name);
         
         if (card) {
+            console.log('[DropZones] Casting', card.name);
             castCardOnTarget(card, 'enemy', hand);
         }
     });
 
     // Setup player drop zone
     playerArea.addEventListener('dragover', (e) => {
+        console.log('[DropZones] dragover PLAYER');
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
         playerArea.classList.add('drop-target');
     });
 
     playerArea.addEventListener('dragleave', (e) => {
+        console.log('[DropZones] dragleave PLAYER');
         if (e.target === playerArea) {
             playerArea.classList.remove('drop-target');
         }
     });
 
     playerArea.addEventListener('drop', (e) => {
+        console.log('[DropZones] DROP ON PLAYER!!!');
         e.preventDefault();
         e.stopPropagation();
         playerArea.classList.remove('drop-target');
@@ -173,14 +185,15 @@ function initializeDropZones(hand) {
         }
         
         const card = hand.cards.find(c => c.id === cardId);
-        console.log('[DropZones] PLAYER DROP - Card:', card?.name || 'NOT FOUND');
+        console.log('[DropZones] Found card:', card?.name);
         
         if (card) {
+            console.log('[DropZones] Casting', card.name);
             castCardOnTarget(card, 'player', hand);
         }
     });
 
-    console.log('[DropZones] Initialized');
+    console.log('[DropZones] ✅ Drop zones initialized with listeners');
 }
 
 /**
