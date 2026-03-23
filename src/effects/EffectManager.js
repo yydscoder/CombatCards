@@ -770,6 +770,136 @@ export class EffectManager {
     }
 
     /**
+     * Applies damage buff multiplier to a card's damage
+     * @param {Object} card - The card being played
+     * @param {number} baseDamage - The base damage value
+     * @returns {Object} { damage, multiplier, buffName }
+     */
+    applyDamageBuff(card, baseDamage) {
+        const gs = this.gameState;
+        let multiplier = 1;
+        let appliedBuff = null;
+
+        // Check for active damage buffs
+        if (gs.activeEffects?.length) {
+            for (const effect of gs.activeEffects) {
+                if ((effect.type === 'damage_buff' || effect.type === EffectType.DAMAGE_BUFF || 
+                     effect.type === 'next_card_buff' || effect.type === EffectType.NEXT_CARD_BUFF) &&
+                    !effect.consumed) {
+                    // Check if buff applies to this card's element
+                    if (effect.appliesTo === card.element || 
+                        effect.appliesTo === 'all' || 
+                        !effect.appliesTo) {
+                        
+                        // Apply the damage bonus
+                        if (effect.damageBonusPercent) {
+                            multiplier += effect.damageBonusPercent;
+                        }
+                        if (effect.damageBonus) {
+                            multiplier += effect.damageBonus;
+                        }
+                        
+                        // Mark buff as consumed
+                        effect.consumed = true;
+                        appliedBuff = effect;
+                        
+                        console.log(`[Buff] ${effect.name} applied: ${baseDamage} × ${multiplier.toFixed(2)} = ${Math.floor(baseDamage * multiplier)}`);
+                        break; // Only consume one buff per card
+                    }
+                }
+            }
+        }
+
+        return {
+            damage: Math.floor(baseDamage * multiplier),
+            multiplier: multiplier,
+            buffName: appliedBuff?.name || null
+        };
+    }
+
+    /**
+     * Gets the current damage reduction from enemy debuffs (FrostBite, Overgrowth, etc.)
+     * @returns {number} Damage reduction multiplier (0.5 = 50% reduction)
+     */
+    getEnemyDamageReduction() {
+        const gs = this.gameState;
+        let totalReduction = 0;
+
+        if (gs.enemy?.activeEffects?.length) {
+            for (const effect of gs.enemy.activeEffects) {
+                // FrostBite: 10% per stack, max 50%
+                if (effect.name === 'frost' || effect.name === 'frostbite') {
+                    const stacks = effect.stacks || 1;
+                    const reductionPerStack = effect.damageReductionPerStack || 0.10;
+                    const reduction = Math.min(stacks * reductionPerStack, 0.50);
+                    totalReduction += reduction;
+                    console.log(`[Debuff] Frost: ${stacks} stacks = ${Math.round(reduction * 100)}% DMG reduction`);
+                }
+                
+                // Overgrowth weaken: flat 30% reduction
+                if (effect.name === 'overgrowth_weaken' && effect.damageReduction) {
+                    const reduction = effect.damageReduction;
+                    totalReduction += reduction;
+                    console.log(`[Debuff] Overgrowth Weaken: ${Math.round(reduction * 100)}% DMG reduction`);
+                }
+            }
+        }
+
+        return Math.min(totalReduction, 0.50); // Cap at 50%
+    }
+
+    /**
+     * Gets the player's damage reduction from buffs (BarkSkin, etc.)
+     * @returns {number} Damage reduction multiplier (0.4 = 40% reduction)
+     */
+    getPlayerDamageReduction() {
+        const gs = this.gameState;
+        let totalReduction = 0;
+
+        if (gs.activeEffects?.length) {
+            for (const effect of gs.activeEffects) {
+                // BarkSkin and similar damage reduction buffs
+                if (effect.type === 'damage_reduction' || 
+                    effect.type === EffectType.DAMAGE_REDUCTION ||
+                    effect.name === 'barkskin') {
+                    
+                    if (effect.damageReduction && !effect.consumed) {
+                        totalReduction += effect.damageReduction;
+                        console.log(`[Buff] ${effect.name}: ${Math.round(effect.damageReduction * 100)}% DMG reduction`);
+                    }
+                }
+            }
+        }
+
+        return Math.min(totalReduction, 0.75); // Cap at 75%
+    }
+
+    /**
+     * Calculates reflection damage from active effects (Thorns, FlameShield, etc.)
+     * @returns {number} Reflection damage amount
+     */
+    getReflectionDamage() {
+        const gs = this.gameState;
+        let reflectDamage = 0;
+
+        if (gs.activeEffects?.length) {
+            for (const effect of gs.activeEffects) {
+                // Thorns: flat reflection damage
+                if (effect.name === 'thorns' && effect.reflectDamage) {
+                    reflectDamage += effect.reflectDamage;
+                }
+                
+                // FlameShield: percentage reflection
+                if (effect.name === 'flame_shield' && effect.reflectPercent) {
+                    // This is handled in Hand.js with actual damage taken
+                }
+            }
+        }
+
+        return reflectDamage;
+    }
+
+    /**
      * Gets all active effects for debug display
      * @param {string} target - 'player', 'enemy', or 'all'
      * @returns {Object} Debug information about active effects

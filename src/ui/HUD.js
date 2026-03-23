@@ -319,7 +319,7 @@ export class HUD {
      * Updates DOT indicator emojis on player and enemy areas
      */
     updateDotIndicators() {
-        // Player buffs (shields, HoTs, etc.)
+        // Player buffs/debuffs
         const playerDotsEl = document.getElementById('player-dots');
         const playerTooltip = document.getElementById('player-tooltip');
         
@@ -327,9 +327,10 @@ export class HUD {
             const dotEmojis = [];
             let index = 0;
             
-            // Check active effects for HoTs
+            // Check active effects for HoTs and buffs
             if (this.gameState.activeEffects?.length) {
                 for (const effect of this.gameState.activeEffects) {
+                    // HoTs
                     if (effect.healPerTurn) {
                         const turns = effect.turnsRemaining ?? effect.duration ?? '?';
                         const tooltipData = {
@@ -346,6 +347,61 @@ export class HUD {
                             tooltipData: tooltipData
                         });
                     }
+                    
+                    // Damage buffs (FlameStrike, HydroBoost)
+                    if (effect.type === 'damage_buff' || effect.type === 'next_card_buff' ||
+                        effect.name === 'flame_strike_buff' || effect.name === 'hydro_boost') {
+                        if (!effect.consumed) {
+                            const turns = effect.turnsRemaining ?? effect.duration ?? 1;
+                            const bonusPercent = Math.round((effect.damageBonusPercent || 0) * 100);
+                            dotEmojis.push({
+                                emoji: effect.emoji || (effect.appliesTo === 'fire' ? '⚔️' : '🔵'),
+                                index: index++,
+                                tooltipData: {
+                                    name: effect.name.replace(/_/g, ' ').toUpperCase(),
+                                    source: effect.source || 'Buff',
+                                    bonus: `${bonusPercent}%`,
+                                    appliesTo: effect.appliesTo || 'all',
+                                    turns: turns,
+                                    type: 'buff'
+                                }
+                            });
+                        }
+                    }
+                    
+                    // Damage reduction buffs (BarkSkin)
+                    if (effect.type === 'damage_reduction' || effect.name === 'barkskin') {
+                        const turns = effect.turnsRemaining ?? effect.duration ?? '?';
+                        const reduction = Math.round((effect.damageReduction || 0) * 100);
+                        dotEmojis.push({
+                            emoji: effect.emoji || '🪵',
+                            index: index++,
+                            tooltipData: {
+                                name: effect.name.replace(/_/g, ' ').toUpperCase(),
+                                source: effect.source || 'Buff',
+                                reduction: `${reduction}%`,
+                                turns: turns,
+                                type: 'buff'
+                            }
+                        });
+                    }
+                    
+                    // Reflection (Thorns)
+                    if (effect.type === 'reflection' || effect.name === 'thorns') {
+                        const turns = effect.turnsRemaining ?? effect.duration ?? '?';
+                        const reflect = effect.reflectDamage || 0;
+                        dotEmojis.push({
+                            emoji: effect.emoji || '🌵',
+                            index: index++,
+                            tooltipData: {
+                                name: effect.name.replace(/_/g, ' ').toUpperCase(),
+                                source: effect.source || 'Buff',
+                                reflect: `${reflect} DMG`,
+                                turns: turns,
+                                type: 'buff'
+                            }
+                        });
+                    }
                 }
             }
             
@@ -353,10 +409,12 @@ export class HUD {
             if (this.gameState.playerShields) {
                 for (const [name, shield] of Object.entries(this.gameState.playerShields)) {
                     const turns = shield.turnsRemaining ?? shield.duration ?? '?';
+                    let shieldValue = shield.remaining || (shield.count * (shield.absorbPerBubble || 0));
+                    
                     const tooltipData = {
                         name: name.replace(/_/g, ' ').toUpperCase(),
                         source: 'Shield',
-                        shield: shield.remaining || (shield.count * (shield.absorbPerBubble || 0)),
+                        shield: shieldValue,
                         turns: turns,
                         type: 'shield'
                     };
@@ -364,9 +422,18 @@ export class HUD {
                     if (shield.reflectPercent) {
                         tooltipData.reflect = `${Math.round(shield.reflectPercent * 100)}%`;
                     }
+                    if (shield.retaliationDamage) {
+                        tooltipData.retaliation = `${shield.retaliationDamage} DMG`;
+                    }
+                    
+                    // Determine emoji based on shield type
+                    let emoji = '🛡️';
+                    if (name === 'bubble_shield') emoji = '🫧';
+                    if (name === 'ice_wall') emoji = '🧊';
+                    if (name === 'fire_wall') emoji = '🧱';
                     
                     dotEmojis.push({ 
-                        emoji: '🛡️', 
+                        emoji: emoji,
                         index: index++,
                         tooltipData: tooltipData
                     });
@@ -387,7 +454,7 @@ export class HUD {
             this._addTooltipListeners(playerDotsEl, playerTooltip, 'player');
         }
 
-        // Enemy DOTs
+        // Enemy DOTs/debuffs
         const enemyDotsEl = document.getElementById('enemy-dots');
         const enemyTooltip = document.getElementById('enemy-tooltip');
         
@@ -399,8 +466,11 @@ export class HUD {
                 const isDoT = effect.damagePerTurn || effect.damagePerTick || effect.currentDamage;
                 const isStacking = effect.stacks !== undefined;
                 const isDelayedEruption = effect.type === 'delayed_eruption';
+                const isDebuff = effect.type === 'debuff' || effect.name === 'frost' || effect.name === 'frostbite';
+                const isCC = effect.type === 'crowd_control' || 
+                             ['stun', 'freeze', 'entangled', 'rooted', 'paralyzed', 'sleep'].includes(effect.name);
                 
-                if (isDoT || isStacking || isDelayedEruption) {
+                if (isDoT || isStacking || isDelayedEruption || isDebuff || isCC) {
                     const turns = effect.turnsRemaining ?? effect.duration ?? '?';
                     const tooltipData = {
                         name: effect.name,
@@ -408,9 +478,21 @@ export class HUD {
                         turns: turns
                     };
                     
+                    // CC effects
+                    if (isCC) {
+                        tooltipData.isCC = true;
+                        tooltipData.ccType = effect.name;
+                        if (effect.missChance) {
+                            tooltipData.missChance = `${Math.round(effect.missChance * 100)}% miss`;
+                        }
+                    }
+                    
                     if (effect.damagePerTurn) {
                         tooltipData.damagePerTurn = effect.damagePerTurn;
-                        if (effect.stacks > 1) tooltipData.stacks = effect.stacks;
+                        if (effect.stacks > 1) {
+                            tooltipData.stacks = effect.stacks;
+                            tooltipData.totalDamage = effect.damagePerTurn * effect.stacks;
+                        }
                     }
                     if (effect.damagePerTick) {
                         tooltipData.damagePerTick = effect.damagePerTick;
@@ -426,9 +508,24 @@ export class HUD {
                     if (effect.stacks !== undefined && !effect.damagePerTurn && !effect.currentDamage) {
                         tooltipData.stacks = effect.stacks;
                     }
+                    // FrostBite debuff
+                    if (effect.name === 'frost' || effect.name === 'frostbite') {
+                        const reduction = Math.round((effect.damageReductionPerStack || 0.10) * 100);
+                        tooltipData.reduction = `${reduction}% per stack`;
+                        tooltipData.totalReduction = `${Math.round((effect.stacks || 1) * reduction * 0.10 * 100)}%`;
+                    }
+                    
+                    // Determine emoji based on effect type
+                    let emoji = effect.emoji || '💀';
+                    if (effect.name === 'stun' || effect.name === 'freeze') emoji = '💫';
+                    if (effect.name === 'entangled') emoji = '🕸️';
+                    if (effect.name === 'rooted') emoji = '🌳';
+                    if (effect.name === 'ember_burn') emoji = '🔶';
+                    if (effect.name === 'overgrowth') emoji = '🌿';
+                    if (effect.name === 'overgrowth_weaken') emoji = '💚';
                     
                     dotEmojis.push({ 
-                        emoji: effect.emoji || '💀', 
+                        emoji: emoji,
                         index: index++,
                         tooltipData: tooltipData
                     });
@@ -477,6 +574,23 @@ export class HUD {
                         if (data.reflect) {
                             html += `<div class="tooltip-stat">Reflect: <span class="tooltip-stat-value">${data.reflect}</span></div>`;
                         }
+                        if (data.retaliation) {
+                            html += `<div class="tooltip-stat">Retaliation: <span class="tooltip-stat-value">${data.retaliation}</span></div>`;
+                        }
+                        html += `<div class="tooltip-stat">Turns: <span class="tooltip-stat-value">${data.turns}</span></div>`;
+                    }
+                    // Player buff tooltips
+                    else if (data.type === 'buff') {
+                        if (data.bonus) {
+                            html += `<div class="tooltip-stat">Bonus: <span class="tooltip-stat-value">${data.bonus}</span></div>`;
+                            html += `<div class="tooltip-stat">Applies to: <span class="tooltip-stat-value">${data.appliesTo}</span></div>`;
+                        }
+                        if (data.reduction) {
+                            html += `<div class="tooltip-stat">Reduction: <span class="tooltip-stat-value">${data.reduction}</span></div>`;
+                        }
+                        if (data.reflect) {
+                            html += `<div class="tooltip-stat">Reflect: <span class="tooltip-stat-value">${data.reflect}</span></div>`;
+                        }
                         html += `<div class="tooltip-stat">Turns: <span class="tooltip-stat-value">${data.turns}</span></div>`;
                     }
                     // Player HoT tooltips
@@ -484,14 +598,22 @@ export class HUD {
                         html += `<div class="tooltip-stat">Healing: <span class="tooltip-stat-value">${data.healing} HP/turn</span></div>`;
                         html += `<div class="tooltip-stat">Turns: <span class="tooltip-stat-value">${data.turns}</span></div>`;
                     }
-                    // Enemy DoT tooltips
+                    // Enemy DoT/Debuff/CC tooltips
                     else {
-                        if (data.eruption) {
+                        if (data.isCC) {
+                            // Crowd control effects
+                            html += `<div class="tooltip-stat">Status: <span class="tooltip-stat-value">${data.ccType.toUpperCase()}</span></div>`;
+                            if (data.missChance) {
+                                html += `<div class="tooltip-stat">${data.missChance}</div>`;
+                            }
+                        } else if (data.eruption) {
                             html += `<div class="tooltip-stat">Current: <span class="tooltip-stat-value">${data.currentDamage}</span></div>`;
                             html += `<div class="tooltip-stat">Eruption: <span class="tooltip-stat-value">${data.eruptionDamage}</span></div>`;
                         } else if (data.damagePerTurn) {
                             let dmgText = `${data.damagePerTurn} DMG/turn`;
-                            if (data.stacks) dmgText += ` (${data.stacks} stacks = ${data.damagePerTurn * data.stacks}/turn)`;
+                            if (data.stacks) {
+                                dmgText += ` (${data.stacks} stacks = ${data.totalDamage || data.damagePerTurn * data.stacks}/turn)`;
+                            }
                             html += `<div class="tooltip-stat">Damage: <span class="tooltip-stat-value">${dmgText}</span></div>`;
                         } else if (data.damagePerTick) {
                             html += `<div class="tooltip-stat">Damage: <span class="tooltip-stat-value">${data.damagePerTick}/tick</span></div>`;
@@ -499,6 +621,12 @@ export class HUD {
                             html += `<div class="tooltip-stat">Current: <span class="tooltip-stat-value">${data.currentDamage}</span> (next: ${data.nextDamage})</div>`;
                         } else if (data.stacks) {
                             html += `<div class="tooltip-stat">Stacks: <span class="tooltip-stat-value">${data.stacks}</span></div>`;
+                        }
+                        if (data.reduction) {
+                            html += `<div class="tooltip-stat">Reduction: <span class="tooltip-stat-value">${data.reduction}</span></div>`;
+                        }
+                        if (data.totalReduction) {
+                            html += `<div class="tooltip-stat">Total: <span class="tooltip-stat-value">${data.totalReduction}</span></div>`;
                         }
                         
                         html += `<div class="tooltip-stat">Turns: <span class="tooltip-stat-value">${data.turns}</span></div>`;

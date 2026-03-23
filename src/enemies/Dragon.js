@@ -1,568 +1,461 @@
 /**
  * Dragon Enemy Implementation for Emoji Card Battle
  *
- * This class extends the base Enemy class implementing a dragon boss enemy.
- * Dragons are powerful bosses with mixed AI behaviors that adapt during combat.
- * They can attack, heal, buff, and unleash devastating special abilities. Maybe I can also add elemental dragons? 
+ * This class extends EnemyBase to implement a dragon boss enemy with
+ * phase-based intent system. Dragons adapt their behavior based on HP.
  *
- * Dragon characteristics:
- * - Very high HP and attack power
- * - Adaptive AI that changes phases based on HP
- * - Multiple special attacks (fire breath, tail swipe, etc.)
- * - Can heal and buff itself
- * - Becomes more dangerous as HP decreases
+ * Design: Slay the Spire-style boss intents
+ * - Multiple combat phases (Initial, Enraged, Desperate)
+ * - Phase-specific intent pools
+ * - Special abilities with cooldowns
+ * - Telegraphed intents for player counterplay
+ *
+ * @module enemies/Dragon
  */
 
-// Import the base Enemy class
-import { Enemy } from './Enemy.js';
+// Import EnemyBase and IntentType
+import { EnemyBase, IntentType } from './EnemyBase.js';
 
 /**
- * Creates a new Dragon instance
- *
- * @param {string} name - The name of the dragon (default: "Dragon")
- * @param {number} maxHp - The maximum health points (default: 200)
- * @param {number} attack - The attack power (default: 25)
+ * Dragon Combat Phases
+ * @readonly
+ * @enum {string}
  */
-export class Dragon extends Enemy {
+export const DragonPhase = {
+    /** 100-70% HP - Standard attacks */
+    INITIAL: 'initial',
+    /** 70-35% HP - More aggressive */
+    ENRAGED: 'enraged',
+    /** Below 35% HP - Desperate, powerful attacks */
+    DESPERATE: 'desperate'
+};
+
+/**
+ * Dragon Class
+ *
+ * Boss enemy with complex intent system:
+ * - Phase 1 (100-70%): Attack, Block, Fire Breath (cooldown)
+ * - Phase 2 (70-35%): Attack, Buff, Fire Breath, Tail Swipe
+ * - Phase 3 (<35%): Desperate attacks, increased damage
+ *
+ * @extends EnemyBase
+ *
+ * @example
+ * const dragon = new Dragon("Ancient Dragon", 200, 25);
+ * const intent = dragon.chooseIntent(1);
+ * console.log(`Dragon will: ${dragon.getIntentIcon()} ${dragon.getIntentText()}`);
+ */
+export class Dragon extends EnemyBase {
+    /**
+     * Creates a new Dragon instance
+     *
+     * @param {string} name - Dragon name (default: "Dragon")
+     * @param {number} maxHp - Maximum HP (default: 200)
+     * @param {number} attack - Attack power (default: 25)
+     */
     constructor(name = "Dragon", maxHp = 200, attack = 25) {
-        // Define dragon stats - powerful boss
+        // Define dragon stats
         const stats = {
-            defense: 12,      // High defense (scales)
-            speed: 1.1,       // Good speed for its size
-            aggression: 0.8,  // High aggression
-            intelligence: 0.9, // Very intelligent - adapts tactics
-            attackInterval: 2   // Attacks every 2 turns
+            defense: 12,       // High defense
+            speed: 1.1,        // Good speed
+            aggression: 0.8,   // High aggression
+            intelligence: 0.9, // Very intelligent
+            attackInterval: 2  // Attacks every 2 turns
         };
 
-        // Call parent constructor with dragon properties
+        // Call parent constructor
         super(
             name,           // Enemy name
             maxHp,          // Maximum HP
             attack,         // Attack power
-            '🐉',           // Emoji representation (dragon)
+            '🐉',           // Emoji (dragon)
             stats           // Additional stats
         );
 
         // Dragon-specific properties
         this.type = 'dragon';
         this.isBoss = true;
-        this.attackFrequency = 0.85; // 85% chance to attack - boss but gives some breathing room
-        
+
         // Combat phase tracking
-        this.combatPhase = 'initial'; // 'initial', 'enraged', 'desperate'
-        this.phaseThreshold1 = 0.7;   // 70% HP - enters enraged phase
-        this.phaseThreshold2 = 0.35;  // 35% HP - enters desperate phase
-        
-        // Ability tracking
+        this.combatPhase = DragonPhase.INITIAL;
+        this.phaseThreshold1 = 0.7;   // 70% HP
+        this.phaseThreshold2 = 0.35;  // 35% HP
+
+        // Ability cooldowns
         this.fireBreathCooldown = 0;
+        this.fireBreathMaxCooldown = 4;
         this.tailSwipeCooldown = 0;
-        this.healCooldown = 0;
+        this.tailSwipeMaxCooldown = 3;
         this.buffCooldown = 0;
+        this.buffMaxCooldown = 5;
+
+        // Buff tracking
         this.buffStacks = 0;
         this.maxBuffStacks = 4;
-        
-        // Special states
-        this.isCharging = false;
-        this.chargeTarget = null;
-        this.wingsClipped = false; // Can be disabled by player
+        this.damageMultiplier = 1;
 
-        console.log(`Dragon created: ${this.name} (HP: ${this.maxHp}, Attack: ${this.attackPower}) - BOSS ENEMY`);
+        console.log(`[Dragon] Created: ${this.name} (HP: ${this.maxHp}, Attack: ${this.attackPower}) - BOSS`);
     }
 
     /**
-     * Decides and performs the dragon's action
+     * Defines the intent pool based on current combat phase
      *
-     * @param {Object} gameState - The current game state object
-     * @returns {Object} Result object containing action details
+     * Dragon has different intent pools for each phase:
+     * - Initial: Standard attacks, occasional Fire Breath
+     * - Enraged: More attacks, adds Tail Swipe and buffs
+     * - Desperate: All-out offense, powerful special attacks
+     *
+     * @override
+     * @returns {Array<Object>} Array of intent objects
      */
-    performAction(gameState) {
-        const player = gameState?.player;
-        
-        if (!player) {
-            return { success: false, reason: 'no_player_target' };
-        }
-
-        // Update combat phase based on HP
+    defineIntentPool() {
+        // Update phase based on current HP
         this.updateCombatPhase();
 
-        // Dragons are powerful but may roar/position (15% chance)
-        if (Math.random() > this.attackFrequency) {
-            console.log(`${this.name} roars menacingly!`);
-            return {
-                success: true,
-                action: 'roar',
-                message: `${this.name} lets out a terrifying roar!`
-            };
-        }
+        console.log(`[Dragon] ${this.name} defining intent pool for phase: ${this.combatPhase}`);
 
-        // Decide action based on phase and cooldowns
-        const decision = this.decideAction(player, gameState);
+        switch (this.combatPhase) {
+            case DragonPhase.INITIAL:
+                this.intentPool = this._getInitialPhasePool();
+                break;
 
-        // Handle charging state for Devastate
-        if (this.isCharging) {
-            this.chargeTurns--;
-            if (this.chargeTurns <= 0) {
-                this.isCharging = false;
-                // Unleash devastate
-                return this.executeDevastate({ action: 'devastate' }, player, gameState);
-            } else {
-                console.log(`${this.name} continues charging DEVASTATE... (${this.chargeTurns} turns left)`);
-                return {
-                    success: true,
-                    action: 'charging_devastate',
-                    chargeTurns: this.chargeTurns,
-                    message: `${this.name} is gathering destructive energy!`
-                };
-            }
-        }
+            case DragonPhase.ENRAGED:
+                this.intentPool = this._getEnragedPhasePool();
+                break;
 
-        // Execute the decided action
-        switch (decision.action) {
-            case 'attack':
-                return this.executeAttack(decision, player, gameState);
-            case 'fire_breath':
-                return this.executeFireBreath(decision, player, gameState);
-            case 'tail_swipe':
-                return this.executeTailSwipe(decision, player, gameState);
-            case 'heal':
-                return this.executeHeal(decision, player, gameState);
-            case 'buff':
-                return this.executeBuff(decision, player, gameState);
-            case 'devastate':
-                // Start charging devastate
-                this.isCharging = true;
-                this.chargeTurns = 2;
-                console.log(`${this.name} begins charging DEVASTATE!`);
-                return {
-                    success: true,
-                    action: 'charging_devastate',
-                    chargeTurns: this.chargeTurns,
-                    message: `${this.name} is charging a devastating attack!`
-                };
-            case 'stunned':
-                return { success: false, reason: 'stunned', action: 'stunned' };
+            case DragonPhase.DESPERATE:
+                this.intentPool = this._getDesperatePhasePool();
+                break;
+
             default:
-                return { success: false, reason: 'no_action', action: 'none' };
+                this.intentPool = this._getInitialPhasePool();
         }
+
+        // Update cooldowns
+        this._updateCooldowns();
+
+        console.log(`[Dragon] Intent pool: ${this.intentPool.length} options`);
+        return this.intentPool;
     }
 
     /**
-     * Updates the combat phase based on HP
+     * Gets the intent pool for Initial phase (100-70% HP)
+     *
+     * @private
+     * @returns {Array<Object>} Initial phase intent pool
+     */
+    _getInitialPhasePool() {
+        const pool = [];
+
+        // Standard attacks (50% of pool)
+        pool.push({ type: IntentType.ATTACK, value: 18, min: 15, max: 21 });
+        pool.push({ type: IntentType.ATTACK, value: 22, min: 18, max: 26 });
+        pool.push({ type: IntentType.ATTACK, value: 20, min: 16, max: 24 });
+        pool.push({ type: IntentType.ATTACK, value: 25, min: 20, max: 30 });
+        pool.push({ type: IntentType.ATTACK, value: 18, min: 15, max: 21 });
+
+        // Block (20% of pool)
+        pool.push({ type: IntentType.BLOCK, value: 25 });
+        pool.push({ type: IntentType.BLOCK, value: 30 });
+
+        // Fire Breath if off cooldown (20% of pool)
+        if (this.fireBreathCooldown <= 0) {
+            pool.push({ type: IntentType.SPECIAL, name: 'Fire Breath', value: 35, min: 30, max: 40 });
+            pool.push({ type: IntentType.SPECIAL, name: 'Fire Breath', value: 35, min: 30, max: 40 });
+        }
+
+        // Buff (10% of pool)
+        if (this.buffCooldown <= 0 && this.buffStacks < this.maxBuffStacks) {
+            pool.push({ type: IntentType.BUFF, name: 'Dragon Fury', value: 3 });
+        }
+
+        return pool;
+    }
+
+    /**
+     * Gets the intent pool for Enraged phase (70-35% HP)
+     *
+     * @private
+     * @returns {Array<Object>} Enraged phase intent pool
+     */
+    _getEnragedPhasePool() {
+        const pool = [];
+
+        // Stronger attacks (40% of pool)
+        pool.push({ type: IntentType.ATTACK, value: 25, min: 20, max: 30 });
+        pool.push({ type: IntentType.ATTACK, value: 28, min: 24, max: 32 });
+        pool.push({ type: IntentType.ATTACK, value: 30, min: 25, max: 35 });
+        pool.push({ type: IntentType.ATTACK, value: 25, min: 20, max: 30 });
+
+        // Tail Swipe (20% of pool)
+        if (this.tailSwipeCooldown <= 0) {
+            pool.push({ type: IntentType.SPECIAL, name: 'Tail Swipe', value: 20, hitCount: 2 });
+            pool.push({ type: IntentType.SPECIAL, name: 'Tail Swipe', value: 20, hitCount: 2 });
+        }
+
+        // Fire Breath (20% of pool)
+        if (this.fireBreathCooldown <= 0) {
+            pool.push({ type: IntentType.SPECIAL, name: 'Fire Breath', value: 40, min: 35, max: 45 });
+            pool.push({ type: IntentType.SPECIAL, name: 'Fire Breath', value: 40, min: 35, max: 45 });
+        }
+
+        // Block (10% of pool)
+        pool.push({ type: IntentType.BLOCK, value: 30 });
+
+        // Buff (10% of pool)
+        if (this.buffCooldown <= 0 && this.buffStacks < this.maxBuffStacks) {
+            pool.push({ type: IntentType.BUFF, name: 'Dragon Fury', value: 4 });
+        }
+
+        return pool;
+    }
+
+    /**
+     * Gets the intent pool for Desperate phase (<35% HP)
+     *
+     * @private
+     * @returns {Array<Object>} Desperate phase intent pool
+     */
+    _getDesperatePhasePool() {
+        const pool = [];
+
+        // Devastating attacks (50% of pool)
+        pool.push({ type: IntentType.ATTACK, value: 35, min: 30, max: 40 });
+        pool.push({ type: IntentType.ATTACK, value: 40, min: 35, max: 45 });
+        pool.push({ type: IntentType.ATTACK, value: 30, min: 25, max: 35 });
+
+        // Devastating Fire Breath (30% of pool)
+        pool.push({ type: IntentType.SPECIAL, name: 'Devastating Fire Breath', value: 50, min: 45, max: 55 });
+        pool.push({ type: IntentType.SPECIAL, name: 'Devastating Fire Breath', value: 50, min: 45, max: 55 });
+        pool.push({ type: IntentType.SPECIAL, name: 'Devastating Fire Breath', value: 50, min: 45, max: 55 });
+
+        // Tail Swipe (10% of pool)
+        pool.push({ type: IntentType.SPECIAL, name: 'Tail Swipe', value: 25, hitCount: 2 });
+
+        // Last stand buff (10% of pool)
+        if (this.buffCooldown <= 0) {
+            pool.push({ type: IntentType.BUFF, name: 'Last Stand', value: 5 });
+        }
+
+        return pool;
+    }
+
+    /**
+     * Updates the combat phase based on current HP percentage
      */
     updateCombatPhase() {
         const hpPercent = this.hp / this.maxHp;
+        const oldPhase = this.combatPhase;
 
         if (hpPercent <= this.phaseThreshold2) {
-            if (this.combatPhase !== 'desperate') {
-                this.combatPhase = 'desperate';
-                console.log(`${this.name} enters DESPERATE phase! All abilities empowered!`);
-            }
+            this.combatPhase = DragonPhase.DESPERATE;
         } else if (hpPercent <= this.phaseThreshold1) {
-            if (this.combatPhase !== 'enraged') {
-                this.combatPhase = 'enraged';
-                console.log(`${this.name} enters ENRAGED phase! Attack frequency increased!`);
-            }
+            this.combatPhase = DragonPhase.ENRAGED;
         } else {
-            this.combatPhase = 'initial';
+            this.combatPhase = DragonPhase.INITIAL;
+        }
+
+        if (oldPhase !== this.combatPhase) {
+            console.log(`[Dragon] ${this.name} enters ${this.combatPhase} phase! (${Math.floor(hpPercent * 100)}% HP)`);
         }
     }
 
     /**
-     * Decides action based on combat phase
+     * Updates ability cooldowns
      *
-     * @param {Object} player - The player target
-     * @param {Object} gameState - Current game state
-     * @returns {Object} Action decision
+     * @private
      */
-    decideAction(player, gameState) {
-        if (!this.isAlive || this.isStunned) {
-            return { action: 'stunned', reason: this.isStunned ? 'stunned' : 'dead' };
-        }
+    _updateCooldowns() {
+        if (this.fireBreathCooldown > 0) this.fireBreathCooldown--;
+        if (this.tailSwipeCooldown > 0) this.tailSwipeCooldown--;
+        if (this.buffCooldown > 0) this.buffCooldown--;
 
-        const roll = Math.random();
-        const hpPercent = this.hp / this.maxHp;
-
-        switch (this.combatPhase) {
-            case 'initial':
-                // 40% attack, 25% fire breath, 15% tail swipe, 10% heal, 10% buff
-                if (roll < 0.4) {
-                    return { action: 'attack', target: 'player' };
-                } else if (roll < 0.65 && this.fireBreathCooldown <= 0) {
-                    return { action: 'fire_breath', target: 'player' };
-                } else if (roll < 0.8 && this.tailSwipeCooldown <= 0) {
-                    return { action: 'tail_swipe', target: 'player' };
-                } else if (roll < 0.9 && this.healCooldown <= 0 && hpPercent < 0.6) {
-                    return { action: 'heal', target: 'self' };
-                } else if (this.buffCooldown <= 0 && this.buffStacks < this.maxBuffStacks) {
-                    return { action: 'buff', target: 'self' };
-                } else {
-                    return { action: 'attack', target: 'player' };
-                }
-
-            case 'enraged':
-                // 50% attack, 30% fire breath, 20% tail swipe (more aggressive)
-                if (roll < 0.5) {
-                    return { action: 'attack', isEnraged: true, target: 'player' };
-                } else if (roll < 0.8 && this.fireBreathCooldown <= 0) {
-                    return { action: 'fire_breath', isEnraged: true, target: 'player' };
-                } else if (this.tailSwipeCooldown <= 0) {
-                    return { action: 'tail_swipe', isEnraged: true, target: 'player' };
-                } else {
-                    return { action: 'attack', isEnraged: true, target: 'player' };
-                }
-
-            case 'desperate':
-                // 30% attack, 25% fire breath, 20% tail swipe, 15% heal, 10% devastate
-                if (roll < 0.3) {
-                    return { action: 'attack', isDesperate: true, target: 'player' };
-                } else if (roll < 0.55 && this.fireBreathCooldown <= 0) {
-                    return { action: 'fire_breath', isDesperate: true, target: 'player' };
-                } else if (roll < 0.75 && this.tailSwipeCooldown <= 0) {
-                    return { action: 'tail_swipe', isDesperate: true, target: 'player' };
-                } else if (roll < 0.9 && this.healCooldown <= 0) {
-                    return { action: 'heal', isDesperate: true, target: 'self' };
-                } else if (!this.isCharging) {
-                    return { action: 'devastate', target: 'player' };
-                } else {
-                    return { action: 'attack', isDesperate: true, target: 'player' };
-                }
-
-            default:
-                return { action: 'attack', target: 'player' };
-        }
+        console.log(`[Dragon] Cooldowns - Fire Breath: ${this.fireBreathCooldown}, Tail Swipe: ${this.tailSwipeCooldown}, Buff: ${this.buffCooldown}`);
     }
 
     /**
-     * Executes a standard attack
+     * Overrides executeIntent for dragon-specific abilities
      *
-     * @param {Object} decision - The AI decision object
-     * @param {Object} player - The player target
-     * @param {Object} gameState - Current game state
-     * @returns {Object} Attack result
+     * @override
+     * @param {Object} gameState - Game state
+     * @returns {Object} Execution result
      */
-    executeAttack(decision, player, gameState) {
-        let damage = this.attackPower;
-        
-        // Apply buff stacks
-        if (this.buffStacks > 0) {
-            damage += this.buffStacks * 3;
+    executeIntent(gameState) {
+        if (!this.currentIntent) {
+            return { success: false, reason: 'no_intent' };
         }
 
-        // Phase modifiers
-        if (decision.isEnraged) {
-            damage = Math.floor(damage * 1.3);
-            console.log(`${this.name} attacks in ENRAGED state for ${damage} damage!`);
-        } else if (decision.isDesperate) {
-            damage = Math.floor(damage * 1.5);
-            console.log(`${this.name} makes a DESPERATE attack for ${damage} damage!`);
-        } else {
-            // Add variation
-            const variation = damage * (0.85 + Math.random() * 0.3);
-            damage = Math.floor(variation);
-            console.log(`${this.name} attacks for ${damage} damage`);
+        console.log(`[Dragon] ${this.name} executing: ${this.currentIntent.type} - ${this.currentIntent.name || this.currentIntent.type}`);
+
+        // Handle special abilities
+        if (this.currentIntent.type === IntentType.SPECIAL) {
+            return this._executeSpecialAbility(gameState);
         }
 
-        // Apply damage to player
-        const result = player.takeDamage?.(damage, { isCriticalHit: decision.isDesperate }) || {
-            success: true,
-            damageTaken: damage
-        };
+        // Handle buff
+        if (this.currentIntent.type === IntentType.BUFF) {
+            return this._executeBuff(gameState);
+        }
+
+        // Handle standard attack
+        if (this.currentIntent.type === IntentType.ATTACK) {
+            return this._executeAttack(gameState);
+        }
+
+        // Handle block
+        if (this.currentIntent.type === IntentType.BLOCK) {
+            return this._executeBlock(gameState);
+        }
+
+        return super.executeIntent(gameState);
+    }
+
+    /**
+     * Executes dragon special abilities
+     *
+     * @private
+     * @param {Object} gameState - Game state
+     * @returns {Object} Ability result
+     */
+    _executeSpecialAbility(gameState) {
+        const abilityName = this.currentIntent.name;
+        const baseValue = this.currentIntent.value ?? 0;
+
+        // Apply damage variation
+        const min = this.currentIntent.min ?? Math.floor(baseValue * 0.85);
+        const max = this.currentIntent.max ?? Math.floor(baseValue * 1.15);
+        const actualDamage = Math.floor(min + Math.random() * (max - min));
+
+        // Apply damage multiplier from buffs
+        const finalDamage = Math.floor(actualDamage * this.damageMultiplier);
+
+        // Set cooldowns based on ability
+        if (abilityName === 'Fire Breath' || abilityName === 'Devastating Fire Breath') {
+            this.fireBreathCooldown = this.fireBreathMaxCooldown;
+            console.log(`[Dragon] ${this.name} uses ${abilityName} for ${finalDamage} damage!`);
+        } else if (abilityName === 'Tail Swipe') {
+            this.tailSwipeCooldown = this.tailSwipeMaxCooldown;
+            const hitCount = this.currentIntent.hitCount ?? 1;
+            console.log(`[Dragon] ${this.name} uses Tail Swipe for ${finalDamage} damage × ${hitCount} hits!`);
+            return {
+                success: true,
+                action: 'special',
+                specialName: abilityName,
+                damage: finalDamage,
+                hitCount,
+                target: 'player'
+            };
+        }
 
         return {
             success: true,
-            action: 'attack',
-            damage: damage,
-            isEnraged: decision.isEnraged || false,
-            isDesperate: decision.isDesperate || false,
-            target: 'player',
-            ...result
+            action: 'special',
+            specialName: abilityName,
+            damage: finalDamage,
+            baseDamage: baseValue,
+            target: 'player'
         };
     }
 
     /**
-     * Executes fire breath special attack
+     * Executes dragon buff ability
      *
-     * @param {Object} decision - The AI decision object
-     * @param {Object} player - The player target
-     * @param {Object} gameState - Current game state
-     * @returns {Object} Fire breath result
-     */
-    executeFireBreath(decision, player, gameState) {
-        this.fireBreathCooldown = this.combatPhase === 'desperate' ? 3 : 5;
-        
-        let damage = Math.floor(this.attackPower * 1.8);
-        
-        // Apply buff stacks
-        if (this.buffStacks > 0) {
-            damage += this.buffStacks * 4;
-        }
-
-        // Phase modifiers
-        if (decision.isEnraged || decision.isDesperate) {
-            damage = Math.floor(damage * 1.4);
-            console.log(`${this.name} unleashes DEVASTATING FIRE BREATH for ${damage} damage!`);
-        } else {
-            console.log(`${this.name} breathes fire for ${damage} damage!`);
-        }
-
-        // Apply burn effect
-        const burnEffect = {
-            type: 'burn',
-            damagePerTurn: Math.floor(this.attackPower * 0.3),
-            duration: 3,
-            turnsRemaining: 3
-        };
-
-        // Apply damage to player
-        const result = player.takeDamage?.(damage, { isCriticalHit: true, burnEffect }) || {
-            success: true,
-            damageTaken: damage
-        };
-
-        return {
-            success: true,
-            action: 'fire_breath',
-            damage: damage,
-            burnEffect: burnEffect,
-            cooldown: this.fireBreathCooldown,
-            target: 'player',
-            ...result
-        };
-    }
-
-    /**
-     * Executes tail swipe special attack (hits multiple times)
-     *
-     * @param {Object} decision - The AI decision object
-     * @param {Object} player - The player target
-     * @param {Object} gameState - Current game state
-     * @returns {Object} Tail swipe result
-     */
-    executeTailSwipe(decision, player, gameState) {
-        this.tailSwipeCooldown = this.combatPhase === 'desperate' ? 2 : 4;
-        
-        const hits = 3;
-        let totalDamage = 0;
-
-        for (let i = 0; i < hits; i++) {
-            let hitDamage = Math.floor(this.attackPower * 0.5);
-            
-            // Apply buff stacks
-            if (this.buffStacks > 0) {
-                hitDamage += this.buffStacks;
-            }
-
-            // Phase modifiers
-            if (decision.isEnraged || decision.isDesperate) {
-                hitDamage = Math.floor(hitDamage * 1.3);
-            }
-
-            totalDamage += hitDamage;
-        }
-
-        console.log(`${this.name} swipes its tail ${hits} times for ${totalDamage} total damage!`);
-
-        // Apply damage to player
-        const result = player.takeDamage?.(totalDamage, { isCriticalHit: false }) || {
-            success: true,
-            damageTaken: totalDamage
-        };
-
-        return {
-            success: true,
-            action: 'tail_swipe',
-            damage: totalDamage,
-            hits: hits,
-            cooldown: this.tailSwipeCooldown,
-            target: 'player',
-            ...result
-        };
-    }
-
-    /**
-     * Executes a heal action
-     *
-     * @param {Object} decision - The AI decision object
-     * @param {Object} player - The player target
-     * @param {Object} gameState - Current game state
-     * @returns {Object} Heal result
-     */
-    executeHeal(decision, player, gameState) {
-        this.healCooldown = this.combatPhase === 'desperate' ? 3 : 5;
-        
-        let healPercent = decision.isDesperate ? 0.35 : 0.25;
-        const healAmount = Math.floor(this.maxHp * healPercent);
-        
-        const oldHp = this.hp;
-        this.hp = Math.min(this.maxHp, this.hp + healAmount);
-        const actualHeal = this.hp - oldHp;
-
-        console.log(`${this.name} regenerates ${actualHeal} HP (${oldHp} → ${this.hp})`);
-
-        return {
-            success: true,
-            action: 'heal',
-            healAmount: actualHeal,
-            oldHp: oldHp,
-            newHp: this.hp,
-            cooldown: this.healCooldown,
-            target: 'self',
-            message: `${this.name} regenerates health!`
-        };
-    }
-
-    /**
-     * Executes a buff action
-     *
-     * @param {Object} decision - The AI decision object
-     * @param {Object} player - The player target
-     * @param {Object} gameState - Current game state
+     * @private
+     * @param {Object} gameState - Game state
      * @returns {Object} Buff result
      */
-    executeBuff(decision, player, gameState) {
-        this.buffCooldown = 4;
-        this.buffStacks = Math.min(this.maxBuffStacks, this.buffStacks + 1);
-        
-        const defenseBonus = 3;
-        this.defense = (this.defense || 0) + defenseBonus;
+    _executeBuff(gameState) {
+        const buffName = this.currentIntent.name || 'Dragon Fury';
+        const buffValue = this.currentIntent.value ?? 2;
 
-        console.log(`${this.name} roars and buffs! Stacks: ${this.buffStacks}/${this.maxBuffStacks}, Defense: ${this.defense}`);
+        this.buffStacks = Math.min(this.buffStacks + 1, this.maxBuffStacks);
+        this.damageMultiplier = 1 + (this.buffStacks * 0.1); // +10% per stack
+        this.buffCooldown = this.buffMaxCooldown;
+
+        console.log(`[Dragon] ${this.name} uses ${buffName}! Stacks: ${this.buffStacks}, DMG Multiplier: ${this.damageMultiplier.toFixed(1)}x`);
 
         return {
             success: true,
             action: 'buff',
-            buffType: 'attack_defense_up',
+            buffName,
+            buffValue,
             buffStacks: this.buffStacks,
-            defenseBonus: defenseBonus,
-            cooldown: this.buffCooldown,
-            target: 'self',
-            message: `${this.name} powers up its scales!`
+            damageMultiplier: this.damageMultiplier,
+            target: 'self'
         };
     }
 
     /**
-     * Executes the devastating ultimate attack (charge up then release)
+     * Executes standard attack with damage multiplier
      *
-     * @param {Object} decision - The AI decision object
-     * @param {Object} player - The player target
-     * @param {Object} gameState - Current game state
-     * @returns {Object} Devastate result
+     * @private
+     * @param {Object} gameState - Game state
+     * @returns {Object} Attack result
      */
-    executeDevastate(decision, player, gameState) {
-        if (!this.isCharging) {
-            // Start charging
-            this.isCharging = true;
-            this.chargeTarget = player;
-            this.chargeTurns = 2;
-            console.log(`${this.name} is charging DEVASTATE! Take it down quickly!`);
-            
-            return {
-                success: true,
-                action: 'charging_devastate',
-                isCharging: true,
-                chargeTurns: this.chargeTurns,
-                target: 'player',
-                message: `${this.name} gathers energy for a devastating attack!`
-            };
-        }
+    _executeAttack(gameState) {
+        const damage = this.currentIntent.value ?? this.attackPower;
 
-        // Complete the charge and unleash
-        this.isCharging = false;
-        this.chargeTarget = null;
-        
-        const damage = Math.floor(this.attackPower * 3.5);
-        console.log(`${this.name} unleashes DEVASTATE for ${damage} MASSIVE damage!`);
+        // Add variation
+        const min = this.currentIntent.min ?? Math.floor(damage * 0.8);
+        const max = this.currentIntent.max ?? Math.floor(damage * 1.2);
+        const baseDamage = Math.floor(min + Math.random() * (max - min));
 
-        // Apply damage to player
-        const result = player.takeDamage?.(damage, { isCriticalHit: true }) || {
-            success: true,
-            damageTaken: damage
-        };
+        // Apply damage multiplier from buffs
+        const finalDamage = Math.floor(baseDamage * this.damageMultiplier);
+
+        console.log(`[Dragon] ${this.name} attacks for ${finalDamage} damage (base: ${baseDamage}, multiplier: ${this.damageMultiplier.toFixed(1)}x)`);
 
         return {
             success: true,
-            action: 'devastate',
-            damage: damage,
-            wasCharged: true,
-            target: 'player',
-            ...result
+            action: 'attack',
+            damage: finalDamage,
+            baseDamage: baseDamage,
+            damageMultiplier: this.damageMultiplier,
+            target: 'player'
         };
     }
 
     /**
-     * Processes charging state (called at turn start)
+     * Gets display name with dragon emoji and phase
      *
-     * @returns {Object} Charge progress result
-     */
-    processCharging() {
-        if (this.isCharging && this.chargeTurns > 0) {
-            this.chargeTurns--;
-            console.log(`${this.name} continues charging... (${this.chargeTurns} turns left)`);
-            
-            if (this.chargeTurns <= 0) {
-                this.isCharging = false;
-                return {
-                    success: true,
-                    chargeComplete: true,
-                    message: `${this.name} is ready to unleash DEVASTATE!`
-                };
-            }
-        }
-        return { success: false, reason: 'not_charging' };
-    }
-
-    /**
-     * Gets the enemy's display name with dragon-specific information
-     *
+     * @override
      * @returns {string} Formatted display name
      */
     getDisplayName() {
-        const phaseStatus = this.combatPhase !== 'initial' ? ` [${this.combatPhase.toUpperCase()}]` : '';
-        const buffStatus = this.buffStacks > 0 ? ` [⚔️+${this.buffStacks}]` : '';
-        const chargeStatus = this.isCharging ? ` [⚡CHARGING]` : '';
-        const cdInfo = [];
-        if (this.fireBreathCooldown > 0) cdInfo.push(`🔥${this.fireBreathCooldown}`);
-        if (this.tailSwipeCooldown > 0) cdInfo.push(`🦎${this.tailSwipeCooldown}`);
-        const cooldownStatus = cdInfo.length > 0 ? ` [${cdInfo.join(' ')}]` : '';
-        
-        return `${this.name} [${this.hp}/${this.maxHp} HP] 🐉${phaseStatus}${buffStatus}${chargeStatus}${cooldownStatus}`;
+        const phaseIcon = this.combatPhase === DragonPhase.DESPERATE ? '💀' :
+                         this.combatPhase === DragonPhase.ENRAGED ? '😡' : '';
+        return `${this.name} [${this.hp}/${this.maxHp} HP] 🐉 ${phaseIcon}`;
     }
 
     /**
-     * Gets the enemy's stats as a string for display
+     * Resets dragon to initial state
      *
-     * @returns {string} Formatted stats string
-     */
-    getStatsString() {
-        return `Attack: ${this.attackPower} | Defense: ${this.defense} | Phase: ${this.combatPhase} | Buffs: ${this.buffStacks}/${this.maxBuffStacks}`;
-    }
-
-    /**
-     * Resets the dragon to its initial state
+     * @override
      */
     reset() {
         super.reset();
-        this.combatPhase = 'initial';
+
+        this.combatPhase = DragonPhase.INITIAL;
         this.fireBreathCooldown = 0;
         this.tailSwipeCooldown = 0;
-        this.healCooldown = 0;
         this.buffCooldown = 0;
         this.buffStacks = 0;
-        this.isCharging = false;
-        this.chargeTarget = null;
-        this.wingsClipped = false;
-        console.log(`Dragon reset: ${this.name}`);
+        this.damageMultiplier = 1;
+
+        console.log('[Dragon] Reset to initial state');
     }
 }
 
 /**
  * Factory function to create a Dragon instance
  *
- * @param {string} name - Custom name (optional)
- * @param {number} maxHp - Custom max HP (optional)
- * @param {number} attack - Custom attack (optional)
+ * @param {string} [name="Dragon"] - Dragon name
+ * @param {number} [maxHp=200] - Maximum HP
+ * @param {number} [attack=25] - Attack power
  * @returns {Dragon} New Dragon instance
  */
 export function createDragon(name, maxHp, attack) {
     return new Dragon(name, maxHp, attack);
 }
+
+export default Dragon;

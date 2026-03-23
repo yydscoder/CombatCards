@@ -101,37 +101,16 @@ export class FireWall extends Card {
         // Calculate actual barrier amount with small variance
         const actualBarrier = Math.floor(this.barrierAmount * (0.9 + Math.random() * 0.2));
 
-        // Create barrier effect
-        const barrierEffect = {
-            name: 'fire_wall_barrier',
-            barrierAmount: actualBarrier,
-            remainingBarrier: actualBarrier,
-            duration: this.barrierDuration,
-            source: this.name,
-            type: 'absorption',
-            retaliationDamage: this.retaliationDamage,
-            retaliationType: this.retaliationType
-        };
-
-        // Create retaliation effect (damages attackers)
-        const retaliationEffect = {
-            name: 'fire_wall_retaliation',
-            damage: this.retaliationDamage,
-            duration: this.barrierDuration,
-            source: this.name,
-            type: 'retaliation',
-            triggerOn: 'damage_taken'
-        };
-
-        // Add effects to game state
-        if (typeof gameState.addEffect === 'function') {
-            gameState.addEffect(barrierEffect);
-            gameState.addEffect(retaliationEffect);
+        // Add shield to the shield system
+        if (typeof gameState.addShield === 'function') {
+            gameState.addShield('fire_wall', {
+                remaining: actualBarrier,
+                duration: this.barrierDuration,
+                turnsRemaining: this.barrierDuration,
+                retaliationDamage: this.retaliationDamage,
+                retaliationType: this.retaliationType
+            });
         }
-
-        // Store barrier in game state for damage calculation
-        gameState.currentBarrier = actualBarrier;
-        gameState.activeRetaliation = this.retaliationDamage;
 
         console.log(
             `FireWall erected: ${actualBarrier} barrier (${this.barrierDuration} turns) | ` +
@@ -148,7 +127,7 @@ export class FireWall extends Card {
             message: `FireWall rises! ${actualBarrier} barrier + ${this.retaliationDamage} retaliation damage`,
             damage: 0,
             healing: 0,
-            statusEffects: [barrierEffect, retaliationEffect],
+            statusEffects: [],
             isCriticalHit: false,
             barrierApplied: true,
             barrierAmount: actualBarrier,

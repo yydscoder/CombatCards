@@ -1,4 +1,5 @@
 /* Base styles for Emoji Card Battle */
+
 * {
     margin: 0;
     padding: 0;
@@ -989,3 +990,849 @@ body {
     color: #ffd700;
     text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Hand Management UI - Card Slots (Patch v0.1.6)
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Card slot container - individual slot in the hand */
+.card-slot {
+    width: 100px;
+    height: 150px;
+    background: linear-gradient(160deg, rgba(45, 45, 68, 0.5), rgba(26, 26, 46, 0.5));
+    border: 2px dashed rgba(90, 90, 255, 0.3);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 
+        border-color 0.2s ease,
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
+    position: relative;
+}
+
+/* Slot when card is present */
+.card-slot .card {
+    margin: 0;
+}
+
+/* Slot hover state */
+.card-slot:hover {
+    border-color: rgba(90, 90, 255, 0.6);
+    background: linear-gradient(160deg, rgba(55, 55, 78, 0.6), rgba(36, 36, 56, 0.6));
+    box-shadow: 0 0 12px rgba(90, 90, 255, 0.3);
+}
+
+/* Slot selected state (click-to-move) */
+.card-slot.slot-selected {
+    border-color: #ffd700;
+    border-style: solid;
+    background: linear-gradient(160deg, rgba(75, 75, 98, 0.7), rgba(46, 46, 66, 0.7));
+    box-shadow: 
+        0 0 20px rgba(255, 215, 0, 0.5),
+        0 0 40px rgba(255, 215, 0, 0.3);
+    animation: slotPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes slotPulse {
+    0%, 100% {
+        box-shadow: 
+            0 0 20px rgba(255, 215, 0, 0.5),
+            0 0 40px rgba(255, 215, 0, 0.3);
+    }
+    50% {
+        box-shadow: 
+            0 0 30px rgba(255, 215, 0, 0.7),
+            0 0 60px rgba(255, 215, 0, 0.4);
+    }
+}
+
+/* Slot drag-over state */
+.card-slot.slot-drag-over {
+    border-color: #4caf50;
+    border-style: solid;
+    background: linear-gradient(160deg, rgba(76, 175, 80, 0.3), rgba(46, 76, 46, 0.5));
+    box-shadow: 0 0 16px rgba(76, 175, 80, 0.5);
+    transform: scale(1.05);
+}
+
+/* Slot dragging state */
+.card-slot.slot-dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+}
+
+/* Empty slot indicator */
+.card-slot::before {
+    content: '+';
+    font-size: 32px;
+    color: rgba(90, 90, 255, 0.2);
+    font-weight: bold;
+    transition: color 0.2s ease;
+}
+
+.card-slot:hover::before {
+    color: rgba(90, 90, 255, 0.4);
+}
+
+/* Hide indicator when slot has card - uses :has() with JS fallback */
+.card-slot:has(.card)::before {
+    display: none;
+}
+
+/* JS fallback class for browsers without :has() support */
+.card-slot.has-card::before {
+    display: none;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Hand Container Updates
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Update hand container to work with slots */
+#hand {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    min-height: 150px;
+    justify-content: flex-start;
+    padding: 10px;
+    background: linear-gradient(180deg, rgba(20, 20, 35, 0.8), rgba(15, 15, 25, 0.9));
+    border-radius: 12px;
+    border: 1px solid rgba(58, 58, 90, 0.5);
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
+/* Custom scrollbar for hand */
+#hand::-webkit-scrollbar {
+    height: 8px;
+}
+
+#hand::-webkit-scrollbar-track {
+    background: rgba(26, 26, 46, 0.5);
+    border-radius: 4px;
+}
+
+#hand::-webkit-scrollbar-thumb {
+    background: rgba(90, 90, 255, 0.4);
+    border-radius: 4px;
+}
+
+#hand::-webkit-scrollbar-thumb:hover {
+    background: rgba(90, 90, 255, 0.6);
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Card Drag and Drop Styles
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Card being dragged */
+.card[draggable="true"] {
+    cursor: grab;
+}
+
+.card[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+/* Drag ghost image styling (browser default, but enhanced) */
+.card.dragging {
+    opacity: 0.8;
+    transform: scale(1.05);
+}
+
+/* Drop zone highlight */
+.drop-zone-active {
+    border-color: #4caf50 !important;
+    background: rgba(76, 175, 80, 0.2) !important;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Card Selection Indicator
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Selected card for click-to-move */
+.card.card-selected {
+    border: 3px solid #ffd700;
+    box-shadow: 
+        0 0 20px rgba(255, 215, 0, 0.6),
+        0 0 40px rgba(255, 215, 0, 0.3);
+    animation: cardSelectPulse 1s ease-in-out infinite;
+}
+
+@keyframes cardSelectPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* Selection indicator arrow */
+.card.card-selected::after {
+    content: '↕';
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 16px;
+    color: #ffd700;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 2px 6px;
+    border-radius: 4px;
+    animation: bounceArrow 0.8s ease-in-out infinite;
+}
+
+@keyframes bounceArrow {
+    0%, 100% {
+        transform: translateX(-50%) translateY(0);
+    }
+    50% {
+        transform: translateX(-50%) translateY(-4px);
+    }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Hand Management Tooltips
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Hint for click-to-move */
+.hand-move-hint {
+    position: fixed;
+    bottom: 180px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid rgba(255, 215, 0, 0.5);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 12px;
+    color: #ffd700;
+    pointer-events: none;
+    z-index: 1000;
+    white-space: nowrap;
+    animation: fadeInOut 3s ease-in-out infinite;
+}
+
+@keyframes fadeInOut {
+    0%, 100% {
+        opacity: 0.7;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Energy UI - Energy Orbs (Slay the Spire Style)
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Energy container at top of player area */
+.energy-container {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 0;
+    margin-bottom: 8px;
+}
+
+/* Individual energy orb */
+.energy-orb {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #2a2a4a, #1a1a2e);
+    border: 2px solid #3a3a5a;
+    position: relative;
+    overflow: hidden;
+    transition: 
+        transform 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.5),
+        0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Energy orb ::before - the fill/liquid */
+.energy-orb::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 0%;
+    background: linear-gradient(180deg, #00d4ff, #0099cc);
+    border-radius: 50%;
+    transition: height 0.3s ease;
+    opacity: 0.8;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+}
+
+/* Full orb - fill to 100% */
+.energy-orb[data-state="full"]::before {
+    height: 100%;
+}
+
+/* Empty orb - no fill */
+.energy-orb[data-state="empty"]::before {
+    height: 0%;
+}
+
+/* Orb hover effect */
+.energy-orb:hover {
+    transform: scale(1.1);
+    border-color: #00d4ff;
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.5),
+        0 4px 8px rgba(0, 212, 255, 0.4);
+}
+
+/* Orb fill animation */
+.energy-orb.orb-fill::before {
+    animation: orbFill 0.3s ease-out;
+}
+
+@keyframes orbFill {
+    0% {
+        height: 0%;
+    }
+    50% {
+        height: 120%;
+    }
+    100% {
+        height: 100%;
+    }
+}
+
+/* Orb empty animation */
+.energy-orb.orb-empty::before {
+    animation: orbEmpty 0.3s ease-out;
+}
+
+@keyframes orbEmpty {
+    0% {
+        height: 100%;
+    }
+    50% {
+        height: -20%;
+    }
+    100% {
+        height: 0%;
+    }
+}
+
+/* Orb spend animation */
+.energy-orb.orb-spend::before {
+    animation: orbSpend 0.4s ease-out;
+}
+
+@keyframes orbSpend {
+    0% {
+        height: 100%;
+        opacity: 1;
+    }
+    50% {
+        height: 50%;
+        opacity: 0.8;
+    }
+    100% {
+        height: 0%;
+        opacity: 0.5;
+    }
+}
+
+/* Orb gain animation */
+.energy-orb.orb-gain::before {
+    animation: orbGain 0.4s ease-out;
+}
+
+@keyframes orbGain {
+    0% {
+        height: 0%;
+        opacity: 0.5;
+    }
+    50% {
+        height: 120%;
+        opacity: 1;
+    }
+    100% {
+        height: 100%;
+        opacity: 0.8;
+    }
+}
+
+/* Energy flash effect (on spend) */
+.energy-flash.spend {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, rgba(255, 100, 100, 0.8) 0%, transparent 70%);
+    animation: flashSpend 0.4s ease-out;
+    pointer-events: none;
+}
+
+@keyframes flashSpend {
+    0% {
+        opacity: 1;
+        transform: scale(0.5);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.5);
+    }
+}
+
+/* Energy pulse effect (on gain) */
+.energy-pulse.gain {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle, rgba(0, 255, 200, 0.6) 0%, transparent 70%);
+    animation: pulseGain 0.4s ease-out;
+    pointer-events: none;
+}
+
+@keyframes pulseGain {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.2);
+    }
+}
+
+/* Energy orb tooltip */
+.energy-orb[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: #00d4ff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    border: 1px solid rgba(0, 212, 255, 0.5);
+    pointer-events: none;
+    z-index: 100;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Target Selector - Valid Target Highlighting
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Valid target highlight (enemy area) */
+#enemy-area.target-valid,
+#player-area.target-valid {
+    border: 3px solid #4caf50;
+    box-shadow: 
+        0 0 20px rgba(76, 175, 80, 0.6),
+        0 0 40px rgba(76, 175, 80, 0.3);
+    animation: targetPulse 1.2s ease-in-out infinite;
+    cursor: pointer;
+}
+
+/* Enemy target specific styling */
+#enemy-area.target-valid[data-target-type="enemy"] {
+    border-color: #ff5252;
+    box-shadow: 
+        0 0 20px rgba(255, 82, 82, 0.6),
+        0 0 40px rgba(255, 82, 82, 0.3);
+}
+
+/* Player target specific styling */
+#player-area.target-valid[data-target-type="player"] {
+    border-color: #4caf50;
+    box-shadow: 
+        0 0 20px rgba(76, 175, 80, 0.6),
+        0 0 40px rgba(76, 175, 80, 0.3);
+}
+
+@keyframes targetPulse {
+    0%, 100% {
+        box-shadow: 
+            0 0 20px currentColor,
+            0 0 40px currentColor;
+    }
+    50% {
+        box-shadow: 
+            0 0 30px currentColor,
+            0 0 60px currentColor;
+    }
+}
+
+/* Target hover effect */
+.target-valid:hover {
+    filter: brightness(1.2);
+    transform: scale(1.02);
+}
+
+/* Target selection indicator */
+.target-valid::after {
+    content: 'SELECT';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: #4caf50;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 100;
+}
+
+.target-valid:hover::after {
+    opacity: 1;
+}
+
+/* Enemy target select text */
+#enemy-area.target-valid[data-target-type="enemy"]::after {
+    color: #ff5252;
+    content: 'ATTACK';
+}
+
+/* Player target select text */
+#player-area.target-valid[data-target-type="player"]::after {
+    color: #4caf50;
+    content: 'USE';
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Enemy Intent Display - Telegraph Enemy Actions
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Intent display container (above enemy emoji) */
+.intent-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 4px;
+}
+
+/* Intent icon styling */
+.intent-icon {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    line-height: 1;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 3px solid #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    transition: 
+        transform 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+    position: relative;
+    animation: intentFloat 2s ease-in-out infinite;
+}
+
+@keyframes intentFloat {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+/* Intent value (damage/block amount) */
+.intent-value {
+    font-size: 14px;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+    margin-top: 2px;
+    min-width: 24px;
+    text-align: center;
+}
+
+/* Intent tooltip */
+.intent-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.95);
+    color: #ffffff;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: bold;
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 1000;
+    margin-bottom: 4px;
+}
+
+.intent-icon:hover .intent-tooltip {
+    opacity: 1;
+}
+
+/* Intent reveal animation */
+.intent-icon.intent-reveal {
+    animation: intentReveal 0.6s ease-out;
+}
+
+@keyframes intentReveal {
+    0% {
+        transform: scale(0) rotate(-180deg);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2) rotate(10deg);
+    }
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+/* Intent type colors */
+.intent-icon[data-intent-type="attack"] {
+    border-color: #ff5252;
+    box-shadow: 0 0 20px rgba(255, 82, 82, 0.6);
+}
+
+.intent-icon[data-intent-type="block"] {
+    border-color: #448aff;
+    box-shadow: 0 0 20px rgba(68, 138, 255, 0.6);
+}
+
+.intent-icon[data-intent-type="buff"] {
+    border-color: #69f0ae;
+    box-shadow: 0 0 20px rgba(105, 240, 174, 0.6);
+}
+
+.intent-icon[data-intent-type="debuff"] {
+    border-color: #e040fb;
+    box-shadow: 0 0 20px rgba(224, 64, 251, 0.6);
+}
+
+.intent-icon[data-intent-type="heal"] {
+    border-color: #69f0ae;
+    box-shadow: 0 0 20px rgba(105, 240, 174, 0.6);
+}
+
+.intent-icon[data-intent-type="special"] {
+    border-color: #ffd740;
+    box-shadow: 0 0 20px rgba(255, 215, 64, 0.6);
+}
+
+.intent-icon[data-intent-type="pass"] {
+    border-color: #9e9e9e;
+    box-shadow: 0 0 20px rgba(158, 158, 158, 0.4);
+}
+
+/* Intent pulse on enemy turn */
+.intent-display.enemy-turn .intent-icon {
+    animation: intentPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes intentPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 20px currentColor;
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 30px currentColor;
+    }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Map UI - Campaign Map Display (Day 6)
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Map container */
+#map-container {
+    max-width: 850px;
+    margin: 20px auto;
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+    border-radius: 12px;
+    border: 2px solid #3a3a5a;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+/* Map header */
+#map-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid #3a3a5a;
+}
+
+#map-header h2 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 18px;
+    letter-spacing: 1px;
+}
+
+#map-stats {
+    display: flex;
+    gap: 16px;
+    font-size: 14px;
+}
+
+.map-stat {
+    color: #cccccc;
+}
+
+.map-stat-value {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+/* Map canvas */
+#map-canvas {
+    display: block;
+    margin: 0 auto;
+    cursor: pointer;
+}
+
+#map-canvas:hover {
+    opacity: 0.95;
+}
+
+/* Map legend */
+#map-legend {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid #3a3a5a;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #cccccc;
+}
+
+.legend-icon {
+    font-size: 16px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Node type colors for legend */
+.legend-item[data-type="start"] .legend-icon { background: #4caf50; }
+.legend-item[data-type="combat"] .legend-icon { background: #ff5252; }
+.legend-item[data-type="elite"] .legend-icon { background: #e040fb; }
+.legend-item[data-type="event"] .legend-icon { background: #ffd740; }
+.legend-item[data-type="shop"] .legend-icon { background: #69f0ae; }
+.legend-item[data-type="rest"] .legend-icon { background: #448aff; }
+.legend-item[data-type="boss"] .legend-icon { background: #ff6d00; }
+
+/* Map controls */
+#map-controls {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.map-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: bold;
+    color: #ffffff;
+    background: linear-gradient(135deg, #5a5aff, #3a3acc);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 2px 8px rgba(90, 90, 255, 0.3);
+}
+
+.map-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(90, 90, 255, 0.5);
+}
+
+.map-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Map tooltip */
+.map-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.95);
+    border: 2px solid #6a6aff;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #e6e6e6;
+    pointer-events: none;
+    z-index: 1000;
+    max-width: 250px;
+    box-shadow: 0 4px 16px rgba(106, 106, 255, 0.4);
+}
+
+.map-tooltip-title {
+    font-weight: bold;
+    color: #6a6aff;
+    margin-bottom: 6px;
+    font-size: 13px;
+}
+
+.map-tooltip-description {
+    color: #cccccc;
+    line-height: 1.4;
+}
+
+/* Act indicator */
+#act-indicator {
+    text-align: center;
+    padding: 8px;
+    background: linear-gradient(90deg, transparent, rgba(90, 90, 255, 0.2), transparent);
+    color: #6a6aff;
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 2px;
+}
+
+
+
+

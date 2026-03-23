@@ -61,6 +61,12 @@ import { Sap } from '../cards/nature/Sap.js';
 import { Ironbark } from '../cards/nature/Ironbark.js';
 import { Overgrowth } from '../cards/nature/Overgrowth.js';
 
+// Import HandUI for rendering
+import { HandUI } from './HandUI.js';
+
+// Import CardPileManager for pile operations
+import { CardPileManager } from '../core/CardPileManager.js';
+
 import { DamageCalculator } from '../combat/DamageCalculator.js';
 import { SlimeEnemy } from '../enemies/SlimeEnemy.js';
 import { createEffectManager } from '../effects/EffectManager.js';
@@ -114,40 +120,75 @@ export class Hand {
         gameState.player = this._buildPlayerProxy();
         this.handContainer = document.getElementById('hand');
         this.deckContainer = document.getElementById('deck');
-        
-        // Hand state
+
+        // Hand state (legacy - kept for backward compatibility)
         this.cards = []; // Array of cards currently in hand
-        this.maxCards = 5; // Maximum number of cards in hand
-        
+        this.maxCards = 5; // Maximum number of cards in hand (legacy)
+
+        // Initialize CardPileManager for pile operations (Slay the Spire style)
+        this.cardPileManager = new CardPileManager(gameState);
+        gameState.cardPileManager = this.cardPileManager;
+
+        // Initialize HandUI for rendering and interactions
+        this.handUI = new HandUI(gameState, this, hud);
+
         // Log initialization
-        console.log('Hand initialized with gameState reference');
+        console.log('Hand initialized with CardPileManager and HandUI');
     }
     
     /**
      * Initializes the hand with starting cards
-     * Draws 3 random cards from the combined fire and water deck
+     * Uses CardPileManager for Slay the Spire-style deck management
      */
     initHand() {
         // Create the full combined deck
         const deck = this._createCombinedDeck();
-        
+
+        // Set up the CardPileManager with the deck
+        if (this.cardPileManager) {
+            this.cardPileManager.setupDeck(deck);
+            this.cardPileManager.startCombat(); // Draw starting hand
+
+            // Sync legacy cards array with CardPileManager hand
+            this.cards = this.cardPileManager.getHand();
+
+            console.log(`[Hand] Started combat with ${this.cards.length} cards in hand`);
+        } else {
+            // Fallback: legacy behavior
+            this._initHandLegacy();
+        }
+
+        // Render hand using HandUI
+        if (this.handUI) {
+            this.handUI.renderHand(this.cards);
+        }
+
+        // Update playable/unplayable classes based on current energy
+        this.updateCardAffordability();
+
+        console.log(`[Hand] Initialized with ${this.cards.length} cards`);
+    }
+
+    /**
+     * Legacy initHand fallback (if CardPileManager not available)
+     * @private
+     */
+    _initHandLegacy() {
+        // Create the full combined deck
+        const deck = this._createCombinedDeck();
+
         // Shuffle the deck
         this._shuffleDeck(deck);
-        
+
         // Draw 3 random cards for starting hand
         const startingHandSize = 3;
         for (let i = 0; i < startingHandSize && deck.length > 0; i++) {
             const card = deck.pop();
             this.addCard(card);
         }
-        
+
         // Store remaining cards in gameState deck
         this.gameState.deck = deck;
-
-        // Update playable/unplayable classes based on starting mana
-        this.updateCardAffordability();
-
-        console.log(`Hand initialized with ${this.cards.length} random cards from ${deck.length + this.cards.length} card deck`);
     }
     
     /**
@@ -251,34 +292,50 @@ export class Hand {
     
     /**
      * Adds a card to the hand
-     * 
+     *
      * @param {Object} card - The card to add
      * @returns {boolean} True if card was added successfully, false otherwise
      */
     addCard(card) {
-        // Check if hand is full
+        // Use CardPileManager if available
+        if (this.cardPileManager) {
+            // Add card to draw pile and draw it immediately
+            this.cardPileManager.drawPile.push(card);
+            card.isInDrawPile = true;
+
+            const drawResult = this.cardPileManager.drawCard(1);
+
+            if (drawResult.success) {
+                // Sync legacy cards array
+                this.cards = this.cardPileManager.getHand();
+
+                // Render the card
+                this.renderCard(card);
+
+                console.log(`[Hand] Card added: ${card.name}`);
+                return true;
+            } else {
+                console.warn(`[Hand] Could not add card: ${drawResult.reason}`);
+                return false;
+            }
+        }
+
+        // Fallback: legacy behavior
         if (this.cards.length >= this.maxCards) {
             console.warn(`Cannot add card: hand is full (${this.maxCards} cards)`);
             return false;
         }
-        
-        // Set card state to be in hand
+
         card.isInHand = true;
         card.isInDeck = false;
-        
-        // Add card to hand array
         this.cards.push(card);
-        
-        // Update game state
         this.gameState.hand = this.cards;
-        
-        // Render the card
         this.renderCard(card);
-        
+
         console.log(`Card added to hand: ${card.name}`);
         return true;
     }
-    
+
     /**
      * Removes a card from the hand
      *
@@ -286,7 +343,34 @@ export class Hand {
      * @returns {boolean} True if card was removed successfully, false otherwise
      */
     removeCard(card) {
-        // Find card index
+        // Use CardPileManager if available
+        if (this.cardPileManager) {
+            const playResult = this.cardPileManager.playCard(card);
+
+            if (playResult.success) {
+                // Sync legacy cards array
+                this.cards = this.cardPileManager.getHand();
+
+                // Remove card element from DOM via HandUI
+                if (this.handUI) {
+                    this.handUI.removeCard(card);
+                }
+
+                console.log(`[Hand] Card removed: ${card.name}`);
+
+                // Draw a new card to replace the played one (maintain hand size)
+                if (!this.gameState.isGameOver && this.cards.length < 5) {
+                    this.drawCard();
+                }
+
+                return true;
+            } else {
+                console.warn(`[Hand] Could not remove card: ${playResult.reason}`);
+                return false;
+            }
+        }
+
+        // Fallback: legacy behavior
         const index = this.cards.indexOf(card);
         if (index === -1) {
             console.warn(`Card not found in hand: ${card.name}`);
@@ -309,10 +393,15 @@ export class Hand {
         // Update game state
         this.gameState.hand = this.cards;
 
-        // Remove card element from DOM
-        const cardElement = document.querySelector(`[data-card-id="${card.id}"]`);
-        if (cardElement && cardElement.parentNode) {
-            cardElement.parentNode.removeChild(cardElement);
+        // Remove card using HandUI
+        if (this.handUI) {
+            this.handUI.removeCard(card);
+        } else {
+            // Fallback: direct DOM removal
+            const cardElement = document.querySelector(`[data-card-id="${card.id}"]`);
+            if (cardElement && cardElement.parentNode) {
+                cardElement.parentNode.removeChild(cardElement);
+            }
         }
 
         console.log(`Card removed from hand: ${card.name} (discard pile: ${this.gameState.discardPile.length})`);
@@ -331,12 +420,32 @@ export class Hand {
      * @param {Object} card - The card to render
      */
     renderCard(card) {
+        // Delegate to HandUI for rendering
+        if (this.handUI) {
+            this.handUI.renderCardInSlot(card);
+        } else {
+            // Fallback: direct rendering (legacy support)
+            this._renderCardLegacy(card);
+        }
+
+        console.log(`Card rendered in hand: ${card.name}`);
+    }
+
+    /**
+     * Legacy card rendering (fallback if HandUI not available)
+     * @private
+     */
+    _renderCardLegacy(card) {
         // Create card element (reusing CardRenderer logic)
         const cardElement = document.createElement('div');
         cardElement.className = 'card';
         cardElement.dataset.cardId = card.id;
         cardElement.dataset.cardName = card.name;
         cardElement.dataset.cardType = card.constructor.name;
+        // Add element type for theme styling (fire, water, nature)
+        if (card.element) {
+            cardElement.dataset.element = card.element;
+        }
 
         // Add click event listener
         cardElement.addEventListener('click', (event) => {
@@ -692,17 +801,23 @@ export class Hand {
      * based on current mana. Call this whenever mana changes.
      */
     updateCardAffordability() {
-        this.cards.forEach(card => {
-            const el = document.querySelector(`[data-card-id="${card.id}"]`);
-            if (!el) return;
-            if (card.canPlay(this.gameState)) {
-                el.classList.add('playable');
-                el.classList.remove('unplayable');
-            } else {
-                el.classList.add('unplayable');
-                el.classList.remove('playable');
-            }
-        });
+        // Use HandUI if available
+        if (this.handUI) {
+            this.handUI.refreshAllCardVisuals();
+        } else {
+            // Fallback: direct DOM manipulation
+            this.cards.forEach(card => {
+                const el = document.querySelector(`[data-card-id="${card.id}"]`);
+                if (!el) return;
+                if (card.canPlay(this.gameState)) {
+                    el.classList.add('playable');
+                    el.classList.remove('unplayable');
+                } else {
+                    el.classList.add('unplayable');
+                    el.classList.remove('playable');
+                }
+            });
+        }
     }
 
     /**
@@ -711,25 +826,43 @@ export class Hand {
      * @returns {Object|null} The drawn card or null if no cards available
      */
     drawCard() {
-        // Check if deck exists and has cards
+        // Use CardPileManager if available
+        if (this.cardPileManager) {
+            const drawResult = this.cardPileManager.drawCard(1);
+
+            if (drawResult.success) {
+                // Sync legacy cards array
+                this.cards = this.cardPileManager.getHand();
+
+                // Render the new card
+                if (drawResult.cards.length > 0) {
+                    const newCard = drawResult.cards[0];
+                    this.renderCard(newCard);
+                    console.log(`[Hand] Drew: ${newCard.name} (${drawResult.drawPileRemaining} remaining)`);
+                    return newCard;
+                }
+            } else {
+                console.warn(`[Hand] Could not draw: ${drawResult.reason}`);
+                return null;
+            }
+        }
+
+        // Fallback: legacy behavior
         if (!this.gameState.deck || this.gameState.deck.length === 0) {
             console.warn('Cannot draw card: deck is empty');
-            
-            // Reshuffle discard pile into deck if hand is empty
+
             if (this.cards.length === 0 && this.gameState.discardPile?.length > 0) {
                 console.log('Reshuffling discard pile into new deck...');
                 this.gameState.deck = [...this.gameState.discardPile];
                 this.gameState.discardPile = [];
                 this._shuffleDeck(this.gameState.deck);
             } else {
-                // Create a new deck if everything is exhausted
                 console.log('Creating new deck...');
                 this.gameState.deck = this._createCombinedDeck();
                 this._shuffleDeck(this.gameState.deck);
             }
         }
-        
-        // Draw from deck
+
         const newCard = this.gameState.deck.pop();
         this.addCard(newCard);
 
@@ -855,6 +988,13 @@ export class Hand {
         const rawDamage = Math.max(0, Math.floor(damage));
         let remainingDamage = rawDamage;
 
+        // Apply enemy damage reduction debuffs (FrostBite, etc.)
+        const enemyReduction = this.effectManager.getEnemyDamageReduction();
+        if (enemyReduction > 0) {
+            remainingDamage = Math.floor(remainingDamage * (1 - enemyReduction));
+            console.log(`[Enemy Debuff] Damage reduced by ${Math.round(enemyReduction * 100)}%: ${rawDamage} → ${remainingDamage}`);
+        }
+
         // Check for FrostBite damage reduction stacks on enemy
         // FrostBite reduces enemy damage by 10% per stack, max 5 stacks = 50%
         let frostBiteReduction = 0;
@@ -874,12 +1014,29 @@ export class Hand {
             remainingDamage = Math.floor(remainingDamage * (1 - frostBiteReduction));
         }
 
+        // Apply player damage reduction buffs (BarkSkin, etc.)
+        const playerReduction = this.effectManager.getPlayerDamageReduction();
+        if (playerReduction > 0) {
+            remainingDamage = Math.floor(remainingDamage * (1 - playerReduction));
+            console.log(`[Player Buff] Damage reduced by ${Math.round(playerReduction * 100)}%: ${rawDamage} → ${remainingDamage}`);
+        }
+
         // Use the new shield absorption system
         const shieldResult = this.gameState.absorbDamage(remainingDamage);
         remainingDamage = shieldResult.remainingDamage;
         
         if (shieldResult.absorbed > 0) {
             console.log(`[Shield] Total absorbed: ${shieldResult.absorbed}, remaining: ${remainingDamage}`);
+        }
+
+        // Apply retaliation damage from shields (FireWall, etc.)
+        if (shieldResult.retaliationDamage > 0 && this.gameState.enemy) {
+            this.gameState.updateEnemyHp(this.gameState.enemyHp - shieldResult.retaliationDamage);
+            if (this.gameState.enemy.hp !== undefined) {
+                this.gameState.enemy.hp = this.gameState.enemyHp;
+            }
+            console.log(`[Shield Retaliation] ${shieldResult.retaliationDamage} damage dealt to ${this.gameState.enemy.name}`);
+            if (this.hud) this.hud.showDamageFeedback(shieldResult.retaliationDamage, 'enemy', false);
         }
 
         // Apply final damage to player HP
@@ -890,23 +1047,20 @@ export class Hand {
 
         // Reflect damage back to enemy (from shields and effects)
         let reflectDamage = 0;
-        
-        // Check shield-based reflection (FlameShield)
-        if (this.gameState.playerShields?.flame_shield?.reflectPercent && finalDamage > 0) {
-            reflectDamage += Math.floor(finalDamage * this.gameState.playerShields.flame_shield.reflectPercent);
-            console.log(`[Reflect] FlameShield reflects ${reflectDamage} damage`);
-        }
-        
-        // Check effect-based reflection
+
+        // Check effect-based reflection (Thorns - flat damage)
         if (this.gameState.activeEffects?.length && this.gameState.enemy) {
             for (const fx of this.gameState.activeEffects) {
                 if (fx.type === 'reflection' && fx.reflectDamage) {
                     reflectDamage += fx.reflectDamage;
                 }
-                if (fx.reflectPercent && fx !== this.gameState.playerShields.flame_shield) {
-                    reflectDamage += Math.floor(finalDamage * fx.reflectPercent);
-                }
             }
+        }
+
+        // Check shield-based reflection (FlameShield - percentage)
+        if (this.gameState.playerShields?.flame_shield?.reflectPercent && finalDamage > 0) {
+            reflectDamage += Math.floor(finalDamage * this.gameState.playerShields.flame_shield.reflectPercent);
+            console.log(`[Reflect] FlameShield reflects ${reflectDamage} damage`);
         }
 
         if (reflectDamage > 0 && this.gameState.enemy) {
@@ -927,7 +1081,8 @@ export class Hand {
             success: true,
             damageTaken: finalDamage,
             remainingHp: this.gameState.playerHp,
-            isDead: this.gameState.playerHp <= 0
+            isDead: this.gameState.playerHp <= 0,
+            reflected: reflectDamage
         };
     }
 
@@ -938,24 +1093,20 @@ export class Hand {
         }
 
         // Check for crowd control effects that skip enemy turn
-        const ccEffects = ['stun', 'freeze', 'entangled', 'paralyzed', 'sleep'];
+        const ccEffects = ['stun', 'freeze', 'entangled', 'paralyzed', 'sleep', 'rooted'];
         const hasCC = enemy.activeEffects?.some(
             effect => ccEffects.includes(effect.name.toLowerCase())
         );
 
         // Also check legacy isStunned flag
         if (enemy.isStunned || hasCC) {
-            // Find the CC effect and decrement its duration
+            // Find the CC effect
             const ccEffect = enemy.activeEffects?.find(
                 effect => ccEffects.includes(effect.name.toLowerCase())
             );
 
             if (ccEffect) {
                 console.log(`${enemy.name} is affected by ${ccEffect.name} and skips the attack.`);
-                // Remove the effect if it's a single-turn stun without turnsRemaining
-                if (ccEffect.turnsRemaining === undefined && ccEffect.duration === undefined) {
-                    enemy.removeEffect(ccEffect.name);
-                }
             } else {
                 console.log(`${enemy.name} is stunned and skips the attack.`);
                 enemy.isStunned = false;
@@ -963,11 +1114,22 @@ export class Hand {
             return;
         }
 
-        // Check for miss chance effects (Whirlpool, Roots, MushroomCloud)
+        // Check for miss chance effects (Roots, MushroomCloud, Whirlpool)
         let missChance = 0;
         if (enemy.activeEffects?.length) {
             for (const effect of enemy.activeEffects) {
-                if (effect.missChance) {
+                // Roots: 50% miss chance
+                if (effect.name === 'rooted' && effect.missChance) {
+                    missChance += effect.missChance;
+                    console.log(`[Rooted] ${Math.round(effect.missChance * 100)}% miss chance`);
+                }
+                // MushroomCloud: accuracy reduction
+                if (effect.name === 'spore_cloud' && effect.accuracyReduction) {
+                    missChance += effect.accuracyReduction;
+                    console.log(`[Spore Cloud] ${Math.round(effect.accuracyReduction * 100)}% miss chance`);
+                }
+                // Whirlpool and other miss chance effects
+                if (effect.missChance && effect.name !== 'rooted') {
                     missChance += effect.missChance;
                 }
             }

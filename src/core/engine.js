@@ -1,341 +1,677 @@
 /**
  * Game Engine Module for Emoji Card Battle
- * 
+ *
  * This module implements the core game loop and turn management system.
  * The game loop uses requestAnimationFrame for smooth, efficient rendering.
- * The turn manager handles the progression of turns and game state transitions.
- * 
- * Key responsibilities:
- * 1. Managing the main game loop using requestAnimationFrame
- * 2. Handling timing and frame rate consistency
- * 3. Managing turn progression and state transitions
- * 4. Providing hooks for game events (start, end, turn change)
- * 5. Coordinating between game state and UI updates
+ * The turn manager handles the progression of turns and state transitions.
+ * The energy manager handles deterministic energy tracking (Slay the Spire style).
+ *
+ * Design Philosophy: Slay the Spire-style deterministic combat
+ * - Fixed energy per turn (resets each turn)
+ * - Explicit energy spend/gain tracking
+ * - Clean separation of concerns
+ *
+ * @module core/engine
  */
 
 // Import configuration constants
 import { GAME_CONFIG } from './config.js';
 
+// ───────────────────────────────────────────────────────────────────────────────
+// GameLoop Class
+// ───────────────────────────────────────────────────────────────────────────────
+
 /**
  * GameLoop class - Manages the main game loop
- * 
+ *
  * This class encapsulates the game loop functionality, providing methods to start,
  * stop, and pause the loop. It uses requestAnimationFrame for optimal performance
  * and ensures consistent frame timing regardless of browser tab focus state.
+ *
+ * @example
+ * const gameLoop = new GameLoop(gameState);
+ * gameLoop.setUpdateCallback((deltaTime) => {
+ *     console.log(`Frame update: ${deltaTime}ms`);
+ * });
+ * gameLoop.start();
  */
 export class GameLoop {
     /**
      * Creates a new GameLoop instance
-     * @param {Object} gameState 
+     *
+     * @param {Object} gameState - Reference to the game state object
      */
     constructor(gameState) {
-        // Store reference to game state for access during loop execution
+        /**
+         * @private
+         * @type {Object}
+         * @description Reference to the game state
+         */
         this.gameState = gameState;
-        
-        // Track the current animation frame request ID for cancellation
+
+        /**
+         * @private
+         * @type {number|null}
+         * @description Current animation frame request ID
+         */
         this.animationFrameId = null;
-        
-        // Track the last timestamp when the loop was executed
+
+        /**
+         * @private
+         * @type {number}
+         * @description Last timestamp when the loop was executed
+         */
         this.lastTimestamp = 0;
-        
-        // Track whether the loop is currently running
+
+        /**
+         * @type {boolean}
+         * @description Whether the loop is currently running
+         */
         this.isRunning = false;
-        
-        // Track whether the loop is paused
+
+        /**
+         * @type {boolean}
+         * @description Whether the loop is paused
+         */
         this.isPaused = false;
-        
-        // Store the callback function that will be executed each frame
+
+        /**
+         * @private
+         * @type {Function|null}
+         * @description Callback function executed each frame
+         */
         this.updateCallback = null;
-        
-        // Initialize the game loop with default settings
-        console.log('GameLoop initialized with gameState reference');
+
+        console.log('[GameLoop] Initialized with gameState reference');
     }
-    
+
     /**
      * Starts the game loop
-     * 
-     * This method initiates the main game loop by calling requestAnimationFrame
-     * and setting the isRunning flag to true. It also initializes the lastTimestamp
-     * to the current time to ensure proper frame timing calculation.
+     *
+     * @returns {Object} Start result
+     *
+     * @example
+     * gameLoop.start();
      */
     start() {
         if (this.isRunning) {
-            console.warn('Game loop is already running');
-            return;
+            console.warn('[GameLoop] Already running');
+            return { success: false, reason: 'already_running' };
         }
-        
-        // Set the running flag to true
+
         this.isRunning = true;
-        
-        // Initialize the last timestamp to the current time
         this.lastTimestamp = performance.now();
-        
-        // Log the start of the game loop
-        console.log('Game loop started at', new Date().toLocaleTimeString());
-        
-        // Begin the animation frame cycle
+
+        console.log('[GameLoop] Started at', new Date().toLocaleTimeString());
+
         this._loop(performance.now());
+
+        return { success: true };
     }
-    
+
     /**
      * Stops the game loop
-     * 
-     * This method cancels the current animation frame request and sets the
-     * isRunning flag to false, effectively stopping the game loop.
+     *
+     * @returns {Object} Stop result
+     *
+     * @example
+     * gameLoop.stop();
      */
     stop() {
         if (!this.isRunning) {
-            console.warn('Game loop is not running');
-            return;
+            console.warn('[GameLoop] Not running');
+            return { success: false, reason: 'not_running' };
         }
-        
-        // Cancel the current animation frame request
+
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
             this.animationFrameId = null;
         }
-        
-        // Set the running flag to false
+
         this.isRunning = false;
-        
-        // Log the stop of the game loop
-        console.log('Game loop stopped at', new Date().toLocaleTimeString());
+
+        console.log('[GameLoop] Stopped at', new Date().toLocaleTimeString());
+
+        return { success: true };
     }
-    
+
     /**
      * Pauses the game loop
-     * 
-     * This method sets the isPaused flag to true, which will cause the loop
-     * to skip execution of the update callback until resumed.
+     *
+     * @returns {Object} Pause result
+     *
+     * @example
+     * gameLoop.pause();
      */
     pause() {
         if (!this.isRunning) {
-            console.warn('Cannot pause a non-running game loop');
-            return;
+            console.warn('[GameLoop] Cannot pause: not running');
+            return { success: false, reason: 'not_running' };
         }
-        
+
         this.isPaused = true;
-        console.log('Game loop paused at', new Date().toLocaleTimeString());
+        console.log('[GameLoop] Paused at', new Date().toLocaleTimeString());
+
+        return { success: true };
     }
-    
+
     /**
      * Resumes the game loop
-     * 
-     * This method sets the isPaused flag to false, allowing the loop to
-     * resume execution of the update callback.
+     *
+     * @returns {Object} Resume result
+     *
+     * @example
+     * gameLoop.resume();
      */
     resume() {
         if (!this.isRunning) {
-            console.warn('Cannot resume a non-running game loop');
-            return;
+            console.warn('[GameLoop] Cannot resume: not running');
+            return { success: false, reason: 'not_running' };
         }
-        
+
         this.isPaused = false;
-        console.log('Game loop resumed at', new Date().toLocaleTimeString());
+        console.log('[GameLoop] Resumed at', new Date().toLocaleTimeString());
+
+        return { success: true };
     }
-    
+
     /**
      * Sets the update callback function
-     * 
-     * This method allows external code to provide a function that will be
-     * called during each frame of the game loop. The callback receives
-     * the delta time since the last frame as a parameter.
-     * 
-     * @param {Function} callback - The function to call each frame
+     *
+     * @param {Function} callback - Function to call each frame (receives deltaTime)
+     * @returns {Object} Result
+     *
+     * @example
+     * gameLoop.setUpdateCallback((deltaTime) => {
+     *     console.log(`Frame update: ${deltaTime}ms`);
+     * });
      */
     setUpdateCallback(callback) {
         if (typeof callback !== 'function') {
-            throw new Error('Update callback must be a function');
+            throw new Error('[GameLoop] Update callback must be a function');
         }
-        
+
         this.updateCallback = callback;
-        console.log('Update callback set for game loop');
+        console.log('[GameLoop] Update callback set');
+
+        return { success: true };
     }
-    
+
     /**
-     * The main loop function
-     * 
-     * This private method is called recursively via requestAnimationFrame
-     * and handles the core game loop logic. It calculates the delta time
-     * between frames and calls the update callback if it exists.
-     * 
-     * @param {number} timestamp - The current timestamp from requestAnimationFrame
+     * The main loop function (private)
+     *
+     * @private
+     * @param {number} timestamp - Current timestamp from requestAnimationFrame
      */
     _loop(timestamp) {
-        // Calculate the time difference since the last frame
         const deltaTime = timestamp - this.lastTimestamp;
-        
-        // Update the last timestamp for the next iteration
         this.lastTimestamp = timestamp;
-        
-        // If the loop is running and not paused, execute the update callback
+
         if (this.isRunning && !this.isPaused && this.updateCallback) {
-            // Call the update callback with the delta time
             try {
                 this.updateCallback(deltaTime);
             } catch (error) {
-                console.error('Error in game loop update callback:', error);
+                console.error('[GameLoop] Error in update callback:', error);
             }
         }
-        
-        // Schedule the next frame
+
         this.animationFrameId = requestAnimationFrame((newTimestamp) => {
             this._loop(newTimestamp);
         });
     }
 }
 
+// ───────────────────────────────────────────────────────────────────────────────
+// EnergyManager Class (NEW - Slay the Spire Style)
+// ───────────────────────────────────────────────────────────────────────────────
+
+/**
+ * EnergyManager class - Manages player energy (Slay the Spire style)
+ *
+ * This class handles all energy-related operations:
+ * - Resetting energy at turn start
+ * - Spending energy to play cards
+ * - Gaining temporary energy (relics, buffs)
+ * - Tracking energy history for debugging
+ *
+ * Design: Fixed 3 energy per turn that resets (no scaling)
+ *
+ * @example
+ * const energyManager = new EnergyManager(gameState);
+ * energyManager.reset(); // Start of turn: 3 energy
+ * energyManager.spend(2); // Play 2-cost card: 1 energy left
+ * energyManager.gain(1); // Gain 1 energy: 2 energy
+ */
+export class EnergyManager {
+    /**
+     * Creates a new EnergyManager instance
+     *
+     * @param {Object} gameState - Reference to the game state object
+     */
+    constructor(gameState) {
+        /**
+         * @private
+         * @type {Object}
+         * @description Reference to the game state
+         */
+        this.gameState = gameState;
+
+        /**
+         * @type {number}
+         * @description Current energy value
+         */
+        this.energy = GAME_CONFIG.PLAYER_ENERGY;
+
+        /**
+         * @type {number}
+         * @description Maximum energy cap
+         */
+        this.maxEnergy = GAME_CONFIG.PLAYER_MAX_ENERGY;
+
+        /**
+         * @type {number}
+         * @description Temporary energy bonus (from relics, buffs)
+         */
+        this.temporaryEnergy = 0;
+
+        /**
+         * @private
+         * @type {Array<Object>}
+         * @description History of energy changes for debugging
+         */
+        this.energyHistory = [];
+
+        console.log('[EnergyManager] Initialized:', this.getSummary());
+    }
+
+    /**
+     * Resets energy to maximum at the start of a turn
+     *
+     * @returns {Object} Reset result with new energy value
+     *
+     * @example
+     * energyManager.reset();
+     * console.log(`Energy reset to ${energyManager.energy}`);
+     */
+    reset() {
+        const oldEnergy = this.energy;
+
+        // Reset to base maximum (temporary energy is lost)
+        this.energy = this.maxEnergy;
+        this.temporaryEnergy = 0;
+
+        this._logHistory('reset', oldEnergy, this.energy);
+
+        console.log('[EnergyManager] Reset to', this.energy, '/', this.maxEnergy);
+
+        // Sync with gameState
+        if (this.gameState) {
+            this.gameState.energy = this.energy;
+            this.gameState.maxEnergy = this.maxEnergy;
+        }
+
+        return {
+            success: true,
+            energy: this.energy,
+            maxEnergy: this.maxEnergy
+        };
+    }
+
+    /**
+     * Spends energy to play a card or use an ability
+     *
+     * @param {number} amount - Amount of energy to spend
+     * @returns {Object} Result with success status and remaining energy
+     *
+     * @example
+     * const result = energyManager.spend(2);
+     * if (result.success) {
+     *     console.log(`Spent 2 energy, ${result.remaining} remaining`);
+     * } else {
+     *     console.log(`Not enough energy: need ${result.required}, have ${result.remaining}`);
+     * }
+     */
+    spend(amount) {
+        const oldEnergy = this.energy;
+
+        if (this.energy < amount) {
+            this._logHistory('spend_failed', oldEnergy, oldEnergy, amount);
+
+            return {
+                success: false,
+                reason: 'insufficient_energy',
+                remaining: this.energy,
+                required: amount,
+                canAfford: false
+            };
+        }
+
+        this.energy -= amount;
+        this._logHistory('spend', oldEnergy, this.energy, amount);
+
+        console.log('[EnergyManager] Spent', amount, '→', this.energy, '/', this.maxEnergy);
+
+        // Sync with gameState
+        if (this.gameState) {
+            this.gameState.energy = this.energy;
+        }
+
+        return {
+            success: true,
+            remaining: this.energy,
+            spent: amount,
+            canAfford: true
+        };
+    }
+
+    /**
+     * Gains energy (up to maximum)
+     *
+     * @param {number} amount - Amount of energy to gain
+     * @param {boolean} [temporary=false] - Whether the energy is temporary (lost on turn reset)
+     * @returns {Object} Result with new energy value
+     *
+     * @example
+     * energyManager.gain(1, true); // Gain 1 temporary energy
+     */
+    gain(amount, temporary = false) {
+        const oldEnergy = this.energy;
+        const oldMaxEnergy = this.maxEnergy;
+
+        if (temporary) {
+            // Temporary energy can exceed max
+            this.energy = Math.min(this.energy + amount, this.maxEnergy + this.temporaryEnergy + amount);
+            this.temporaryEnergy += amount;
+        } else {
+            // Permanent energy gain (capped at max)
+            this.energy = Math.min(this.maxEnergy, this.energy + amount);
+        }
+
+        this._logHistory('gain', oldEnergy, this.energy, amount, temporary);
+
+        console.log('[EnergyManager] Gained', amount, temporary ? '(temp)' : '', '→', this.energy, '/', this.maxEnergy);
+
+        // Sync with gameState
+        if (this.gameState) {
+            this.gameState.energy = this.energy;
+        }
+
+        return {
+            success: true,
+            energy: this.energy,
+            maxEnergy: this.maxEnergy,
+            gained: amount,
+            temporary: temporary
+        };
+    }
+
+    /**
+     * Checks if a cost can be afforded
+     *
+     * @param {number} cost - The energy cost to check
+     * @returns {boolean} Whether the cost can be afforded
+     *
+     * @example
+     * if (energyManager.canAfford(3)) {
+     *     console.log('Can play 3-cost card!');
+     * }
+     */
+    canAfford(cost) {
+        return this.energy >= cost;
+    }
+
+    /**
+     * Gets the current energy as a summary object
+     *
+     * @returns {Object} Energy summary
+     */
+    getSummary() {
+        return {
+            energy: this.energy,
+            maxEnergy: this.maxEnergy,
+            temporaryEnergy: this.temporaryEnergy,
+            canAfford1: this.canAfford(1),
+            canAfford2: this.canAfford(2),
+            canAfford3: this.canAfford(3)
+        };
+    }
+
+    /**
+     * Logs an energy change to the history
+     *
+     * @private
+     * @param {string} type - Type of change: 'reset', 'spend', 'gain'
+     * @param {number} from - Previous energy value
+     * @param {number} to - New energy value
+     * @param {number} [amount] - Amount changed
+     * @param {boolean} [temporary] - Whether it was temporary
+     */
+    _logHistory(type, from, to, amount = 0, temporary = false) {
+        this.energyHistory.push({
+            type,
+            from,
+            to,
+            amount,
+            temporary,
+            timestamp: Date.now(),
+            turn: this.gameState?.turn || 1
+        });
+
+        // Keep history limited to last 100 entries
+        if (this.energyHistory.length > 100) {
+            this.energyHistory.shift();
+        }
+    }
+
+    /**
+     * Resets the energy manager to initial state
+     *
+     * @returns {Object} Reset result
+     */
+    resetManager() {
+        this.energy = GAME_CONFIG.PLAYER_ENERGY;
+        this.maxEnergy = GAME_CONFIG.PLAYER_MAX_ENERGY;
+        this.temporaryEnergy = 0;
+        this.energyHistory = [];
+
+        console.log('[EnergyManager] Manager reset');
+
+        return { success: true };
+    }
+}
+
+// ───────────────────────────────────────────────────────────────────────────────
+// TurnManager Class (Updated for Energy System)
+// ───────────────────────────────────────────────────────────────────────────────
+
 /**
  * TurnManager class - Manages game turns and state transitions
- * 
+ *
  * This class handles the progression of turns in the game, including
  * turn counting, phase management, and game state transitions.
- * It provides methods to advance turns, check win/loss conditions,
- * and manage turn-specific game logic.
+ * Updated for Slay the Spire-style energy system.
+ *
+ * @example
+ * const turnManager = new TurnManager(gameState, energyManager);
+ * turnManager.startTurn();
+ * turnManager.endTurn();
  */
 export class TurnManager {
     /**
      * Creates a new TurnManager instance
-     * @param {Object} gameState - Reference to the game state object
-     */
-    constructor(gameState) {
-        // Store reference to game state for access during turn management
-        this.gameState = gameState;
-        
-        // Track the current turn number
-        this.currentTurn = 1;
-        
-        // Track the current turn phase (e.g., 'player', 'enemy', 'end')
-        this.currentPhase = 'player';
-        
-        // Track whether the game is over
-        this.isGameOver = false;
-        
-        // Track the reason for game over (win/loss)
-        this.gameOverReason = null;
-        
-        // Store the turn start time for timing calculations
-        this.turnStartTime = null;
-        
-        // Log the initialization of the turn manager
-        console.log('TurnManager initialized with gameState reference');
-    }
-    
-    /**
-     * Advances to the next turn
      *
-     * This method increments the turn counter and transitions to the next
-     * phase of the game. It also checks for win/loss conditions and
-     * updates the game state accordingly. Mana is set based on turn number.
+     * @param {Object} gameState - Reference to the game state object
+     * @param {EnergyManager} [energyManager] - Reference to the energy manager
      */
-    advanceTurn() {
-        // Check if the game is already over
+    constructor(gameState, energyManager = null) {
+        /**
+         * @private
+         * @type {Object}
+         * @description Reference to the game state
+         */
+        this.gameState = gameState;
+
+        /**
+         * @private
+         * @type {EnergyManager|null}
+         * @description Reference to the energy manager
+         */
+        this.energyManager = energyManager;
+
+        /**
+         * @type {number}
+         * @description Current turn number
+         */
+        this.currentTurn = 1;
+
+        /**
+         * @type {string}
+         * @description Current turn phase: 'player', 'enemy', 'end'
+         */
+        this.currentPhase = 'player';
+
+        /**
+         * @type {boolean}
+         * @description Whether the game is over
+         */
+        this.isGameOver = false;
+
+        /**
+         * @type {string|null}
+         * @description Reason for game over
+         */
+        this.gameOverReason = null;
+
+        /**
+         * @private
+         * @type {number|null}
+         * @description Turn start timestamp
+         */
+        this.turnStartTime = null;
+
+        console.log('[TurnManager] Initialized with energy system');
+    }
+
+    /**
+     * Starts a new turn
+     *
+     * @returns {Object} Turn start result
+     *
+     * @example
+     * const result = turnManager.startTurn();
+     * console.log(`Turn ${result.turn}: ${result.energy} energy`);
+     */
+    startTurn() {
         if (this.isGameOver) {
-            console.warn('Cannot advance turn: game is already over');
-            return;
+            return { success: false, reason: 'game_over' };
         }
 
-        // Increment the turn counter
+        // Increment turn
         this.currentTurn++;
-
-        // Set mana based on turn number (3 → 6 → 9 → 10 → 10...)
-        const manaForTurn = this.getManaForTurn(this.currentTurn);
-        this.gameState.updatePlayerMana(manaForTurn);
-        console.log(`Turn ${this.currentTurn}: Mana set to ${manaForTurn}/${GAME_CONFIG.PLAYER_MAX_MANA}`);
-
-        // Reset the turn start time
         this.turnStartTime = performance.now();
 
-        // Log the turn advancement
-        console.log(`Advancing to turn ${this.currentTurn} at`, new Date().toLocaleTimeString());
-
-        // Update the game state with the new turn number
-        this.gameState.turnCount = this.currentTurn;
-
-        // Check for game over conditions
-        this._checkGameOverConditions();
-
-        // If the game is not over, transition to the player phase
-        if (!this.isGameOver) {
-            this.currentPhase = 'player';
-            console.log('Turn phase set to: player');
+        // Reset energy
+        if (this.energyManager) {
+            this.energyManager.reset();
         }
-    }
-    
-    /**
-     * Gets the mana amount for a specific turn number
-     * @param {number} turnNumber - The current turn number
-     * @returns {number} The mana amount for this turn
-     */
-    getManaForTurn(turnNumber) {
-        // Use the MANA_BY_TURN array, or cap at max mana if turn exceeds array
-        const manaArray = GAME_CONFIG.MANA_BY_TURN;
-        const lastIndex = manaArray.length - 1;
-        
-        if (turnNumber <= 0) {
-            return GAME_CONFIG.PLAYER_START_MANA;
+
+        // Update game state
+        if (this.gameState) {
+            this.gameState.turn = this.currentTurn;
+            this.gameState.phase = 'player';
         }
-        
-        // Return mana for this turn, or the last value if turn exceeds array
-        return manaArray[Math.min(turnNumber - 1, lastIndex)];
+
+        this.currentPhase = 'player';
+
+        console.log('[TurnManager] Turn', this.currentTurn, 'started');
+
+        return {
+            success: true,
+            turn: this.currentTurn,
+            phase: this.currentPhase,
+            energy: this.energyManager?.energy || 3
+        };
     }
-    
+
     /**
-     * Ends the current turn phase
-     * 
-     * This method transitions to the next phase within the current turn.
-     * For example, from 'player' to 'enemy' or from 'enemy' to 'end'.
+     * Ends the current turn
+     *
+     * @returns {Object} Turn end result
+     *
+     * @example
+     * const result = turnManager.endTurn();
+     * if (result.success) {
+     *     console.log(`Turn ended, next: ${result.nextPhase}`);
+     * }
      */
-    endCurrentPhase() {
-        // Check if the game is already over
+    endTurn() {
         if (this.isGameOver) {
-            console.warn('Cannot end phase: game is already over');
-            return;
+            return { success: false, reason: 'game_over' };
         }
-        
-        // Transition to the next phase based on the current phase
-        switch (this.currentPhase) {
-            case 'player':
-                this.currentPhase = 'enemy';
-                console.log('Turn phase set to: enemy');
-                break;
-            case 'enemy':
-                this.currentPhase = 'end';
-                console.log('Turn phase set to: end');
-                break;
-            case 'end':
-                // At the end of turn, advance to the next turn
-                this.advanceTurn();
-                break;
-            default:
-                console.warn(`Unknown turn phase: ${this.currentPhase}`);
-                break;
+
+        // Transition to enemy phase
+        this.currentPhase = 'enemy';
+
+        if (this.gameState) {
+            this.gameState.phase = this.currentPhase;
         }
-        
-        // Update the game state with the new phase
-        this.gameState.currentPhase = this.currentPhase;
+
+        console.log('[TurnManager] Turn', this.currentTurn, 'ended, enemy phase');
+
+        return {
+            success: true,
+            nextPhase: this.currentPhase,
+            turn: this.currentTurn
+        };
     }
-    
+
     /**
      * Checks for game over conditions
-     * 
-     * This private method evaluates the current game state to determine
-     * if the game should end due to win or loss conditions.
+     *
+     * @private
+     * @returns {Object|null} Game over result or null if game continues
      */
-    _checkGameOverConditions() {
-        // Check if player has lost (player HP <= 0)
-        if (this.gameState.playerHp <= 0) {
+    _checkGameOver() {
+        // Player lost
+        if (this.gameState?.playerHp <= 0) {
             this.isGameOver = true;
             this.gameOverReason = 'player_loss';
-            console.log('Player defeat detected at turn', this.currentTurn);
-            return;
+            console.log('[TurnManager] Player defeated at turn', this.currentTurn);
+            return {
+                isGameOver: true,
+                reason: 'player_loss'
+            };
         }
+
+        // Player won (enemy defeated)
+        if (this.gameState?.enemyHp <= 0) {
+            this.isGameOver = true;
+            this.gameOverReason = 'player_win';
+            console.log('[TurnManager] Enemy defeated at turn', this.currentTurn);
+            return {
+                isGameOver: true,
+                reason: 'player_win'
+            };
+        }
+
+        // Turn limit reached
+        if (this.currentTurn >= GAME_CONFIG.MAX_TURN_COUNT) {
+            this.isGameOver = true;
+            this.gameOverReason = 'timeout';
+            console.log('[TurnManager] Turn limit reached');
+            return {
+                isGameOver: true,
+                reason: 'timeout'
+            };
+        }
+
+        return null;
     }
-    
+
     /**
      * Resets the turn manager to initial state
-     * 
-     * This method resets all turn-related state variables to their initial values.
+     *
+     * @returns {Object} Reset result
      */
     reset() {
         this.currentTurn = 1;
@@ -343,52 +679,65 @@ export class TurnManager {
         this.isGameOver = false;
         this.gameOverReason = null;
         this.turnStartTime = null;
-        
-        // Update the game state with reset values
-        this.gameState.turnCount = 1;
-        this.gameState.currentPhase = 'player';
-        
-        console.log('TurnManager reset to initial state');
+
+        if (this.gameState) {
+            this.gameState.turn = 1;
+            this.gameState.phase = 'player';
+        }
+
+        console.log('[TurnManager] Reset to initial state');
+
+        return { success: true };
     }
 }
 
+// ───────────────────────────────────────────────────────────────────────────────
+// Initialization Function
+// ───────────────────────────────────────────────────────────────────────────────
+
 /**
- * Initializes the game loop system
- * 
- * This function creates and returns a configured GameLoop instance
- * with appropriate callbacks for game state updates and rendering.
- * 
+ * Initializes the game loop system with EnergyManager
+ *
  * @param {Object} gameState - The game state object to manage
- * @returns {GameLoop} A configured GameLoop instance
+ * @returns {Object} Initialized managers object
+ *
+ * @example
+ * const { gameLoop, energyManager, turnManager } = initializeGameLoop(gameState);
  */
 export function initializeGameLoop(gameState) {
-    // Create a new GameLoop instance
+    // Create EnergyManager
+    const energyManager = new EnergyManager(gameState);
+
+    // Create GameLoop
     const gameLoop = new GameLoop(gameState);
-    
-    // Create a new TurnManager instance
-    const turnManager = new TurnManager(gameState);
-    
-    // Store the turn manager in the game state for access
+
+    // Create TurnManager with EnergyManager
+    const turnManager = new TurnManager(gameState, energyManager);
+
+    // Store references in gameState
+    gameState.energyManager = energyManager;
     gameState.turnManager = turnManager;
-    
-    // Set up the update callback for the game loop
+    gameState.engine = gameLoop;
+
+    // Set up update callback
     gameLoop.setUpdateCallback((deltaTime) => {
-        // Update game state based on delta time
-        // In a real implementation, this would handle physics, animations, etc.
-        
-        // Log the frame update with delta time
-        if (GAME_CONFIG.ENABLE_DEBUG_LOGS && 
-            GAME_CONFIG.LOG_LEVEL === 'debug') {
-            console.debug(`Frame update: deltaTime=${deltaTime.toFixed(2)}ms`);
-        }
-        
-        // Update the turn manager (in a real game, this would be more sophisticated)
-        // For now, we'll just log the current turn and phase
-        if (gameState.turnManager) {
-            console.log(`Current turn: ${gameState.turnManager.currentTurn}, Phase: ${gameState.turnManager.currentPhase}`);
+        if (GAME_CONFIG.ENABLE_DEBUG_LOGS && GAME_CONFIG.LOG_LEVEL === 'debug') {
+            console.debug(`[Engine] Frame: ${deltaTime.toFixed(2)}ms`);
         }
     });
-    
-    // Return the configured game loop
-    return gameLoop;
+
+    console.log('[Engine] Full system initialized');
+
+    return {
+        gameLoop,
+        energyManager,
+        turnManager
+    };
 }
+
+export default {
+    GameLoop,
+    EnergyManager,
+    TurnManager,
+    initializeGameLoop
+};

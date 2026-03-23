@@ -1,0 +1,196 @@
+/**
+ * Nature Element Card Theme for Emoji Card Battle
+ *
+ * Visual theme for nature-element cards featuring:
+ * - Green/brown gradient borders
+ * - Organic glowing shadows
+ * - Pulsing life hover glow animation
+ *
+ * Patch Notes v0.1.5: + Visual themes for elements. + CSS Hover effects.
+ */
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Nature Element Card Styles
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Base nature card styling */
+.card[data-element="nature"] {
+    border: 2px solid transparent;
+    border-image: linear-gradient(135deg, #228b22, #7cfc00, #228b22) 1;
+    box-shadow: 
+        0 0 10px rgba(34, 139, 34, 0.4),
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        inset 0 0 20px rgba(124, 252, 0, 0.1);
+    background: linear-gradient(160deg, #1a2a1a, #0d1a0d);
+    transition: 
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.3s ease;
+}
+
+/* Nature card playable state */
+.card[data-element="nature"].playable {
+    border-image: linear-gradient(135deg, #32cd32, #adff2f, #32cd32) 1;
+    box-shadow: 
+        0 0 15px rgba(50, 205, 50, 0.5),
+        0 4px 12px rgba(0, 0, 0, 0.4),
+        inset 0 0 25px rgba(173, 255, 47, 0.15);
+}
+
+/* Nature card unplayable state */
+.card[data-element="nature"].unplayable {
+    border-image: linear-gradient(135deg, #3a5a3a, #2a4a2a, #3a5a3a) 1;
+    box-shadow: 
+        0 0 5px rgba(58, 90, 58, 0.3),
+        0 2px 4px rgba(0, 0, 0, 0.3);
+    filter: grayscale(0.3);
+}
+
+/* Nature card hover effect with animation */
+.card[data-element="nature"]:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 
+        0 0 20px rgba(34, 139, 34, 0.6),
+        0 8px 24px rgba(50, 205, 50, 0.4),
+        0 12px 32px rgba(0, 0, 0, 0.5),
+        inset 0 0 30px rgba(124, 252, 0, 0.2);
+    animation: natureGlow 1.5s ease-in-out infinite;
+}
+
+/* Nature card feedback states */
+.card[data-element="nature"].feedback-success {
+    box-shadow: 
+        0 0 25px rgba(124, 252, 0, 0.8),
+        0 0 50px rgba(34, 139, 34, 0.6),
+        inset 0 0 40px rgba(50, 205, 50, 0.4);
+    animation: natureBloom 0.5s ease-out;
+}
+
+.card[data-element="nature"].feedback-failure {
+    box-shadow: 
+        0 0 20px rgba(50, 100, 50, 0.8),
+        0 0 40px rgba(34, 80, 34, 0.4),
+        inset 0 0 30px rgba(34, 80, 34, 0.3);
+}
+
+/* Nature mana cost badge override */
+.card[data-element="nature"] .card-mana-cost {
+    background: linear-gradient(135deg, #1a4a1a, #228b22);
+    border-color: #7cfc00;
+    box-shadow: 0 2px 6px rgba(34, 139, 34, 0.5);
+}
+
+/* Nature card name styling */
+.card[data-element="nature"] .card-name {
+    color: #7cfc00;
+    text-shadow: 0 0 5px rgba(124, 252, 0, 0.5);
+}
+
+/* Nature card emoji styling */
+.card[data-element="nature"] .card-emoji {
+    filter: drop-shadow(0 0 8px rgba(34, 139, 34, 0.6));
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Nature Element Keyframe Animations
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Nature Glow Animation
+ * Simulates the pulsing life force of nature
+ * Used on nature card hover states
+ */
+@keyframes natureGlow {
+    0%, 100% {
+        box-shadow: 
+            0 0 18px rgba(34, 139, 34, 0.5),
+            0 4px 16px rgba(50, 205, 50, 0.35),
+            0 8px 24px rgba(34, 139, 34, 0.25),
+            inset 0 0 25px rgba(124, 252, 0, 0.15);
+        border-image: linear-gradient(135deg, #228b22, #7cfc00, #228b22) 1;
+    }
+    25% {
+        box-shadow: 
+            0 0 22px rgba(50, 205, 50, 0.6),
+            0 6px 20px rgba(124, 252, 0, 0.45),
+            0 10px 28px rgba(34, 139, 34, 0.35),
+            inset 0 0 30px rgba(173, 255, 47, 0.2);
+        border-image: linear-gradient(135deg, #32cd32, #adff2f, #32cd32) 1;
+    }
+    50% {
+        box-shadow: 
+            0 0 25px rgba(124, 252, 0, 0.7),
+            0 8px 24px rgba(173, 255, 47, 0.5),
+            0 12px 32px rgba(50, 205, 50, 0.4),
+            inset 0 0 35px rgba(124, 252, 0, 0.25);
+        border-image: linear-gradient(135deg, #7cfc00, #98fb98, #7cfc00) 1;
+    }
+    75% {
+        box-shadow: 
+            0 0 20px rgba(50, 205, 50, 0.55),
+            0 5px 18px rgba(34, 139, 34, 0.4),
+            0 9px 26px rgba(34, 139, 34, 0.3),
+            inset 0 0 28px rgba(124, 252, 0, 0.18);
+        border-image: linear-gradient(135deg, #32cd32, #7cfc00, #32cd32) 1;
+    }
+}
+
+/**
+ * Nature Bloom Animation
+ * Flower-like blooming effect for successful nature card plays
+ */
+@keyframes natureBloom {
+    0% {
+        transform: scale(1);
+        box-shadow: 
+            0 0 15px rgba(34, 139, 34, 0.5),
+            0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    40% {
+        transform: scale(1.15);
+        box-shadow: 
+            0 0 40px rgba(124, 252, 0, 0.9),
+            0 0 80px rgba(34, 139, 34, 0.7),
+            0 10px 40px rgba(50, 205, 50, 0.5);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 
+            0 0 25px rgba(124, 252, 0, 0.8),
+            0 0 50px rgba(34, 139, 34, 0.6);
+    }
+}
+
+/**
+ * Leaf Flutter Animation
+ * Gentle fluttering effect mimicking leaves in the wind
+ */
+@keyframes leafFlutter {
+    0%, 100% {
+        transform: rotate(-2deg) scale(1);
+    }
+    25% {
+        transform: rotate(2deg) scale(1.02);
+    }
+    50% {
+        transform: rotate(-1deg) scale(1);
+    }
+    75% {
+        transform: rotate(1deg) scale(1.01);
+    }
+}
+
+/**
+ * Growth Pulse Animation
+ * Subtle pulsing effect representing growing life
+ */
+@keyframes growthPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.9;
+    }
+    50% {
+        transform: scale(1.03);
+        opacity: 1;
+    }
+}

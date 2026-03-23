@@ -70,13 +70,17 @@ export class CardRenderer {
     createCardElement(card, containerId = 'hand') {
         // Create the main card div element
         const cardElement = document.createElement('div');
-        
+
         // Set card element properties
         cardElement.className = 'card';
         cardElement.dataset.cardId = card.id;
         cardElement.dataset.cardName = card.name;
         cardElement.dataset.cardType = card.constructor.name;
-        
+        // Add element type for theme styling (fire, water, nature)
+        if (card.element) {
+            cardElement.dataset.element = card.element;
+        }
+
         // Add click event listener for card interaction
         cardElement.addEventListener('click', (event) => {
             this.handleCardClick(card, event);

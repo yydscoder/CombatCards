@@ -1,0 +1,190 @@
+/**
+ * Water Element Card Theme for Emoji Card Battle
+ *
+ * Visual theme for water-element cards featuring:
+ * - Blue/cyan gradient borders
+ * - Rippling water shadows
+ * - Flowing hover glow animation
+ *
+ * Patch Notes v0.1.5: + Visual themes for elements. + CSS Hover effects.
+ */
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Water Element Card Styles
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Base water card styling */
+.card[data-element="water"] {
+    border: 2px solid transparent;
+    border-image: linear-gradient(135deg, #0066cc, #00bfff, #0066cc) 1;
+    box-shadow: 
+        0 0 10px rgba(0, 191, 255, 0.4),
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        inset 0 0 20px rgba(0, 191, 255, 0.1);
+    background: linear-gradient(160deg, #1a2a3a, #0d1a2d);
+    transition: 
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.3s ease;
+}
+
+/* Water card playable state */
+.card[data-element="water"].playable {
+    border-image: linear-gradient(135deg, #1e90ff, #00ffff, #1e90ff) 1;
+    box-shadow: 
+        0 0 15px rgba(30, 144, 255, 0.5),
+        0 4px 12px rgba(0, 0, 0, 0.4),
+        inset 0 0 25px rgba(0, 255, 255, 0.15);
+}
+
+/* Water card unplayable state */
+.card[data-element="water"].unplayable {
+    border-image: linear-gradient(135deg, #2c4a6b, #1a3a5a, #2c4a6b) 1;
+    box-shadow: 
+        0 0 5px rgba(44, 74, 107, 0.3),
+        0 2px 4px rgba(0, 0, 0, 0.3);
+    filter: grayscale(0.3);
+}
+
+/* Water card hover effect with animation */
+.card[data-element="water"]:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 
+        0 0 20px rgba(0, 191, 255, 0.6),
+        0 8px 24px rgba(30, 144, 255, 0.4),
+        0 12px 32px rgba(0, 0, 0, 0.5),
+        inset 0 0 30px rgba(0, 255, 255, 0.2);
+    animation: waterFlow 1.5s ease-in-out infinite;
+}
+
+/* Water card feedback states */
+.card[data-element="water"].feedback-success {
+    box-shadow: 
+        0 0 25px rgba(0, 255, 255, 0.8),
+        0 0 50px rgba(0, 191, 255, 0.6),
+        inset 0 0 40px rgba(0, 255, 255, 0.4);
+    animation: waterSurge 0.5s ease-out;
+}
+
+.card[data-element="water"].feedback-failure {
+    box-shadow: 
+        0 0 20px rgba(0, 100, 150, 0.8),
+        0 0 40px rgba(0, 50, 100, 0.4),
+        inset 0 0 30px rgba(0, 50, 100, 0.3);
+}
+
+/* Water mana cost badge override */
+.card[data-element="water"] .card-mana-cost {
+    background: linear-gradient(135deg, #003366, #0066cc);
+    border-color: #00bfff;
+    box-shadow: 0 2px 6px rgba(0, 191, 255, 0.5);
+}
+
+/* Water card name styling */
+.card[data-element="water"] .card-name {
+    color: #00bfff;
+    text-shadow: 0 0 5px rgba(0, 191, 255, 0.5);
+}
+
+/* Water card emoji styling */
+.card[data-element="water"] .card-emoji {
+    filter: drop-shadow(0 0 8px rgba(0, 191, 255, 0.6));
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Water Element Keyframe Animations
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Water Flow Animation
+ * Simulates the gentle, flowing movement of water
+ * Used on water card hover states
+ */
+@keyframes waterFlow {
+    0%, 100% {
+        box-shadow: 
+            0 0 18px rgba(0, 191, 255, 0.5),
+            0 4px 16px rgba(30, 144, 255, 0.35),
+            0 8px 24px rgba(0, 191, 255, 0.25),
+            inset 0 0 25px rgba(0, 255, 255, 0.15);
+        border-image: linear-gradient(135deg, #0066cc, #00bfff, #0066cc) 1;
+    }
+    25% {
+        box-shadow: 
+            0 0 22px rgba(30, 144, 255, 0.6),
+            0 6px 20px rgba(64, 224, 208, 0.45),
+            0 10px 28px rgba(0, 191, 255, 0.35),
+            inset 0 0 30px rgba(0, 255, 255, 0.2);
+        border-image: linear-gradient(135deg, #1e90ff, #40e0d0, #1e90ff) 1;
+    }
+    50% {
+        box-shadow: 
+            0 0 25px rgba(0, 255, 255, 0.7),
+            0 8px 24px rgba(64, 224, 208, 0.5),
+            0 12px 32px rgba(0, 191, 255, 0.4),
+            inset 0 0 35px rgba(0, 255, 255, 0.25);
+        border-image: linear-gradient(135deg, #00ffff, #7fffd4, #00ffff) 1;
+    }
+    75% {
+        box-shadow: 
+            0 0 20px rgba(30, 144, 255, 0.55),
+            0 5px 18px rgba(0, 191, 255, 0.4),
+            0 9px 26px rgba(0, 191, 255, 0.3),
+            inset 0 0 28px rgba(0, 255, 255, 0.18);
+        border-image: linear-gradient(135deg, #1e90ff, #00bfff, #1e90ff) 1;
+    }
+}
+
+/**
+ * Water Surge Animation
+ * Wave-like burst effect for successful water card plays
+ */
+@keyframes waterSurge {
+    0% {
+        transform: scale(1);
+        box-shadow: 
+            0 0 15px rgba(0, 191, 255, 0.5),
+            0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    40% {
+        transform: scale(1.15);
+        box-shadow: 
+            0 0 40px rgba(0, 255, 255, 0.9),
+            0 0 80px rgba(0, 191, 255, 0.7),
+            0 10px 40px rgba(30, 144, 255, 0.5);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 
+            0 0 25px rgba(0, 255, 255, 0.8),
+            0 0 50px rgba(0, 191, 255, 0.6);
+    }
+}
+
+/**
+ * Ripple Animation
+ * Subtle ripple effect for water cards
+ */
+@keyframes waterRipple {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+/**
+ * Bubble Float Animation
+ * Gentle floating effect mimicking rising bubbles
+ */
+@keyframes bubbleFloat {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+        opacity: 0.8;
+    }
+    50% {
+        transform: translateY(-4px) scale(1.03);
+        opacity: 1;
+    }
+}

@@ -1,0 +1,177 @@
+/**
+ * Fire Element Card Theme for Emoji Card Battle
+ *
+ * Visual theme for fire-element cards featuring:
+ * - Orange/red gradient borders
+ * - Glowing ember shadows
+ * - Flickering hover glow animation
+ *
+ * Patch Notes v0.1.5: + Visual themes for elements. + CSS Hover effects.
+ */
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Fire Element Card Styles
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Base fire card styling */
+.card[data-element="fire"] {
+    border: 2px solid transparent;
+    border-image: linear-gradient(135deg, #ff4500, #ff8c00, #ff4500) 1;
+    box-shadow: 
+        0 0 10px rgba(255, 69, 0, 0.4),
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        inset 0 0 20px rgba(255, 140, 0, 0.1);
+    background: linear-gradient(160deg, #3a2a1a, #2d1a0d);
+    transition: 
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.3s ease;
+}
+
+/* Fire card playable state */
+.card[data-element="fire"].playable {
+    border-image: linear-gradient(135deg, #ff6347, #ffa500, #ff6347) 1;
+    box-shadow: 
+        0 0 15px rgba(255, 99, 71, 0.5),
+        0 4px 12px rgba(0, 0, 0, 0.4),
+        inset 0 0 25px rgba(255, 165, 0, 0.15);
+}
+
+/* Fire card unplayable state */
+.card[data-element="fire"].unplayable {
+    border-image: linear-gradient(135deg, #8b4513, #654321, #8b4513) 1;
+    box-shadow: 
+        0 0 5px rgba(139, 69, 19, 0.3),
+        0 2px 4px rgba(0, 0, 0, 0.3);
+    filter: grayscale(0.3);
+}
+
+/* Fire card hover effect with animation */
+.card[data-element="fire"]:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 
+        0 0 20px rgba(255, 69, 0, 0.6),
+        0 8px 24px rgba(255, 140, 0, 0.4),
+        0 12px 32px rgba(0, 0, 0, 0.5),
+        inset 0 0 30px rgba(255, 100, 0, 0.2);
+    animation: fireGlow 1.5s ease-in-out infinite;
+}
+
+/* Fire card feedback states */
+.card[data-element="fire"].feedback-success {
+    box-shadow: 
+        0 0 25px rgba(255, 215, 0, 0.8),
+        0 0 50px rgba(255, 69, 0, 0.6),
+        inset 0 0 40px rgba(255, 140, 0, 0.4);
+    animation: fireBurst 0.5s ease-out;
+}
+
+.card[data-element="fire"].feedback-failure {
+    box-shadow: 
+        0 0 20px rgba(139, 0, 0, 0.8),
+        0 0 40px rgba(255, 0, 0, 0.4),
+        inset 0 0 30px rgba(100, 0, 0, 0.3);
+}
+
+/* Fire mana cost badge override */
+.card[data-element="fire"] .card-mana-cost {
+    background: linear-gradient(135deg, #8b2500, #ff4500);
+    border-color: #ff8c00;
+    box-shadow: 0 2px 6px rgba(255, 69, 0, 0.5);
+}
+
+/* Fire card name styling */
+.card[data-element="fire"] .card-name {
+    color: #ffa500;
+    text-shadow: 0 0 5px rgba(255, 165, 0, 0.5);
+}
+
+/* Fire card emoji styling */
+.card[data-element="fire"] .card-emoji {
+    filter: drop-shadow(0 0 8px rgba(255, 69, 0, 0.6));
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Fire Element Keyframe Animations
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Fire Glow Animation
+ * Simulates the flickering, pulsing glow of flames
+ * Used on fire card hover states
+ */
+@keyframes fireGlow {
+    0%, 100% {
+        box-shadow: 
+            0 0 18px rgba(255, 69, 0, 0.5),
+            0 4px 16px rgba(255, 140, 0, 0.35),
+            0 8px 24px rgba(255, 69, 0, 0.25),
+            inset 0 0 25px rgba(255, 100, 0, 0.15);
+        border-image: linear-gradient(135deg, #ff4500, #ffa500, #ff4500) 1;
+    }
+    25% {
+        box-shadow: 
+            0 0 22px rgba(255, 99, 71, 0.6),
+            0 6px 20px rgba(255, 165, 0, 0.45),
+            0 10px 28px rgba(255, 69, 0, 0.35),
+            inset 0 0 30px rgba(255, 140, 0, 0.2);
+        border-image: linear-gradient(135deg, #ff6347, #ffc125, #ff6347) 1;
+    }
+    50% {
+        box-shadow: 
+            0 0 25px rgba(255, 140, 0, 0.7),
+            0 8px 24px rgba(255, 215, 0, 0.5),
+            0 12px 32px rgba(255, 69, 0, 0.4),
+            inset 0 0 35px rgba(255, 165, 0, 0.25);
+        border-image: linear-gradient(135deg, #ffa500, #ffd700, #ffa500) 1;
+    }
+    75% {
+        box-shadow: 
+            0 0 20px rgba(255, 99, 71, 0.55),
+            0 5px 18px rgba(255, 140, 0, 0.4),
+            0 9px 26px rgba(255, 69, 0, 0.3),
+            inset 0 0 28px rgba(255, 100, 0, 0.18);
+        border-image: linear-gradient(135deg, #ff6347, #ff8c00, #ff6347) 1;
+    }
+}
+
+/**
+ * Fire Burst Animation
+ * Explosive flash effect for successful fire card plays
+ */
+@keyframes fireBurst {
+    0% {
+        transform: scale(1);
+        box-shadow: 
+            0 0 15px rgba(255, 69, 0, 0.5),
+            0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+    40% {
+        transform: scale(1.15);
+        box-shadow: 
+            0 0 40px rgba(255, 215, 0, 0.9),
+            0 0 80px rgba(255, 69, 0, 0.7),
+            0 10px 40px rgba(255, 140, 0, 0.5);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 
+            0 0 25px rgba(255, 215, 0, 0.8),
+            0 0 50px rgba(255, 69, 0, 0.6);
+    }
+}
+
+/**
+ * Ember Float Animation
+ * Subtle floating particles effect for fire cards
+ */
+@keyframes emberFloat {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+        opacity: 0.8;
+    }
+    50% {
+        transform: translateY(-3px) scale(1.05);
+        opacity: 1;
+    }
+}
