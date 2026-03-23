@@ -516,14 +516,22 @@ export class HandUI {
      * @param {Event} event - The dragend event
      */
     handleDragEnd(card, event) {
-        // Clear dragged card reference
-        this.draggedCard = null;
+        const pendingCard = this.draggedCard;
 
         // Clear drop zone highlights
         const enemyArea = document.getElementById('enemy-area');
         const playerArea = document.getElementById('player-area');
         if (enemyArea) enemyArea.classList.remove('drop-target');
         if (playerArea) playerArea.classList.remove('drop-target');
+
+        if (pendingCard && window.__dropTarget) {
+            console.log(`[HandUI] Drag ended over ${window.__dropTarget}, applying card`);
+            this.handleDropOnTarget(pendingCard, window.__dropTarget);
+        }
+
+        // Clear dragged card reference
+        this.draggedCard = null;
+        window.__dropTarget = null;
 
         console.log(`[HandUI] Drag ended: ${card.name}`);
     }

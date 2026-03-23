@@ -1893,6 +1893,33 @@ body {
     z-index: 100;
 }
 
+/* Small drop indicator dot */
+.drop-zone::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(76, 175, 80, 0.9);
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.8);
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    transform: scale(0.8);
+    z-index: 101;
+}
+
+.drop-zone.drop-target::before {
+    opacity: 1;
+    transform: scale(1);
+}
+
+#enemy-area.drop-target::before {
+    background: rgba(255, 82, 82, 0.9);
+    box-shadow: 0 0 10px rgba(255, 82, 82, 0.8);
+}
+
 .drop-zone.drop-target::after {
     opacity: 1;
 }

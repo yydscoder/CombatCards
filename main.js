@@ -119,6 +119,7 @@ function initializeDropZones(hand) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
         enemyArea.classList.add('drop-target');
+        window.__dropTarget = 'enemy';
     });
 
     enemyArea.addEventListener('dragleave', (e) => {
@@ -127,6 +128,9 @@ function initializeDropZones(hand) {
         if (!relatedTarget || !enemyArea.contains(relatedTarget)) {
             console.log('[DropZones] dragleave ENEMY (exiting zone)');
             enemyArea.classList.remove('drop-target');
+            if (window.__dropTarget === 'enemy') {
+                window.__dropTarget = null;
+            }
         } else {
             console.log('[DropZones] dragleave ENEMY (still inside, moving to child)');
         }
@@ -137,6 +141,7 @@ function initializeDropZones(hand) {
         e.preventDefault();
         e.stopPropagation();
         enemyArea.classList.remove('drop-target');
+        window.__dropTarget = null;
         
         const data = e.dataTransfer.getData('text/plain');
         console.log('[DropZones] Drop data:', data);
@@ -164,6 +169,7 @@ function initializeDropZones(hand) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
         playerArea.classList.add('drop-target');
+        window.__dropTarget = 'player';
     });
 
     playerArea.addEventListener('dragleave', (e) => {
@@ -171,6 +177,9 @@ function initializeDropZones(hand) {
         if (!relatedTarget || !playerArea.contains(relatedTarget)) {
             console.log('[DropZones] dragleave PLAYER (exiting zone)');
             playerArea.classList.remove('drop-target');
+            if (window.__dropTarget === 'player') {
+                window.__dropTarget = null;
+            }
         } else {
             console.log('[DropZones] dragleave PLAYER (still inside)');
         }
@@ -181,6 +190,7 @@ function initializeDropZones(hand) {
         e.preventDefault();
         e.stopPropagation();
         playerArea.classList.remove('drop-target');
+        window.__dropTarget = null;
         
         const data = e.dataTransfer.getData('text/plain');
         let cardId;

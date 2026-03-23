@@ -145,8 +145,8 @@ export class CardSlot {
             sourceIndex: this.index
         }));
 
-        // Set drag effect
-        event.dataTransfer.effectAllowed = 'move';
+        // Set drag effect (must match drop zones)
+        event.dataTransfer.effectAllowed = 'copy';
 
         // Add visual feedback
         setTimeout(() => {
