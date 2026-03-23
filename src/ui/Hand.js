@@ -1243,7 +1243,7 @@ export class Hand {
         // End current turn and start next (this will reset energy)
         if (this.gameState.turnManager) {
             this.gameState.turnManager.endTurn();
-            this.gameState.turnManager.startNextTurn();
+            this.gameState.turnManager.startTurn();
             if (this.hud) this.hud.updateAll(); // refresh energy bar + turn counter
         }
         this.updateCardAffordability();
