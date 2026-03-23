@@ -249,16 +249,21 @@ export class HandUI {
         event.preventDefault();
         event.stopPropagation();
 
-        console.log(`[HandUI] Card clicked: ${card.name}`);
-        console.log(`[HandUI] Card state: isInHand=${card.isInHand}, energy=${this.gameState.energy ?? 0}, cost=${card.cost}`);
+        const energy = this.gameState.energy ?? 0;
+        console.log(`[HandUI] Card clicked: ${card.name} (cost: ${card.cost}, energy: ${energy})`);
+        console.log(`[HandUI] Card state: isInHand=${card.isInHand}`);
 
-        // Check if card can be played
-        if (!card.canPlay || !card.canPlay(this.gameState)) {
-            const result = card.canPlay ? card.canPlay(this.gameState) : { reason: 'no_canPlay_method' };
-            console.warn(`[HandUI] Cannot play ${card.name}: ${result.reason || result}`, result);
+        // Check if card can be played - Card.canPlay returns boolean
+        const canPlay = card.canPlay && card.canPlay(this.gameState);
+        console.log(`[HandUI] canPlay result:`, canPlay, typeof canPlay);
+
+        if (!canPlay) {
+            console.warn(`[HandUI] Cannot play ${card.name}: cost=${card.cost}, energy=${energy}, isInHand=${card.isInHand}`);
             this.addVisualFeedback(card, 'failure');
             return;
         }
+
+        console.log(`[HandUI] Playing card: ${card.name}...`);
 
         // Delegate to hand logic for actual card playing
         if (this.hand && this.hand.handleCardClick) {

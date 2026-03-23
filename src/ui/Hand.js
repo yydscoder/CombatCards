@@ -147,7 +147,9 @@ export class Hand {
         // Set up the CardPileManager with the deck
         if (this.cardPileManager) {
             this.cardPileManager.setupDeck(deck);
-            this.cardPileManager.startCombat(); // Draw starting hand
+            
+            // Draw starting hand with at least one low-cost card (cost <= 3)
+            this._drawBalancedStartingHand();
 
             // Sync legacy cards array with CardPileManager hand
             this.cards = this.cardPileManager.getHand();
@@ -155,7 +157,7 @@ export class Hand {
             // Debug: log card states
             console.log(`[Hand] Started combat with ${this.cards.length} cards in hand`);
             this.cards.forEach((card, i) => {
-                console.log(`[Hand] Card ${i}: ${card.name}, isInHand=${card.isInHand}`);
+                console.log(`[Hand] Card ${i}: ${card.name}, cost=${card.cost}, isInHand=${card.isInHand}`);
             });
         } else {
             // Fallback: legacy behavior
@@ -171,6 +173,39 @@ export class Hand {
         this.updateCardAffordability();
 
         console.log(`[Hand] Initialized with ${this.cards.length} cards`);
+    }
+
+    /**
+     * Draws a balanced starting hand with at least one low-cost card
+     * @private
+     */
+    _drawBalancedStartingHand() {
+        const startingHandSize = 5;
+        const lowCostThreshold = 3;
+        
+        // First, try to find a low-cost card
+        const lowCostCards = this.cardPileManager.drawPile.filter(c => c.cost <= lowCostThreshold);
+        if (lowCostCards.length > 0) {
+            // Draw one low-cost card first
+            const lowCostCard = lowCostCards[Math.floor(Math.random() * lowCostCards.length)];
+            const index = this.cardPileManager.drawPile.indexOf(lowCostCard);
+            if (index > -1) {
+                this.cardPileManager.drawPile.splice(index, 1);
+                lowCostCard.isInHand = true;
+                lowCostCard.isInDrawPile = false;
+                this.cardPileManager.hand.push(lowCostCard);
+                console.log(`[Hand] Starting hand includes: ${lowCostCard.name} (cost ${lowCostCard.cost})`);
+            }
+        }
+        
+        // Draw remaining cards randomly
+        const remainingDraw = startingHandSize - 1;
+        for (let i = 0; i < remainingDraw && this.cardPileManager.drawPile.length > 0; i++) {
+            const card = this.cardPileManager.drawPile.pop();
+            card.isInHand = true;
+            card.isInDrawPile = false;
+            this.cardPileManager.hand.push(card);
+        }
     }
 
     /**
