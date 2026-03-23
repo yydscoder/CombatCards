@@ -370,6 +370,10 @@ export class CardBase {
      * }
      */
     play(gameState, target) {
+        console.log(`[CardBase.play] Starting play for ${this.name}`);
+        console.log(`[CardBase.play] Target:`, target);
+        console.log(`[CardBase.play] GameState enemyHp: ${gameState.enemyHp}`);
+
         // Validate that the card can be played
         const playCheck = this.canPlay(gameState);
         if (!playCheck.canPlay) {
@@ -384,8 +388,11 @@ export class CardBase {
         // Spend energy cost
         const energyResult = this._spendEnergy(gameState, this.cost);
         if (!energyResult.success) {
+            console.warn(`[CardBase] Energy spend failed: ${energyResult.reason}`);
             return energyResult;
         }
+
+        console.log(`[CardBase] Energy spent: ${energyResult.spent}, remaining: ${energyResult.remaining}`);
 
         // Mark card as played
         this.lastPlayedTimestamp = Date.now();
@@ -395,6 +402,7 @@ export class CardBase {
 
         // Execute the card's effect
         const effectResult = this.executeEffect(gameState, target);
+        console.log(`[CardBase] Effect result:`, effectResult);
 
         // Handle exhaust or discard
         if (this.exhaust || effectResult.exhaust) {
@@ -403,12 +411,14 @@ export class CardBase {
         }
 
         // Return the result
-        return {
+        const result = {
             success: true,
             message: `Card ${this.name} played successfully`,
             energySpent: this.cost,
             ...effectResult
         };
+        console.log(`[CardBase] Play complete:`, result);
+        return result;
     }
 
     /**

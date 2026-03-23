@@ -505,7 +505,7 @@ export class Hand {
     
     /**
      * Handles card click events in the hand
-     * 
+     *
      * @param {Object} card - The card that was clicked
      * @param {Event} event - The click event
      */
@@ -514,131 +514,46 @@ export class Hand {
         event.preventDefault();
         event.stopPropagation();
 
-        // Log the card click
-        console.log(`Hand card clicked: ${card.name} (ID: ${card.id})`);
+        // Log the card click with full state
+        console.log(`[Hand] Card clicked: ${card.name} (ID: ${card.id})`);
+        console.log(`[Hand] Card state: isInHand=${card.isInHand}, cost=${card.cost}`);
+        console.log(`[Hand] GameState energy: ${this.gameState.energy}/${this.gameState.maxEnergy}`);
+        console.log(`[Hand] GameState enemy:`, this.gameState.enemy);
 
         // Check if card can be played
-        if (!card.canPlay(this.gameState)) {
-            console.warn(`Cannot play ${card.name}: not enough energy or not in hand`);
+        const canPlayResult = card.canPlay(this.gameState);
+        console.log(`[Hand] canPlay result:`, canPlayResult);
+
+        if (!canPlayResult.canPlay) {
+            console.warn(`[Hand] Cannot play ${card.name}: ${canPlayResult.reason}`);
             this.addVisualFeedback(card, 'failure');
             return;
         }
 
-        // Play the card (CardBase.play() handles energy spending)
+        console.log(`[Hand] Playing card: ${card.name}...`);
+
+        // Play the card (CardBase.play() handles energy spending and effect)
         const playResult = card.play(this.gameState, this.gameState.enemy);
+        console.log(`[Hand] playResult:`, playResult);
 
         if (!playResult.success) {
-            console.warn(`Card play failed: ${playResult.reason}`);
+            console.warn(`[Hand] Card play failed: ${playResult.reason}`);
             this.addVisualFeedback(card, 'failure');
             return;
         }
 
-        // Consume applicable buffs before executing card effect
-        const buffResult = this.effectManager.consumeBuffsForCard(card);
-        console.log(`[Hand] Buff result for ${card.name}: consumed=${buffResult.consumed}, multiplier=${buffResult.damageMultiplier}, guaranteedCrit=${buffResult.guaranteedCrit}`);
+        console.log(`[Hand] Card played successfully: ${card.name}`);
+        console.log(`[Hand] Energy after play: ${this.gameState.energy}`);
 
-        const effectTarget = card.effect?.target || 'enemy';
-
-        if (effectTarget === 'self') {
-            // ── Self-targeted card (heal, mana restore, shield, buff) ──
-            this._applyPlayerEffect(card);
-
-            // Remove consumed buff AFTER card effect completes
-            if (buffResult.consumed && buffResult.buff?.name) {
-                console.log(`[Hand] Removing buff ${buffResult.buff.name} after self-targeted card`);
-                this.effectManager.removeConsumedBuff(buffResult.buff.name, 'player');
-            }
-        } else {
-            // ── Enemy-targeted card (damage, DoT, stacking effects) ──
-            // Route through each card's own executeEffect so that DoT effects
-            // (Whirlpool, Overgrowth, Ignite, Magma, etc.) get registered.
-            if (this.gameState.enemy) {
-                // Apply buff effects to card if applicable
-                if (buffResult.consumed) {
-                    console.log(`[Hand] Applying buff to card ${card.name}: multiplier=${buffResult.damageMultiplier}, guaranteedCrit=${buffResult.guaranteedCrit}`);
-                    if (buffResult.guaranteedCrit) {
-                        // Override card's crit chance for guaranteed crit
-                        card._originalCritChance = card.critChance;
-                        card.critChance = 1.0;
-                    }
-                    // Store damage multiplier for card to use
-                    card._activeDamageMultiplier = buffResult.damageMultiplier;
-                }
-
-                const result = card.executeEffect(this.gameState, this.gameState.enemy);
-
-                // Remove consumed buff AFTER card effect completes
-                if (buffResult.consumed && buffResult.buff?.name) {
-                    console.log(`[Hand] Removing buff ${buffResult.buff.name} after enemy-targeted card`);
-                    this.effectManager.removeConsumedBuff(buffResult.buff.name, 'player');
-                }
-
-                // Restore original crit chance if overridden
-                if (buffResult.guaranteedCrit && card._originalCritChance !== undefined) {
-                    card.critChance = card._originalCritChance;
-                    delete card._originalCritChance;
-                }
-                if (card._activeDamageMultiplier !== undefined) {
-                    delete card._activeDamageMultiplier;
-                }
-
-                if (!result?.success) {
-                    // Refund mana — card effect failed (e.g. effect already active)
-                    this.gameState.updatePlayerMana(this.gameState.playerMana + card.cost);
-                    
-                    // Revert buff consumption if card effect failed
-                    if (buffResult.consumed && buffResult.buff) {
-                        buffResult.buff.consumed = false;
-                        console.log(`Buff ${buffResult.buff.name} reverted (card effect failed)`);
-                    }
-                    
-                    console.warn(`${card.name} effect failed (${result?.reason || 'unknown'}). Mana refunded.`);
-                    this.addVisualFeedback(card, 'failure');
-                    return;
-                }
-
-                // Sync enemy HP after card effect
-                this._syncEnemyHP();
-
-                const damageDealt = result.damage || 0;
-                const isCrit     = result.isCriticalHit || false;
-
-                console.log(
-                    `Attack Used — ${card.name} dealt ${damageDealt} damage` +
-                    `${isCrit ? ' (CRIT!)' : ''}` +
-                    ` | Enemy HP: ${this.gameState.enemyHp}/${this.gameState.enemyMaxHp}` +
-                    (result.statusEffects?.length ? ` | DoT applied: ${result.statusEffects.map(e => e.name).join(', ')}` : '') +
-                    (buffResult.consumed ? ` | Buff consumed: ${buffResult.buff?.name}` : '')
-                );
-
-                // Show HUD damage feedback and update all values
-                if (this.hud) {
-                    this.hud.showDamageFeedback(damageDealt, 'enemy', isCrit);
-                    this.hud.updateAll();
-                }
-
-                // Flash the enemy graphic
-                const enemyArea = document.getElementById('enemy-area');
-                if (enemyArea) {
-                    enemyArea.classList.remove('hit');
-                    void enemyArea.offsetWidth;
-                    enemyArea.classList.add('hit');
-                    setTimeout(() => enemyArea.classList.remove('hit'), 400);
-                }
-
-                // Check if enemy is dead from initial hit
-                if (this.gameState.enemyHp <= 0) {
-                    this._handleEnemyDeath();
-                    this.removeCard(card);
-                    return;
-                }
-            }
+        // Update HUD
+        if (this.hud) {
+            this.hud.updateAll();
         }
 
-        // Remove card from hand after use
+        // Remove card from hand
         this.removeCard(card);
 
-        // Visual feedback + refresh affordability
+        // Visual feedback
         this.addVisualFeedback(card, 'success');
         this.updateCardAffordability();
     }
