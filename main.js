@@ -26,6 +26,9 @@ const GameStateEnum = {
     GAME_OVER: 'game_over'
 };
 
+// Current game state (global)
+let currentGameState = GameStateEnum.MAP;
+
 // Initialize the game
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎮 Emoji Card Battle - Campaign Mode Initializing...');
@@ -60,9 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize map UI
     const mapUI = new MapUI('map-canvas');
     window.mapUI = mapUI;
-
-    // Set initial game state
-    let currentGameState = GameStateEnum.MAP;
 
     // Store global references
     window.gameRefs = {
