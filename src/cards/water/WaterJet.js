@@ -20,8 +20,8 @@
  * @module cards/water/WaterJet
  */
 
-// Import the base Card class
-import { Card } from '../Card.js';
+// Import the base Card class and CardTag enum
+import { Card, CardTag } from '../Card.js';
 
 /**
  * WaterJet Card Class
@@ -65,11 +65,14 @@ export class WaterJet extends Card {
         this.isElemental = true;
         this.spellType = 'projectile';
         this.castTime = 'instant';
-        
+
         // Wet effect properties
         this.wetChance = 0.15;
         this.wetMultiplier = 1.25;
         this.wetDuration = 2;
+
+        // Add card tags for synergy detection
+        this.tags = [CardTag.ATTACK, CardTag.WATER, CardTag.STATUS];
 
         console.log(`WaterJet card created: ${this.name} (Damage: ${this.damage}, Cost: ${this.cost})`);
     }

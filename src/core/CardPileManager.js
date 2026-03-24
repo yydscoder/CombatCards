@@ -195,19 +195,26 @@ export class CardPileManager {
         // Remove from hand
         const [removedCard] = this.hand.splice(index, 1);
 
+        // Trigger onDiscard hook (for Sly effects)
+        let discardTriggerResult = { triggered: false };
+        if (typeof removedCard.onDiscard === 'function') {
+            discardTriggerResult = removedCard.onDiscard(this.gameState);
+        }
+
         // Add to discard
         removedCard.isInHand = false;
         removedCard.isInDiscard = true;
         this.discardPile.push(removedCard);
 
-        this._logOperation('discard', { card: card.name });
+        this._logOperation('discard', { card: card.name, triggered: discardTriggerResult.triggered });
 
-        console.log(`[CardPileManager] Discarded: ${card.name}`);
+        console.log(`[CardPileManager] Discarded: ${card.name}${discardTriggerResult.triggered ? ' (Sly triggered!)' : ''}`);
 
         return {
             success: true,
             card: removedCard,
-            discardSize: this.discardPile.length
+            discardSize: this.discardPile.length,
+            triggerResult: discardTriggerResult
         };
     }
 
@@ -403,6 +410,12 @@ export class CardPileManager {
         // Remove from source
         const [exhaustedCard] = sourcePile.splice(cardIndex, 1);
 
+        // Trigger onExhaust hook
+        let exhaustTriggerResult = { triggered: false };
+        if (typeof exhaustedCard.onExhaust === 'function') {
+            exhaustTriggerResult = exhaustedCard.onExhaust(this.gameState);
+        }
+
         // Add to exhaust
         exhaustedCard.isExhausted = true;
         exhaustedCard.isInHand = false;
@@ -410,14 +423,15 @@ export class CardPileManager {
         exhaustedCard.isInDiscard = false;
         this.exhaustPile.push(exhaustedCard);
 
-        this._logOperation('exhaust', { card: card.name, from });
+        this._logOperation('exhaust', { card: card.name, from, triggered: exhaustTriggerResult.triggered });
 
-        console.log(`[CardPileManager] Exhausted: ${card.name} (from: ${from})`);
+        console.log(`[CardPileManager] Exhausted: ${card.name} (from: ${from})${exhaustTriggerResult.triggered ? ' (triggered!)' : ''}`);
 
         return {
             success: true,
             card: exhaustedCard,
-            exhaustSize: this.exhaustPile.length
+            exhaustSize: this.exhaustPile.length,
+            triggerResult: exhaustTriggerResult
         };
     }
 

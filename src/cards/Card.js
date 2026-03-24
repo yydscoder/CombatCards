@@ -12,8 +12,11 @@
  * - Inheritance from CardBase with upgrade support
  */
 
-// Import the CardBase abstract class
-import { CardBase, CardType, TargetType, CardRarity } from './CardBase.js';
+// Import the CardBase abstract class and re-export CardTag
+import { CardBase, CardType, TargetType, CardRarity, CardTag } from './CardBase.js';
+
+// Re-export CardTag for convenience
+export { CardTag };
 
 /**
  * Card Class - Concrete implementation extending CardBase

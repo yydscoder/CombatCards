@@ -51,21 +51,37 @@ export const CardRarity = {
 };
 
 /**
- * CardType Enum - Card type classification
+ * Card Tags - Tags for synergy and interaction detection
  * @readonly
  * @enum {string}
  */
-export const CardType = {
-    /** Attack cards (deal damage) */
+export const CardTag = {
+    /** Attack cards that deal damage */
     ATTACK: 'attack',
-    /** Skill cards (utility, block, etc.) */
+    /** Skill cards (block, utility) */
     SKILL: 'skill',
     /** Power cards (persistent effects) */
     POWER: 'power',
-    /** Status cards (temporary, usually negative) */
-    STATUS: 'status',
-    /** Curse cards (negative effects) */
-    CURSE: 'curse'
+    /** Fire element cards */
+    FIRE: 'fire',
+    /** Water element cards */
+    WATER: 'water',
+    /** Nature element cards */
+    NATURE: 'nature',
+    /** Cards that deal damage over time */
+    DOT: 'dot',
+    /** Cards that provide block */
+    BLOCK: 'block',
+    /** Cards that heal */
+    HEAL: 'heal',
+    /** Cards that draw */
+    DRAW: 'draw',
+    /** Cards that exhaust */
+    EXHAUST: 'exhaust',
+    /** Cards with Sly effect (benefit from discard) */
+    SLY: 'sly',
+    /** Cards that apply status effects */
+    STATUS: 'status'
 };
 
 /**
@@ -191,6 +207,55 @@ export class CardBase {
          * @default TargetType.ENEMY
          */
         this.targetType = TargetType.ENEMY;
+
+        // ───────────────────────────────────────────────────────────────────────
+        // Card Tags (for synergy detection)
+        // ───────────────────────────────────────────────────────────────────────
+
+        /**
+         * @type {Array<CardTag>}
+         * @description Tags for synergy and interaction detection
+         * @default []
+         */
+        this.tags = [];
+
+        // ───────────────────────────────────────────────────────────────────────
+        // Scaling Modifiers (Strength, buffs, etc.)
+        // ───────────────────────────────────────────────────────────────────────
+
+        /**
+         * @type {number}
+         * @description Damage multiplier from buffs/strength (default 1.0 = 100%)
+         */
+        this.damageMultiplier = 1.0;
+
+        /**
+         * @type {number}
+         * @description Block multiplier from buffs (default 1.0 = 100%)
+         */
+        this.blockMultiplier = 1.0;
+
+        /**
+         * @type {number}
+         * @description Flat damage bonus (e.g., from Strength)
+         */
+        this.flatDamageBonus = 0;
+
+        /**
+         * @type {number}
+         * @description Flat block bonus
+         */
+        this.flatBlockBonus = 0;
+
+        // ───────────────────────────────────────────────────────────────────────
+        // Trigger Hooks (for zone interactions)
+        // ───────────────────────────────────────────────────────────────────────
+
+        /**
+         * @type {boolean}
+         * @description Whether this card has Sly effect (triggers when discarded)
+         */
+        this.hasSlyEffect = false;
 
         // ───────────────────────────────────────────────────────────────────────
         // Upgrade Properties
@@ -458,6 +523,85 @@ export class CardBase {
             block: 0,
             statusEffects: []
         };
+    }
+
+    // ───────────────────────────────────────────────────────────────────────────
+    // Trigger Hook Methods (for zone interactions)
+    // ───────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Called when card is played
+     * Override this method to add on-play triggers
+     * 
+     * @param {Object} gameState - Current game state
+     * @param {Object} target - Card target
+     * @returns {Object} Trigger result
+     */
+    onPlay(gameState, target) {
+        // Override in subclasses for on-play effects
+        return { success: true, triggered: false };
+    }
+
+    /**
+     * Called when card is discarded
+     * Override this method to add Sly effects (benefit from discard)
+     * 
+     * @param {Object} gameState - Current game state
+     * @returns {Object} Trigger result
+     * 
+     * @example
+     * onDiscard(gameState) {
+     *     // Deal 3 damage to all enemies when discarded
+     *     gameState.allEnemies.forEach(enemy => {
+     *         enemy.hp -= 3;
+     *     });
+     *     return { success: true, triggered: true, damage: 3 };
+     * }
+     */
+    onDiscard(gameState) {
+        // Override in subclasses for Sly effects
+        return { success: true, triggered: false };
+    }
+
+    /**
+     * Called when card is exhausted
+     * Override this method to add exhaust triggers
+     * 
+     * @param {Object} gameState - Current game state
+     * @returns {Object} Trigger result
+     */
+    onExhaust(gameState) {
+        // Override in subclasses for exhaust effects
+        return { success: true, triggered: false };
+    }
+
+    // ───────────────────────────────────────────────────────────────────────────
+    // Scaling Modifier Methods
+    // ───────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Applies scaling modifiers (Strength, buffs, etc.)
+     * Called before card effect executes
+     * 
+     * @param {Object} modifiers - Modifier object
+     * @param {number} [modifiers.strength=0] - Flat damage bonus
+     * @param {number} [modifiers.damageMultiplier=1] - Damage multiplier
+     * @param {number} [modifiers.blockMultiplier=1] - Block multiplier
+     */
+    applyModifiers(modifiers = {}) {
+        this.flatDamageBonus = modifiers.strength || 0;
+        this.damageMultiplier = modifiers.damageMultiplier || 1.0;
+        this.blockMultiplier = modifiers.blockMultiplier || 1.0;
+    }
+
+    /**
+     * Resets scaling modifiers to default
+     */
+    resetModifiers() {
+        this.damageMultiplier = 1.0;
+        this.blockMultiplier = 1.0;
+        this.flatDamageBonus = 0;
+        this.flatBlockBonus = 0;
     }
 
     // ───────────────────────────────────────────────────────────────────────────

@@ -8,8 +8,8 @@
  * with specific effect implementation and visual representation.
  */
 
-// Import the base Card class
-import { Card } from '../Card.js';
+// Import the base Card class and CardTag enum
+import { Card, CardTag } from '../Card.js';
 
 /**
  * Creates a new FireCard instance
@@ -40,7 +40,10 @@ export class FireCard extends Card {
         this.damage = damage; // Damage value for this fire card
         this.element = 'fire'; // Element type for this card
         this.isElemental = true; // Flag indicating elemental card
-        
+
+        // Add card tags for synergy detection
+        this.tags = [CardTag.ATTACK, CardTag.FIRE];
+
         // Log fire card creation for debugging and tracking
         console.log(`FireCard created: ${this.name} (Damage: ${this.damage}, Cost: ${this.cost})`);
     }
