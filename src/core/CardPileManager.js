@@ -154,6 +154,22 @@ export class CardPileManager {
             card.isInDrawPile = false;
             this.hand.push(card);
             drawnCards.push(card);
+
+            // Trigger onDraw hook (entry reaction)
+            let drawTriggerResult = { triggered: false };
+            if (typeof card.onDraw === 'function') {
+                drawTriggerResult = card.onDraw(this.gameState);
+            }
+
+            // Trigger onEnterHand hook
+            let enterHandResult = { triggered: false };
+            if (typeof card.onEnterHand === 'function') {
+                enterHandResult = card.onEnterHand(this.gameState, 'draw');
+            }
+
+            if (drawTriggerResult.triggered || enterHandResult.triggered) {
+                console.log(`[CardPileManager] Card ${card.name} triggered on draw/enter hand`);
+            }
         }
 
         this._logOperation('draw', { count, drawn: drawnCards.length });
@@ -201,10 +217,16 @@ export class CardPileManager {
             discardTriggerResult = removedCard.onDiscard(this.gameState);
         }
 
+        // Broadcast event to other cards in hand
+        this._broadcastToHand('cardDiscarded', { card: removedCard });
+
         // Add to discard
         removedCard.isInHand = false;
         removedCard.isInDiscard = true;
         this.discardPile.push(removedCard);
+
+        // Remove listeners from discarded card
+        removedCard.removeAllListeners();
 
         this._logOperation('discard', { card: card.name, triggered: discardTriggerResult.triggered });
 
@@ -216,6 +238,20 @@ export class CardPileManager {
             discardSize: this.discardPile.length,
             triggerResult: discardTriggerResult
         };
+    }
+
+    /**
+     * Broadcasts an event to all cards currently in hand
+     * @private
+     * @param {string} eventType - Event type
+     * @param {Object} data - Event data
+     */
+    _broadcastToHand(eventType, data) {
+        for (const card of this.hand) {
+            if (typeof card.triggerEvent === 'function') {
+                card.triggerEvent(eventType, data);
+            }
+        }
     }
 
     /**
@@ -277,26 +313,39 @@ export class CardPileManager {
         // Remove from hand
         const [playedCard] = this.hand.splice(index, 1);
 
+        // Trigger onPlay hook
+        let playTriggerResult = { triggered: false };
+        if (typeof playedCard.onPlay === 'function') {
+            playTriggerResult = playedCard.onPlay(this.gameState, this.gameState.enemy);
+        }
+
+        // Broadcast event to other cards in hand
+        this._broadcastToHand('cardPlayed', { card: playedCard });
+
         // Add to appropriate pile
         playedCard.isInHand = false;
 
         if (exhaust || card.exhaust) {
             playedCard.isExhausted = true;
             this.exhaustPile.push(playedCard);
-            this._logOperation('play_exhaust', { card: card.name });
-            console.log(`[CardPileManager] Played (exhaust): ${card.name}`);
+            this._logOperation('play_exhaust', { card: card.name, triggered: playTriggerResult.triggered });
+            console.log(`[CardPileManager] Played (exhaust): ${card.name}${playTriggerResult.triggered ? ' (triggered!)' : ''}`);
         } else {
             playedCard.isInDiscard = true;
             this.discardPile.push(playedCard);
-            this._logOperation('play', { card: card.name });
-            console.log(`[CardPileManager] Played: ${card.name}`);
+            this._logOperation('play', { card: card.name, triggered: playTriggerResult.triggered });
+            console.log(`[CardPileManager] Played: ${card.name}${playTriggerResult.triggered ? ' (triggered!)' : ''}`);
         }
+
+        // Remove listeners from played card
+        playedCard.removeAllListeners();
 
         return {
             success: true,
             card: playedCard,
             exhausted: exhaust || card.exhaust,
-            handSize: this.hand.length
+            handSize: this.hand.length,
+            triggerResult: playTriggerResult
         };
     }
 
@@ -414,6 +463,12 @@ export class CardPileManager {
         let exhaustTriggerResult = { triggered: false };
         if (typeof exhaustedCard.onExhaust === 'function') {
             exhaustTriggerResult = exhaustedCard.onExhaust(this.gameState);
+        }
+
+        // Broadcast event to cards in hand (if exhausted from hand)
+        if (from === 'hand') {
+            this._broadcastToHand('cardExhausted', { card: exhaustedCard });
+            exhaustedCard.removeAllListeners();
         }
 
         // Add to exhaust

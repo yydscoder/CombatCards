@@ -578,8 +578,10 @@ export class Hand {
         }
 
         // Spend energy
+        const cardCost = card.getCost ? card.getCost(this.gameState) : card.cost;
+        
         if (this.gameState.energyManager) {
-            const spendResult = this.gameState.energyManager.spend(card.cost);
+            const spendResult = this.gameState.energyManager.spend(cardCost);
             console.log(`[Hand] Energy spend result:`, spendResult);
             if (!spendResult.success) {
                 console.warn('[Hand] Cannot afford card!');
@@ -587,10 +589,10 @@ export class Hand {
                 return;
             }
         } else {
-            this.gameState.energy = (this.gameState.energy ?? 0) - card.cost;
+            this.gameState.energy = (this.gameState.energy ?? 0) - cardCost;
         }
 
-        console.log(`[Hand] Energy after spend: ${this.gameState.energy}`);
+        console.log(`[Hand] Energy after spend: ${this.gameState.energy} (card cost: ${cardCost})`);
 
         // Execute card effect
         const result = card.executeEffect(this.gameState, this.gameState.enemy);

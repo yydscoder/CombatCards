@@ -46,14 +46,17 @@ export class Card extends CardBase {
     }
 
     /**
-     * Overrides CardBase.canPlay() to support legacy mana system
+     * Overrides CardBase.canPlay() to support legacy mana system and dynamic costs
      * @param {Object} gameState - The current game state object
      * @returns {boolean} True if the card can be played, false otherwise
      */
     canPlay(gameState) {
+        // Get dynamic cost (can be modified by buffs, relics, etc.)
+        const currentCost = this.getCost ? this.getCost(gameState) : this.cost;
+        
         // Support both energy (new) and mana (legacy) systems
         const currentEnergy = gameState.energy ?? gameState.playerMana ?? 0;
-        const hasEnoughEnergy = currentEnergy >= this.cost;
+        const hasEnoughEnergy = currentEnergy >= currentCost;
         const isInHand = this.isInHand === true;
         const isNotOnCooldown = !this.cooldown || this.cooldown <= 0;
 

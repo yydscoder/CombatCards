@@ -258,6 +258,32 @@ export class CardBase {
         this.hasSlyEffect = false;
 
         // ───────────────────────────────────────────────────────────────────────
+        // In-Hand Event Listening (Reactive System)
+        // ───────────────────────────────────────────────────────────────────────
+
+        /**
+         * @type {Object}
+         * @description Event listeners for in-hand reactions
+         * @example
+         * this.eventListeners = {
+         *     'cardPlayed': [(data) => { ... }],
+         *     'cardDiscarded': [(data) => { ... }]
+         * }
+         */
+        this.eventListeners = {};
+
+        /**
+         * @type {Object}
+         * @description Counters for tracking state
+         * @example
+         * this.counters = {
+         *     fireCardsPlayedThisTurn: 0,
+         *     cardsDiscardedThisTurn: 0
+         * }
+         */
+        this.counters = {};
+
+        // ───────────────────────────────────────────────────────────────────────
         // Upgrade Properties
         // ───────────────────────────────────────────────────────────────────────
 
@@ -530,6 +556,47 @@ export class CardBase {
     // ───────────────────────────────────────────────────────────────────────────
 
     /**
+     * Called when card is drawn from draw pile to hand
+     * Override this method to add on-draw triggers
+     * 
+     * @param {Object} gameState - Current game state
+     * @returns {Object} Trigger result
+     * 
+     * @example
+     * onDraw(gameState) {
+     *     // Gain 1 energy when drawn
+     *     gameState.energy++;
+     *     return { success: true, triggered: true, energy: 1 };
+     * }
+     */
+    onDraw(gameState) {
+        // Override in subclasses for on-draw effects
+        return { success: true, triggered: false };
+    }
+
+    /**
+     * Called when card enters hand from any source (draw, generate, etc.)
+     * Override this method to add on-enter-hand triggers
+     * 
+     * @param {Object} gameState - Current game state
+     * @param {string} source - Where card came from ('draw', 'generate', 'return')
+     * @returns {Object} Trigger result
+     * 
+     * @example
+     * onEnterHand(gameState, source) {
+     *     // Reduce cost if drawn from exhaust
+     *     if (source === 'exhaust') {
+     *         this.baseCost = Math.max(0, this.baseCost - 1);
+     *     }
+     *     return { success: true, triggered: true };
+     * }
+     */
+    onEnterHand(gameState, source = 'unknown') {
+        // Override in subclasses for on-enter-hand effects
+        return { success: true, triggered: false };
+    }
+
+    /**
      * Called when card is played
      * Override this method to add on-play triggers
      * 
@@ -602,6 +669,198 @@ export class CardBase {
         this.blockMultiplier = 1.0;
         this.flatDamageBonus = 0;
         this.flatBlockBonus = 0;
+    }
+
+    /**
+     * Gets the current cost of this card (can be modified dynamically)
+     * Override this method for dynamic cost cards
+     * 
+     * @param {Object} gameState - Current game state
+     * @returns {number} Current cost
+     * 
+     * @example
+     * getCost(gameState) {
+     *     // Cost reduced by 1 for each fire card played this turn
+     *     return Math.max(0, this.baseCost - gameState.fireCardsPlayedThisTurn);
+     * }
+     */
+    getCost(gameState) {
+        // Apply cost modifiers
+        let cost = this.baseCost;
+        
+        // Apply flat reductions
+        cost -= this.flatCostReduction || 0;
+        
+        // Apply percentage modifiers
+        if (this.costMultiplier) {
+            cost = Math.ceil(cost * this.costMultiplier);
+        }
+        
+        return Math.max(0, cost);
+    }
+
+    /**
+     * Adds a cost modifier
+     * 
+     * @param {Object} modifier - Cost modifier object
+     * @param {string} [modifier.type] - 'flat' or 'percent'
+     * @param {number} [modifier.value] - Amount to modify by
+     * @param {Function} [modifier.condition] - Optional condition function
+     */
+    addCostModifier(modifier) {
+        if (!this.costModifiers) this.costModifiers = [];
+        this.costModifiers.push(modifier);
+    }
+
+    /**
+     * Removes a cost modifier
+     * 
+     * @param {Object} modifier - Modifier to remove
+     */
+    removeCostModifier(modifier) {
+        if (!this.costModifiers) return;
+        const index = this.costModifiers.indexOf(modifier);
+        if (index !== -1) {
+            this.costModifiers.splice(index, 1);
+        }
+    }
+
+    /**
+     * Gets the current damage value (can be modified dynamically)
+     * Override this method for dynamic damage cards
+     * 
+     * @param {Object} gameState - Current game state
+     * @returns {number} Current damage
+     */
+    getDamage(gameState) {
+        let damage = this.damage || 0;
+        
+        // Apply flat bonus
+        damage += this.flatDamageBonus || 0;
+        
+        // Apply multiplier
+        damage = Math.ceil(damage * this.damageMultiplier);
+        
+        return Math.max(0, damage);
+    }
+
+    /**
+     * Gets the current block value (can be modified dynamically)
+     * 
+     * @param {Object} gameState - Current game state
+     * @returns {number} Current block
+     */
+    getBlock(gameState) {
+        let block = this.block || 0;
+        
+        // Apply flat bonus
+        block += this.flatBlockBonus || 0;
+        
+        // Apply multiplier
+        block = Math.ceil(block * this.blockMultiplier);
+        
+        return Math.max(0, block);
+    }
+
+    // ───────────────────────────────────────────────────────────────────────────
+    // In-Hand Event Listening Methods (Reactive System)
+    // ───────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Registers this card to listen for an event
+     * 
+     * @param {string} eventType - Event to listen for
+     * @param {Function} callback - Function to call when event occurs
+     * @returns {Object} This card for chaining
+     * 
+     * @example
+     * card.listenFor('cardPlayed', (data) => {
+     *     if (data.card.tags.includes(CardTag.FIRE)) {
+     *         this.damage++;
+     *     }
+     * });
+     */
+    listenFor(eventType, callback) {
+        if (!this.eventListeners[eventType]) {
+            this.eventListeners[eventType] = [];
+        }
+        this.eventListeners[eventType].push(callback);
+        return this;
+    }
+
+    /**
+     * Removes a listener for an event
+     * 
+     * @param {string} eventType - Event type
+     * @param {Function} callback - Callback to remove
+     * @returns {boolean} True if listener was removed
+     */
+    unlisten(eventType, callback) {
+        if (!this.eventListeners[eventType]) return false;
+        
+        const index = this.eventListeners[eventType].indexOf(callback);
+        if (index === -1) return false;
+        
+        this.eventListeners[eventType].splice(index, 1);
+        return true;
+    }
+
+    /**
+     * Triggers an event on this card (called by CardPileManager)
+     * 
+     * @param {string} eventType - Event type
+     * @param {Object} data - Event data
+     * @returns {Array} Results from all callbacks
+     */
+    triggerEvent(eventType, data) {
+        if (!this.eventListeners[eventType]) return [];
+        
+        const results = [];
+        for (const callback of this.eventListeners[eventType]) {
+            try {
+                results.push(callback(data));
+            } catch (e) {
+                console.error(`[CardBase] Event callback error for ${eventType}:`, e);
+            }
+        }
+        return results;
+    }
+
+    /**
+     * Removes all event listeners (called when card leaves hand)
+     */
+    removeAllListeners() {
+        this.eventListeners = {};
+    }
+
+    /**
+     * Increments a counter on this card
+     * 
+     * @param {string} counterName - Counter name
+     * @param {number} amount - Amount to increment by
+     */
+    incrementCounter(counterName, amount = 1) {
+        if (!this.counters[counterName]) {
+            this.counters[counterName] = 0;
+        }
+        this.counters[counterName] += amount;
+    }
+
+    /**
+     * Gets a counter value
+     * 
+     * @param {string} counterName - Counter name
+     * @returns {number} Counter value
+     */
+    getCounter(counterName) {
+        return this.counters[counterName] || 0;
+    }
+
+    /**
+     * Resets all counters
+     */
+    resetCounters() {
+        this.counters = {};
     }
 
     // ───────────────────────────────────────────────────────────────────────────
