@@ -1,4 +1,6 @@
-/* Base styles for Emoji Card Battle */
+/* ───────────────────────────────────────────────────────────────────────────
+   Base styles for Emoji Card Battle
+   ─────────────────────────────────────────────────────────────────────────── */
 
 * {
     margin: 0;
@@ -15,20 +17,262 @@ body {
 }
 
 #game-container {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 10px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-#hud {
+/* Top HUD Bar */
+#top-hud {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #2d2d44;
-    padding: 15px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #2d2d44 0%, #1a1a2e 100%);
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+#hud-left, #hud-right {
+    display: flex;
+    gap: 16px;
+}
+
+.hud-stat {
+    color: #e6e6e6;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+#hud-center {
+    color: #6a6aff;
+    font-weight: bold;
+    font-size: 16px;
+    letter-spacing: 1px;
+}
+
+/* Main Content - Split Layout */
+.main-content {
+    display: flex;
+    gap: 10px;
+    flex-grow: 1;
+    min-height: 0;
+}
+
+/* Left Panel - Map/Node Selection */
+#map-panel {
+    width: 280px;
+    flex-shrink: 0;
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+    border-radius: 10px;
+    border: 2px solid #3a3a5a;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#node-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Node Buttons */
+.node-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(58, 58, 90, 0.5);
+    border: 2px solid #3a3a5a;
     border-radius: 8px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #888;
+    font-size: 13px;
+}
+
+.node-button:hover:not(:disabled) {
+    background: rgba(58, 58, 90, 0.8);
+    border-color: #6a6aff;
+}
+
+.node-button.current {
+    background: linear-gradient(135deg, #ffd700 0%, #b8860b 100%);
+    border-color: #ffd700;
+    color: #000;
+    font-weight: bold;
+}
+
+.node-button.valid-move {
+    border-color: #4caf50;
+    background: rgba(76, 175, 80, 0.2);
+}
+
+.node-button.valid-move:hover:not(:disabled) {
+    background: rgba(76, 175, 80, 0.4);
+    box-shadow: 0 0 12px rgba(76, 175, 80, 0.5);
+}
+
+.node-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.node-button .node-icon {
+    font-size: 16px;
+}
+
+.node-button .node-label {
+    flex-grow: 1;
+}
+
+/* Right Panel - Combat Area */
+#combat-panel {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+    border-radius: 10px;
+    border: 2px solid #3a3a5a;
+    padding: 20px;
+    overflow: hidden;
+}
+
+/* Enemy Intent Display */
+#enemy-intent {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 82, 82, 0.2);
+    border: 1px solid #ff5252;
+    border-radius: 8px;
+    color: #ff5252;
+    font-weight: bold;
+}
+
+/* Battle Area - Character & Enemy */
+#battle-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    flex-grow: 1;
+}
+
+#player-display, #enemy-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 20px;
+    background: rgba(58, 58, 90, 0.3);
+    border-radius: 12px;
+    min-width: 200px;
+}
+
+#player-display {
+    border: 2px solid #4a90d9;
+}
+
+#enemy-display {
+    border: 2px solid #ff5252;
+}
+
+#player-emoji, #enemy-emoji {
+    font-size: 64px;
+}
+
+#player-name, #enemy-name {
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+#player-name { color: #4a90d9; }
+#enemy-name { color: #ff5252; }
+
+/* Health/Energy Bars */
+.bar-container {
+    width: 160px;
+    height: 12px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.bar-container.energy-bar {
+    height: 8px;
+}
+
+.bar-fill {
+    height: 100%;
+    transition: width 0.3s;
+}
+
+.hp-fill {
+    background: linear-gradient(90deg, #ff5252 0%, #4caf50 100%);
+}
+
+.energy-fill {
+    background: linear-gradient(90deg, #ffd700 0%, #ff9800 100%);
+}
+
+.bar-text {
+    font-size: 12px;
+    color: #888;
+}
+
+/* Hand Container */
+#hand-container {
+    padding: 20px 0;
+    min-height: 180px;
+}
+
+#hand {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Turn Controls */
+#turn-controls {
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+}
+
+#end-turn-btn {
+    padding: 14px 48px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #ffffff;
+    background: linear-gradient(135deg, #5a5aff, #3a3acc);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 16px rgba(90, 90, 255, 0.4);
+}
+
+#end-turn-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(90, 90, 255, 0.6);
+}
+
+#end-turn-btn:active {
+    transform: translateY(0);
 }
 
 #battle-field {

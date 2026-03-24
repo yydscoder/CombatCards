@@ -13,19 +13,28 @@
 </head>
 <body>
     <div id="game-container">
-        <!-- Split Layout: Map Panel (left) + Combat Panel (right) -->
-        <div class="game-layout">
-            <!-- Map Panel - Always Visible -->
+        <!-- Top HUD - Always Visible -->
+        <div id="top-hud">
+            <div id="hud-left">
+                <span class="hud-stat">❤️ <span id="hud-hp">100/100</span></span>
+                <span class="hud-stat">⚡ <span id="hud-energy">3/3</span></span>
+                <span class="hud-stat">💰 <span id="hud-gold">0</span></span>
+            </div>
+            <div id="hud-center">
+                <span id="hud-act">Act <span id="act-number">1</span></span>
+            </div>
+            <div id="hud-right">
+                <span class="hud-stat">📊 Floor <span id="hud-floor">0/15</span></span>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Left Panel - Map/Node Selection -->
             <aside id="map-panel">
-                <div id="map-header">
-                    <h2>🗺️ Act <span id="act-number">1</span></h2>
-                    <div id="map-stats">
-                        <span class="map-stat">❤️ <span id="map-hp">100/100</span></span>
-                        <span class="map-stat">💰 <span id="map-gold">0</span></span>
-                        <span class="map-stat">📊 <span id="map-floor">Floor 0/15</span></span>
-                    </div>
+                <div id="node-list">
+                    <!-- Nodes rendered by JS -->
                 </div>
-                <canvas id="map-canvas" width="400" height="600"></canvas>
                 <div id="map-legend">
                     <span class="legend-item">⚔️ Combat</span>
                     <span class="legend-item">💀 Elite</span>
@@ -39,40 +48,48 @@
                 </div>
             </aside>
 
-            <!-- Combat Panel - Main Gameplay Area -->
+            <!-- Right Panel - Combat Area -->
             <main id="combat-panel">
-                <div id="battle-field">
-                    <div id="hud">
-                        <div id="player-stats">HP: <span id="player-hp">100</span> | Energy: <span id="player-mana">3</span></div>
-                        <div id="enemy-stats">Enemy HP: <span id="enemy-hp">80</span></div>
-                        <div id="turn-counter">Turn: <span id="turn-count">1</span></div>
+                <!-- Enemy Intent Display -->
+                <div id="enemy-intent" style="display: none;">
+                    <span id="intent-icon">⚔️</span>
+                    <span id="intent-text">Attack 8</span>
+                </div>
+
+                <!-- Character & Enemy Display -->
+                <div id="battle-area">
+                    <div id="player-display">
+                        <div id="player-emoji">🧙</div>
+                        <div id="player-name">YOU</div>
+                        <div class="bar-container">
+                            <div class="bar-fill hp-fill" id="player-hp-bar" style="width: 100%"></div>
+                        </div>
+                        <div class="bar-text"><span id="player-hp">100</span>/<span id="player-max-hp">100</span></div>
+                        <div class="bar-container energy-bar">
+                            <div class="bar-fill energy-fill" id="player-energy-bar" style="width: 100%"></div>
+                        </div>
+                        <div class="bar-text"><span id="player-energy">3</span>/<span id="player-max-energy">3</span> ⚡</div>
                     </div>
 
-                    <div id="player-area" class="drop-zone" data-drop-target="player">
-                        <div id="player-graphic">
-                            <div id="player-emoji">🧙</div>
-                            <div id="player-name">You</div>
+                    <div id="enemy-display">
+                        <div id="enemy-emoji">🟢</div>
+                        <div id="enemy-name">SLIME</div>
+                        <div class="bar-container">
+                            <div class="bar-fill hp-fill" id="enemy-hp-bar" style="width: 100%"></div>
                         </div>
-                        <div id="player-dots" class="dot-indicators"></div>
-                        <div id="player-tooltip" class="dot-tooltip"></div>
-                    </div>
-                    <div id="enemy-area" class="drop-zone" data-drop-target="enemy">
-                        <div id="enemy-graphic">
-                            <div id="enemy-emoji">🟢</div>
-                            <div id="enemy-name">Slime</div>
-                        </div>
-                        <div id="enemy-dots" class="dot-indicators"></div>
-                        <div id="enemy-tooltip" class="dot-tooltip"></div>
+                        <div class="bar-text"><span id="enemy-hp">50</span>/<span id="enemy-max-hp">50</span></div>
                     </div>
                 </div>
 
-                <div id="hand"></div>
+                <!-- Card Hand -->
+                <div id="hand-container">
+                    <div id="hand"></div>
+                </div>
 
+                <!-- End Turn Button -->
                 <div id="turn-controls">
                     <button id="end-turn-btn">End Turn!</button>
                 </div>
-
-                <div id="deck"></div>
             </main>
         </div>
 

@@ -10,7 +10,7 @@ import { GAME_CONFIG } from './src/core/config.js';
 // Import UI modules
 import { HUD } from './src/ui/HUD.js';
 import { Hand } from './src/ui/Hand.js';
-import { MapUI } from './src/ui/MapUI.js';
+import { NodeListView } from './src/ui/NodeListView.js';
 
 // Import map system
 import { MapManager } from './src/map/MapManager.js';
@@ -65,9 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const hand = new Hand(gameState, hud, saveSystem, null);
     window.hand = hand;
 
-    // Initialize map UI
-    const mapUI = new MapUI('map-canvas');
-    window.mapUI = mapUI;
+    // Initialize node list view (vertical floor list)
+    const nodeListView = new NodeListView('node-list');
+    window.nodeListView = nodeListView;
 
     // Store global references
     window.gameRefs = {
@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mapManager,
         hud,
         hand,
-        mapUI,
+        nodeListView,
         saveSystem
     };
 
@@ -154,38 +154,41 @@ function startNewRun() {
  * @param {string} state - One of 'map', 'combat', 'game_over'
  */
 function setGameState(state) {
-    // Use window object for reliability across deployments
     window.currentGameState = state;
 
-    const mapView = document.getElementById('map-view');
-    const battleField = document.getElementById('battle-field');
+    const mapPanel = document.getElementById('map-panel');
+    const combatPanel = document.getElementById('combat-panel');
     const handEl = document.getElementById('hand');
     const turnControls = document.getElementById('turn-controls');
     const gameOverScreen = document.getElementById('game-over-screen');
+    const enemyIntent = document.getElementById('enemy-intent');
 
     switch (state) {
         case GameStateEnum.MAP:
-            mapView.style.display = 'block';
-            battleField.style.display = 'none';
-            handEl.style.display = 'none';
-            turnControls.style.display = 'none';
-            gameOverScreen.style.display = 'none';
+            if (mapPanel) mapPanel.style.display = 'flex';
+            if (combatPanel) combatPanel.style.display = 'none';
+            if (handEl) handEl.style.display = 'none';
+            if (turnControls) turnControls.style.display = 'none';
+            if (gameOverScreen) gameOverScreen.style.display = 'none';
+            if (enemyIntent) enemyIntent.style.display = 'none';
             break;
 
         case GameStateEnum.COMBAT:
-            mapView.style.display = 'none';
-            battleField.style.display = 'block';
-            handEl.style.display = 'block';
-            turnControls.style.display = 'block';
-            gameOverScreen.style.display = 'none';
+            if (mapPanel) mapPanel.style.display = 'flex';
+            if (combatPanel) combatPanel.style.display = 'flex';
+            if (handEl) handEl.style.display = 'flex';
+            if (turnControls) turnControls.style.display = 'flex';
+            if (gameOverScreen) gameOverScreen.style.display = 'none';
+            if (enemyIntent) enemyIntent.style.display = 'flex';
             break;
 
         case GameStateEnum.GAME_OVER:
-            mapView.style.display = 'none';
-            battleField.style.display = 'none';
-            handEl.style.display = 'none';
-            turnControls.style.display = 'none';
-            gameOverScreen.style.display = 'block';
+            if (mapPanel) mapPanel.style.display = 'none';
+            if (combatPanel) combatPanel.style.display = 'none';
+            if (handEl) handEl.style.display = 'none';
+            if (turnControls) turnControls.style.display = 'none';
+            if (gameOverScreen) gameOverScreen.style.display = 'flex';
+            if (enemyIntent) enemyIntent.style.display = 'none';
             break;
     }
 }
@@ -195,24 +198,25 @@ function setGameState(state) {
  */
 function renderMap() {
     const mapManager = window.mapManager;
-    const mapUI = window.mapUI;
+    const nodeListView = window.nodeListView;
 
-    if (!mapManager || !mapUI) return;
+    if (!mapManager || !nodeListView) return;
 
     const nodes = mapManager.nodes || [];
     const currentNodeId = mapManager.currentNodeId;
     const validMoves = mapManager.getValidMoves();
 
-    mapUI.renderMap(nodes, currentNodeId, validMoves);
+    // Render node list
+    nodeListView.render(nodes, currentNodeId, validMoves);
 
     // Handle node selection
-    mapUI.onNodeClick = (nodeId, node) => selectNode(nodeId, node);
-    
-    // Handle node hover for tooltips
-    mapUI.onNodeHover = (node) => showNodeTooltip(node);
+    nodeListView.onNodeClick = (nodeId, node) => selectNode(nodeId, node);
     
     // Update map stats
     updateMapStats();
+    
+    // Scroll to current node
+    setTimeout(() => nodeListView.scrollToCurrent(), 100);
 }
 
 /**
@@ -220,32 +224,7 @@ function renderMap() {
  * @param {MapNode} node - Hovered node
  */
 function showNodeTooltip(node) {
-    const tooltipEl = document.getElementById('node-tooltip');
-    
-    if (!node) {
-        if (tooltipEl) tooltipEl.style.display = 'none';
-        return;
-    }
-    
-    const mapUI = window.mapUI;
-    const tooltipData = mapUI.getNodeTooltip(node);
-    
-    if (!tooltipEl) {
-        // Create tooltip if it doesn't exist
-        const newTooltip = document.createElement('div');
-        newTooltip.id = 'node-tooltip';
-        newTooltip.className = 'node-tooltip';
-        document.getElementById('map-panel').appendChild(newTooltip);
-        tooltipEl = newTooltip;
-    }
-    
-    tooltipEl.innerHTML = `
-        <div class="node-tooltip-title">${tooltipData.title}</div>
-        <div class="node-tooltip-subtitle">${tooltipData.subtitle}</div>
-        <div class="node-tooltip-description">${tooltipData.description}</div>
-    `;
-    
-    tooltipEl.style.display = 'block';
+    // Tooltips shown via button titles in NodeListView
 }
 
 /**
@@ -255,10 +234,10 @@ function showNodeTooltip(node) {
  */
 function selectNode(nodeId, node) {
     const mapManager = window.mapManager;
-    const mapUI = window.mapUI;
+    const nodeListView = window.nodeListView;
     const proceedBtn = document.getElementById('proceed-btn');
 
-    if (!mapManager || !mapUI) return;
+    if (!mapManager || !nodeListView) return;
 
     // Check if move is valid
     const validMoves = mapManager.getValidMoves();
@@ -269,16 +248,13 @@ function selectNode(nodeId, node) {
 
     // Select the node
     mapManager.selectedNodeId = nodeId;
-    mapUI.selectedNodeId = nodeId;
+    nodeListView.updateSelection(nodeId);
 
     // Update proceed button
     if (proceedBtn) {
         proceedBtn.disabled = false;
         proceedBtn.textContent = `Proceed to ${getNodeName(node.type)}`;
     }
-
-    // Re-render map to show selection
-    mapUI.renderMap(mapManager.nodes, mapManager.currentNodeId, validMoves);
 
     console.log(`Selected node ${nodeId} (${node.type})`);
 }
@@ -368,8 +344,9 @@ function startCombat(node, isElite = false, isBoss = false) {
     // Update enemy display
     updateEnemyDisplay(enemy);
 
-    // Update HUD
-    hud.updateAll();
+    // Update HUD and health bars
+    if (hud) hud.updateAll();
+    updateHealthBars();
 
     // Initialize hand for combat
     hand.initHand();
@@ -462,7 +439,7 @@ function onCombatWin() {
 
     const mapManager = window.mapManager;
     const gameState = window.gameState;
-    const mapUI = window.mapUI;
+    const nodeListView = window.nodeListView;
 
     // Add gold reward
     const goldReward = Math.floor(Math.random() * 30) + 20;
@@ -486,8 +463,8 @@ function onCombatWin() {
         const validMoves = mapManager.getValidMoves();
         if (validMoves.length > 0) {
             console.log('[Map] Valid moves highlighted:', validMoves);
-            if (mapUI) {
-                mapUI.renderMap(mapManager.nodes, mapManager.currentNodeId, validMoves);
+            if (nodeListView) {
+                nodeListView.render(mapManager.nodes, mapManager.currentNodeId, validMoves);
             }
         }
     }, 500);
@@ -561,19 +538,73 @@ function updateMapStats() {
 
     if (!mapManager || !gameState) return;
 
-    const mapHp = document.getElementById('map-hp');
-    const mapGold = document.getElementById('map-gold');
-    const mapFloor = document.getElementById('map-floor');
+    // Update top HUD
+    const hudHp = document.getElementById('hud-hp');
+    const hudEnergy = document.getElementById('hud-energy');
+    const hudGold = document.getElementById('hud-gold');
+    const hudFloor = document.getElementById('hud-floor');
     const actNumber = document.getElementById('act-number');
 
-    if (mapHp) mapHp.textContent = `${gameState.playerHp}/${gameState.playerMaxHp}`;
-    if (mapGold) mapGold.textContent = mapManager.gold;
-    if (mapFloor) mapFloor.textContent = `Floor ${mapManager.currentFloor}/15`;
+    if (hudHp) hudHp.textContent = `${gameState.playerHp}/${gameState.playerMaxHp}`;
+    if (hudEnergy) hudEnergy.textContent = `${gameState.energy || 3}/${gameState.maxEnergy || 3}`;
+    if (hudGold) hudGold.textContent = mapManager.gold;
+    if (hudFloor) hudFloor.textContent = `${mapManager.currentFloor}/15`;
     if (actNumber) actNumber.textContent = mapManager.currentAct;
+    
+    // Also update combat panel bars
+    updateHealthBars();
 }
 
 /**
- * Updates enemy display (emoji, name, HP)
+ * Updates health and energy bars in combat
+ */
+function updateHealthBars() {
+    const gameState = window.gameState;
+    if (!gameState) return;
+    
+    // Player HP bar
+    const playerHpBar = document.getElementById('player-hp-bar');
+    const playerHpText = document.getElementById('player-hp');
+    const playerMaxHpText = document.getElementById('player-max-hp');
+    
+    if (playerHpBar) {
+        const hpPercent = (gameState.playerHp / gameState.playerMaxHp) * 100;
+        playerHpBar.style.width = `${Math.max(0, hpPercent)}%`;
+    }
+    if (playerHpText) playerHpText.textContent = gameState.playerHp;
+    if (playerMaxHpText) playerMaxHpText.textContent = gameState.playerMaxHp;
+    
+    // Player Energy bar
+    const playerEnergyBar = document.getElementById('player-energy-bar');
+    const playerEnergyText = document.getElementById('player-energy');
+    const playerMaxEnergyText = document.getElementById('player-max-energy');
+    
+    if (playerEnergyBar) {
+        const energy = gameState.energy || 3;
+        const maxEnergy = gameState.maxEnergy || 3;
+        const energyPercent = (energy / maxEnergy) * 100;
+        playerEnergyBar.style.width = `${energyPercent}%`;
+    }
+    if (playerEnergyText) playerEnergyText.textContent = gameState.energy || 3;
+    if (playerMaxEnergyText) playerMaxEnergyText.textContent = gameState.maxEnergy || 3;
+    
+    // Enemy HP bar
+    const enemyHpBar = document.getElementById('enemy-hp-bar');
+    const enemyHpText = document.getElementById('enemy-hp');
+    const enemyMaxHpText = document.getElementById('enemy-max-hp');
+    
+    if (gameState.enemy) {
+        if (enemyHpBar) {
+            const enemyHpPercent = (gameState.enemyHp / gameState.enemyMaxHp) * 100;
+            enemyHpBar.style.width = `${Math.max(0, enemyHpPercent)}%`;
+        }
+        if (enemyHpText) enemyHpText.textContent = gameState.enemyHp;
+        if (enemyMaxHpText) enemyMaxHpText.textContent = gameState.enemyMaxHp;
+    }
+}
+
+/**
+ * Updates enemy display (emoji, name)
  * @param {Object} enemy - Enemy object
  */
 function updateEnemyDisplay(enemy) {
