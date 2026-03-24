@@ -51,6 +51,24 @@ export const CardRarity = {
 };
 
 /**
+ * CardType Enum - Card type classification
+ * @readonly
+ * @enum {string}
+ */
+export const CardType = {
+    /** Attack cards (deal damage) */
+    ATTACK: 'attack',
+    /** Skill cards (utility, block, etc.) */
+    SKILL: 'skill',
+    /** Power cards (persistent effects) */
+    POWER: 'power',
+    /** Status cards (temporary, usually negative) */
+    STATUS: 'status',
+    /** Curse cards (negative effects) */
+    CURSE: 'curse'
+};
+
+/**
  * Card Tags - Tags for synergy and interaction detection
  * @readonly
  * @enum {string}
