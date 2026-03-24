@@ -65,9 +65,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const hand = new Hand(gameState, hud, saveSystem, null);
     window.hand = hand;
 
-    // Initialize node list view (vertical floor list)
-    const nodeListView = new NodeListView('node-list');
-    window.nodeListView = nodeListView;
+    // Initialize node list view (vertical floor list) - lazy init in openModal
+    window.nodeListView = null;
 
     // Store global references
     window.gameRefs = {
@@ -154,6 +153,12 @@ function openModal() {
     const mapModal = document.getElementById('map-modal');
     const viewMapBtn = document.getElementById('view-map-btn');
     
+    // Lazy init NodeListView when modal is first opened
+    if (!window.nodeListView) {
+        window.nodeListView = new NodeListView('modal-node-list');
+        console.log('[openModal] NodeListView initialized');
+    }
+    
     if (mapModal) {
         mapModal.style.display = 'flex';
         renderMap();
@@ -198,11 +203,9 @@ function startNewRun() {
         mapManager.startNewRun();
     }
 
-    // Auto-open map modal after short delay (allows initialization)
-    setTimeout(() => {
-        openModal();
-        console.log('🗺️ Map opened - Select your first destination!');
-    }, 300);
+    // Show placeholder screen with "Open Map" button
+    setGameState(GameStateEnum.MAP);
+    console.log('🗺️ Click "Open Map" to select your first destination!');
 }
 
 /**
@@ -264,16 +267,18 @@ function setGameState(state) {
  */
 function renderMap() {
     const mapManager = window.mapManager;
-    const nodeListView = window.nodeListView;
-
+    let nodeListView = window.nodeListView;
+    
     if (!mapManager) {
         console.error('[renderMap] MapManager not ready');
         return;
     }
     
+    // Lazy init NodeListView if not ready
     if (!nodeListView) {
-        console.error('[renderMap] NodeListView not ready');
-        return;
+        nodeListView = new NodeListView('modal-node-list');
+        window.nodeListView = nodeListView;
+        console.log('[renderMap] NodeListView lazy initialized');
     }
 
     const nodes = mapManager.nodes || [];
