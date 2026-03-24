@@ -10,7 +10,7 @@ export class NodeListView {
      * Creates a new NodeListView instance
      * @param {string} containerId - Container element ID
      */
-    constructor(containerId = 'node-list') {
+    constructor(containerId = 'modal-node-list') {
         this.container = document.getElementById(containerId);
         this.nodes = [];
         this.currentNodeId = null;

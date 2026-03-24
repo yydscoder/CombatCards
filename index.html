@@ -25,14 +25,72 @@
             </div>
             <div id="hud-right">
                 <span class="hud-stat">📊 Floor <span id="hud-floor">0/15</span></span>
+                <button id="view-map-btn" style="display:none;">🗺️ View Map</button>
             </div>
         </div>
 
-        <!-- Main Content Area -->
-        <div class="main-content">
-            <!-- Left Panel - Map/Node Selection -->
-            <aside id="map-panel">
-                <div id="node-list">
+        <!-- Main Content Area - Combat Only -->
+        <main id="combat-panel">
+            <!-- Placeholder when not in combat -->
+            <div id="combat-placeholder">
+                <div class="placeholder-content">
+                    <div class="placeholder-icon">⚔️</div>
+                    <h3>Starting Adventure...</h3>
+                    <p>Select a node from the map to begin your journey</p>
+                    <button id="open-map-start-btn">Open Map</button>
+                </div>
+            </div>
+
+            <!-- Enemy Intent Display -->
+            <div id="enemy-intent" style="display: none;">
+                <span id="intent-icon">⚔️</span>
+                <span id="intent-text">Attack 8</span>
+            </div>
+
+            <!-- Character & Enemy Display -->
+            <div id="battle-area" style="display: none;">
+                <div id="player-display">
+                    <div id="player-emoji">🧙</div>
+                    <div id="player-name">YOU</div>
+                    <div class="bar-container">
+                        <div class="bar-fill hp-fill" id="player-hp-bar" style="width: 100%"></div>
+                    </div>
+                    <div class="bar-text"><span id="player-hp">100</span>/<span id="player-max-hp">100</span></div>
+                    <div class="bar-container energy-bar">
+                        <div class="bar-fill energy-fill" id="player-energy-bar" style="width: 100%"></div>
+                    </div>
+                    <div class="bar-text"><span id="player-energy">3</span>/<span id="player-max-energy">3</span> ⚡</div>
+                </div>
+
+                <div id="enemy-display">
+                    <div id="enemy-emoji">🟢</div>
+                    <div id="enemy-name">SLIME</div>
+                    <div class="bar-container">
+                        <div class="bar-fill hp-fill" id="enemy-hp-bar" style="width: 100%"></div>
+                    </div>
+                    <div class="bar-text"><span id="enemy-hp">50</span>/<span id="enemy-max-hp">50</span></div>
+                </div>
+            </div>
+
+            <!-- Card Hand -->
+            <div id="hand-container" style="display: none;">
+                <div id="hand"></div>
+            </div>
+
+            <!-- End Turn Button -->
+            <div id="turn-controls" style="display: none;">
+                <button id="end-turn-btn">End Turn!</button>
+            </div>
+        </main>
+
+        <!-- Map Modal Overlay -->
+        <div id="map-modal" class="map-modal" style="display: none;">
+            <div class="map-modal-content">
+                <div class="map-modal-header">
+                    <h2>🗺️ Act <span id="modal-act-number">1</span></h2>
+                    <button id="close-map-btn" class="modal-close-btn">✕</button>
+                </div>
+                <div id="modal-node-list">
                     <!-- Nodes rendered by JS -->
                 </div>
                 <div id="map-legend">
@@ -46,60 +104,7 @@
                 <div id="map-controls">
                     <button id="proceed-btn" disabled>Proceed</button>
                 </div>
-            </aside>
-
-            <!-- Right Panel - Combat Area -->
-            <main id="combat-panel">
-                <!-- Placeholder when not in combat -->
-                <div id="combat-placeholder">
-                    <div class="placeholder-content">
-                        <div class="placeholder-icon">⚔️</div>
-                        <h3>Select a combat node to begin</h3>
-                        <p>Click on a green-bordered floor in the map, then click "Proceed"</p>
-                    </div>
-                </div>
-
-                <!-- Enemy Intent Display -->
-                <div id="enemy-intent" style="display: none;">
-                    <span id="intent-icon">⚔️</span>
-                    <span id="intent-text">Attack 8</span>
-                </div>
-
-                <!-- Character & Enemy Display -->
-                <div id="battle-area" style="display: none;">
-                    <div id="player-display">
-                        <div id="player-emoji">🧙</div>
-                        <div id="player-name">YOU</div>
-                        <div class="bar-container">
-                            <div class="bar-fill hp-fill" id="player-hp-bar" style="width: 100%"></div>
-                        </div>
-                        <div class="bar-text"><span id="player-hp">100</span>/<span id="player-max-hp">100</span></div>
-                        <div class="bar-container energy-bar">
-                            <div class="bar-fill energy-fill" id="player-energy-bar" style="width: 100%"></div>
-                        </div>
-                        <div class="bar-text"><span id="player-energy">3</span>/<span id="player-max-energy">3</span> ⚡</div>
-                    </div>
-
-                    <div id="enemy-display">
-                        <div id="enemy-emoji">🟢</div>
-                        <div id="enemy-name">SLIME</div>
-                        <div class="bar-container">
-                            <div class="bar-fill hp-fill" id="enemy-hp-bar" style="width: 100%"></div>
-                        </div>
-                        <div class="bar-text"><span id="enemy-hp">50</span>/<span id="enemy-max-hp">50</span></div>
-                    </div>
-                </div>
-
-                <!-- Card Hand -->
-                <div id="hand-container">
-                    <div id="hand"></div>
-                </div>
-
-                <!-- End Turn Button -->
-                <div id="turn-controls">
-                    <button id="end-turn-btn">End Turn!</button>
-                </div>
-            </main>
+            </div>
         </div>
 
         <!-- Game Over Screen -->

@@ -138,12 +138,24 @@ export class MapManager {
         this.gold = 0;
         this.totalKills = 0;
         this.currentFloor = 0;
-        this.currentNodeId = this.nodes[0]?.id || null;
 
         // Initialize pathfinder
         this.pathfinder = new Pathfinder(this.nodes);
-        if (this.currentNodeId) {
-            this.pathfinder.setCurrentNode(this.currentNodeId);
+
+        // Find and set START node as current position
+        const startNode = this.nodes.find(n => n.type === 'start');
+        if (startNode) {
+            this.currentNodeId = startNode.id;
+            this.currentFloor = startNode.floor;
+            this.pathfinder.setCurrentNode(startNode.id);
+            console.log(`[MapManager] START node set: ${startNode.id} (Floor ${startNode.floor})`);
+        } else {
+            console.warn('[MapManager] No START node found, using first node');
+            this.currentNodeId = this.nodes[0]?.id || null;
+            this.currentFloor = 0;
+            if (this.currentNodeId) {
+                this.pathfinder.setCurrentNode(this.currentNodeId);
+            }
         }
 
         this.selectedNodeId = null;
@@ -151,7 +163,7 @@ export class MapManager {
         // Save progress
         this.saveProgress();
 
-        console.log(`[MapManager] New campaign started. Act ${this.currentAct}, Floor ${this.currentFloor}`);
+        console.log(`[MapManager] New campaign started. Act ${this.currentAct}, Floor ${this.currentFloor}, Node ${this.currentNodeId}`);
 
         return {
             success: true,

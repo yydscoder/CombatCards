@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize UI event handlers
     initializeUIHandlers();
 
-    // Start new run
+    // Start new run (auto-opens map modal)
     startNewRun();
 
     console.log('✅ Campaign Mode initialized successfully!');
@@ -107,6 +107,7 @@ function initializeUIHandlers() {
             const mapManager = window.mapManager;
             if (mapManager && mapManager.selectedNodeId !== null) {
                 enterNode(mapManager.selectedNodeId);
+                closeModal();
             }
         });
     }
@@ -115,6 +116,65 @@ function initializeUIHandlers() {
     const endTurnBtn = document.getElementById('end-turn-btn');
     if (endTurnBtn) {
         endTurnBtn.addEventListener('click', endTurn);
+    }
+
+    // View Map button
+    const viewMapBtn = document.getElementById('view-map-btn');
+    if (viewMapBtn) {
+        viewMapBtn.addEventListener('click', openModal);
+    }
+
+    // Open Map button (on start screen)
+    const openMapStartBtn = document.getElementById('open-map-start-btn');
+    if (openMapStartBtn) {
+        openMapStartBtn.addEventListener('click', openModal);
+    }
+
+    // Close map modal button
+    const closeMapBtn = document.getElementById('close-map-btn');
+    if (closeMapBtn) {
+        closeMapBtn.addEventListener('click', closeModal);
+    }
+
+    // Close modal on backdrop click
+    const mapModal = document.getElementById('map-modal');
+    if (mapModal) {
+        mapModal.addEventListener('click', (e) => {
+            if (e.target === mapModal) {
+                closeModal();
+            }
+        });
+    }
+}
+
+/**
+ * Opens the map modal
+ */
+function openModal() {
+    const mapModal = document.getElementById('map-modal');
+    const viewMapBtn = document.getElementById('view-map-btn');
+    
+    if (mapModal) {
+        mapModal.style.display = 'flex';
+        renderMap();
+    }
+    if (viewMapBtn) {
+        viewMapBtn.style.display = 'none';
+    }
+}
+
+/**
+ * Closes the map modal
+ */
+function closeModal() {
+    const mapModal = document.getElementById('map-modal');
+    const viewMapBtn = document.getElementById('view-map-btn');
+    
+    if (mapModal) {
+        mapModal.style.display = 'none';
+    }
+    if (viewMapBtn) {
+        viewMapBtn.style.display = 'block';
     }
 }
 
@@ -126,27 +186,23 @@ function startNewRun() {
 
     const mapManager = window.mapManager;
     const gameState = window.gameState;
-    const hud = window.hud;
-    const hand = window.hand;
-    const mapUI = window.mapUI;
 
     // Reset game state
-    gameState.reset();
-    gameState.energyManager.reset();
+    if (gameState) {
+        gameState.reset();
+        if (gameState.energyManager) gameState.energyManager.reset();
+    }
 
     // Start new campaign
-    mapManager.startNewRun();
+    if (mapManager) {
+        mapManager.startNewRun();
+    }
 
-    // Hide combat UI, show map
-    setGameState(GameStateEnum.MAP);
-
-    // Render the map
-    renderMap();
-
-    // Update map stats display
-    updateMapStats();
-
-    console.log('🗺️ New campaign started!');
+    // Auto-open map modal after short delay (allows initialization)
+    setTimeout(() => {
+        openModal();
+        console.log('🗺️ Map opened - Select your first destination!');
+    }, 300);
 }
 
 /**
@@ -156,8 +212,6 @@ function startNewRun() {
 function setGameState(state) {
     window.currentGameState = state;
 
-    const mapPanel = document.getElementById('map-panel');
-    const combatPanel = document.getElementById('combat-panel');
     const combatPlaceholder = document.getElementById('combat-placeholder');
     const battleArea = document.getElementById('battle-area');
     const enemyIntent = document.getElementById('enemy-intent');
@@ -165,12 +219,11 @@ function setGameState(state) {
     const handContainer = document.getElementById('hand-container');
     const turnControls = document.getElementById('turn-controls');
     const gameOverScreen = document.getElementById('game-over-screen');
+    const viewMapBtn = document.getElementById('view-map-btn');
 
     switch (state) {
         case GameStateEnum.MAP:
-            // Show map panel, hide combat elements
-            if (mapPanel) mapPanel.style.display = 'flex';
-            if (combatPanel) combatPanel.style.display = 'flex';
+            // Show placeholder, hide combat elements
             if (combatPlaceholder) combatPlaceholder.style.display = 'flex';
             if (battleArea) battleArea.style.display = 'none';
             if (enemyIntent) enemyIntent.style.display = 'none';
@@ -178,12 +231,11 @@ function setGameState(state) {
             if (handContainer) handContainer.style.display = 'none';
             if (turnControls) turnControls.style.display = 'none';
             if (gameOverScreen) gameOverScreen.style.display = 'none';
+            if (viewMapBtn) viewMapBtn.style.display = 'none';
             break;
 
         case GameStateEnum.COMBAT:
             // Show combat elements, hide placeholder
-            if (mapPanel) mapPanel.style.display = 'flex';
-            if (combatPanel) combatPanel.style.display = 'flex';
             if (combatPlaceholder) combatPlaceholder.style.display = 'none';
             if (battleArea) battleArea.style.display = 'flex';
             if (enemyIntent) enemyIntent.style.display = 'flex';
@@ -191,11 +243,10 @@ function setGameState(state) {
             if (handContainer) handContainer.style.display = 'block';
             if (turnControls) turnControls.style.display = 'flex';
             if (gameOverScreen) gameOverScreen.style.display = 'none';
+            if (viewMapBtn) viewMapBtn.style.display = 'block';
             break;
 
         case GameStateEnum.GAME_OVER:
-            if (mapPanel) mapPanel.style.display = 'none';
-            if (combatPanel) combatPanel.style.display = 'none';
             if (combatPlaceholder) combatPlaceholder.style.display = 'none';
             if (battleArea) battleArea.style.display = 'none';
             if (enemyIntent) enemyIntent.style.display = 'none';
@@ -203,6 +254,7 @@ function setGameState(state) {
             if (handContainer) handContainer.style.display = 'none';
             if (turnControls) turnControls.style.display = 'none';
             if (gameOverScreen) gameOverScreen.style.display = 'flex';
+            if (viewMapBtn) viewMapBtn.style.display = 'none';
             break;
     }
 }
@@ -220,17 +272,29 @@ function renderMap() {
     const currentNodeId = mapManager.currentNodeId;
     const validMoves = mapManager.getValidMoves();
 
-    // Render node list
+    // Render node list in modal
     nodeListView.render(nodes, currentNodeId, validMoves);
 
     // Handle node selection
     nodeListView.onNodeClick = (nodeId, node) => selectNode(nodeId, node);
     
-    // Update map stats
-    updateMapStats();
+    // Update modal stats
+    updateModalStats();
     
     // Scroll to current node
     setTimeout(() => nodeListView.scrollToCurrent(), 100);
+}
+
+/**
+ * Updates stats in map modal
+ */
+function updateModalStats() {
+    const mapManager = window.mapManager;
+    const actNumberEl = document.getElementById('modal-act-number');
+    
+    if (mapManager && actNumberEl) {
+        actNumberEl.textContent = mapManager.currentAct;
+    }
 }
 
 /**
@@ -472,7 +536,7 @@ function onCombatWin() {
     // Complete node and return to map
     completeNode();
     
-    // Auto-highlight valid moves after combat
+    // Auto-open map modal after combat win
     setTimeout(() => {
         const validMoves = mapManager.getValidMoves();
         if (validMoves.length > 0) {
@@ -480,6 +544,8 @@ function onCombatWin() {
             if (nodeListView) {
                 nodeListView.render(mapManager.nodes, mapManager.currentNodeId, validMoves);
             }
+            openModal();
+            console.log('🗺️ Select your next destination!');
         }
     }, 500);
 }
