@@ -29,25 +29,39 @@ export class NodeListView {
      * @param {Array<number>} validMoves - Valid move node IDs
      */
     render(nodes, currentNodeId, validMoves = []) {
-        if (!this.container) return;
+        if (!this.container) {
+            console.error('[NodeListView] Container not found!');
+            return;
+        }
 
         this.nodes = nodes;
         this.currentNodeId = currentNodeId;
         this.validMoves = validMoves;
 
+        console.log('[NodeListView] Rendering:', nodes.length, 'nodes, current:', currentNodeId, 'validMoves:', validMoves);
+
         // Clear container
         this.container.innerHTML = '';
+
+        if (!nodes || nodes.length === 0) {
+            console.warn('[NodeListView] No nodes to render!');
+            this.container.innerHTML = '<p style="color:#666;text-align:center;padding:20px;">No nodes available</p>';
+            return;
+        }
 
         // Sort nodes by floor
         const sortedNodes = [...nodes].sort((a, b) => a.floor - b.floor);
 
+        let validMoveCount = 0;
+        
         // Create button for each node
         for (const node of sortedNodes) {
             const button = this._createNodeButton(node);
             this.container.appendChild(button);
+            if (validMoves.includes(node.id)) validMoveCount++;
         }
 
-        console.log('[NodeListView] Rendered', nodes.length, 'nodes');
+        console.log('[NodeListView] Rendered', sortedNodes.length, 'nodes,', validMoveCount, 'valid moves');
     }
 
     /**
@@ -112,6 +126,11 @@ export class NodeListView {
      * Scrolls to show current node
      */
     scrollToCurrent() {
+        if (!this.container) {
+            console.warn('[NodeListView] Container not ready for scrollToCurrent');
+            return;
+        }
+        
         const currentButton = this.container.querySelector('.node-button.current');
         if (currentButton) {
             currentButton.scrollIntoView({ behavior: 'smooth', block: 'center' });

@@ -183,8 +183,19 @@ export class MapManager {
      * @returns {Array<number>} Array of valid node IDs
      */
     getValidMoves() {
-        if (!this.pathfinder || !this.currentNodeId) return [];
-        return this.pathfinder.getValidMoves(this.currentNodeId);
+        if (!this.pathfinder) {
+            console.warn('[MapManager] No pathfinder initialized');
+            return [];
+        }
+        
+        if (!this.currentNodeId) {
+            console.warn('[MapManager] No current node set');
+            return [];
+        }
+        
+        const validMoves = this.pathfinder.getValidMoves(this.currentNodeId);
+        console.log('[MapManager] Valid moves from node', this.currentNodeId, ':', validMoves);
+        return validMoves;
     }
 
     /**

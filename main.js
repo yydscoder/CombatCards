@@ -266,11 +266,26 @@ function renderMap() {
     const mapManager = window.mapManager;
     const nodeListView = window.nodeListView;
 
-    if (!mapManager || !nodeListView) return;
+    if (!mapManager) {
+        console.error('[renderMap] MapManager not ready');
+        return;
+    }
+    
+    if (!nodeListView) {
+        console.error('[renderMap] NodeListView not ready');
+        return;
+    }
 
     const nodes = mapManager.nodes || [];
     const currentNodeId = mapManager.currentNodeId;
     const validMoves = mapManager.getValidMoves();
+    
+    console.log('[renderMap] Nodes:', nodes.length, 'Current:', currentNodeId, 'Valid:', validMoves);
+
+    if (nodes.length === 0) {
+        console.error('[renderMap] No nodes to render!');
+        return;
+    }
 
     // Render node list in modal
     nodeListView.render(nodes, currentNodeId, validMoves);
@@ -281,8 +296,12 @@ function renderMap() {
     // Update modal stats
     updateModalStats();
     
-    // Scroll to current node
-    setTimeout(() => nodeListView.scrollToCurrent(), 100);
+    // Scroll to current node (with error handling)
+    try {
+        setTimeout(() => nodeListView.scrollToCurrent(), 100);
+    } catch (e) {
+        console.warn('[renderMap] scrollToCurrent failed:', e.message);
+    }
 }
 
 /**
