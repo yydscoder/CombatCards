@@ -144,6 +144,84 @@ function initializeUIHandlers() {
             }
         });
     }
+
+    // Initialize drag-and-drop for card targeting
+    initializeDropZones();
+}
+
+/**
+ * Initializes drop zones for drag-to-target on enemy and player
+ */
+function initializeDropZones() {
+    const enemyDisplay = document.getElementById('enemy-display');
+    const playerDisplay = document.getElementById('player-display');
+
+    if (!enemyDisplay || !playerDisplay) {
+        console.warn('[DropZones] Target areas not found');
+        return;
+    }
+
+    // Enemy drop zone
+    enemyDisplay.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        enemyDisplay.classList.add('drop-target');
+    });
+
+    enemyDisplay.addEventListener('dragleave', () => {
+        enemyDisplay.classList.remove('drop-target');
+    });
+
+    enemyDisplay.addEventListener('drop', (e) => {
+        e.preventDefault();
+        enemyDisplay.classList.remove('drop-target');
+        handleCardDrop(e, 'enemy');
+    });
+
+    // Player drop zone
+    playerDisplay.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        playerDisplay.classList.add('drop-target');
+    });
+
+    playerDisplay.addEventListener('dragleave', () => {
+        playerDisplay.classList.remove('drop-target');
+    });
+
+    playerDisplay.addEventListener('drop', (e) => {
+        e.preventDefault();
+        playerDisplay.classList.remove('drop-target');
+        handleCardDrop(e, 'player');
+    });
+
+    console.log('[DropZones] Initialized on enemy and player areas');
+}
+
+/**
+ * Handles card drop on target
+ * @param {DragEvent} e - Drop event
+ * @param {string} targetType - 'enemy' or 'player'
+ */
+function handleCardDrop(e, targetType) {
+    const data = e.dataTransfer.getData('text/plain');
+    let cardId;
+    
+    try {
+        const parsed = JSON.parse(data);
+        cardId = parsed.cardId;
+    } catch {
+        cardId = data;
+    }
+
+    const hand = window.hand;
+    const card = hand?.cards?.find(c => c.id === cardId);
+
+    if (card && hand && hand.handleCardClick) {
+        console.log('[DropZones] Casting', card.name, 'on', targetType);
+        const fakeEvent = { preventDefault: () => {}, stopPropagation: () => {} };
+        hand.handleCardClick(card, fakeEvent);
+    }
 }
 
 /**
@@ -446,20 +524,20 @@ function startCombat(node, isElite = false, isBoss = false) {
     // Update enemy display
     updateEnemyDisplay(enemy);
 
-    // Update HUD and health bars
-    if (hud) hud.updateAll();
-    updateHealthBars();
-
     // Initialize hand for combat
     hand.initHand();
 
-    // Start first turn
+    // Start first turn (this sets energy to 3)
     gameState.turnManager.startTurn();
+
+    // Update HUD and health bars AFTER turn starts
+    if (hud) hud.updateAll();
+    updateHealthBars();
 
     // Switch to combat state (shows battle area, hides placeholder)
     setGameState(GameStateEnum.COMBAT);
 
-    console.log(`Combat started against ${enemy.name} (${enemy.hp} HP)`);
+    console.log(`Combat started against ${enemy.name} (${enemy.hp} HP) | Energy: ${gameState.energy}/${gameState.maxEnergy}`);
 }
 
 /**
@@ -683,14 +761,15 @@ function updateHealthBars() {
     const playerEnergyText = document.getElementById('player-energy');
     const playerMaxEnergyText = document.getElementById('player-max-energy');
     
+    const energy = gameState.energy ?? 3;
+    const maxEnergy = gameState.maxEnergy ?? 3;
+    
     if (playerEnergyBar) {
-        const energy = gameState.energy || 3;
-        const maxEnergy = gameState.maxEnergy || 3;
         const energyPercent = (energy / maxEnergy) * 100;
         playerEnergyBar.style.width = `${energyPercent}%`;
     }
-    if (playerEnergyText) playerEnergyText.textContent = gameState.energy || 3;
-    if (playerMaxEnergyText) playerMaxEnergyText.textContent = gameState.maxEnergy || 3;
+    if (playerEnergyText) playerEnergyText.textContent = energy;
+    if (playerMaxEnergyText) playerMaxEnergyText.textContent = maxEnergy;
     
     // Enemy HP bar
     const enemyHpBar = document.getElementById('enemy-hp-bar');
@@ -704,6 +783,11 @@ function updateHealthBars() {
         }
         if (enemyHpText) enemyHpText.textContent = gameState.enemyHp;
         if (enemyMaxHpText) enemyMaxHpText.textContent = gameState.enemyMaxHp;
+    }
+    
+    console.log('[updateHealthBars] Player:', gameState.playerHp + '/' + gameState.playerMaxHp, 'Energy:', energy + '/' + maxEnergy);
+    if (gameState.enemy) {
+        console.log('[updateHealthBars] Enemy:', gameState.enemy.name, gameState.enemyHp + '/' + gameState.enemyMaxHp);
     }
 }
 
@@ -742,11 +826,45 @@ function getNodeName(nodeType) {
 function endTurn() {
     const gameState = window.gameState;
     const hud = window.hud;
+    const hand = window.hand;
 
-    if (!gameState || !gameState.turnManager) return;
+    if (!gameState || !gameState.turnManager) {
+        console.warn('[endTurn] GameState or TurnManager not ready');
+        return;
+    }
 
+    console.log('[endTurn] Ending player turn...');
+
+    // End player turn
     gameState.turnManager.endTurn();
+
+    // Enemy attacks
+    if (gameState.enemy && gameState.enemyHp > 0) {
+        const enemyDamage = gameState.enemy.damage || 8;
+        const newPlayerHp = gameState.playerHp - enemyDamage;
+        gameState.playerHp = newPlayerHp;
+        
+        console.log(`[endTurn] Enemy attacks for ${enemyDamage} damage! Player HP: ${gameState.playerHp}`);
+        
+        // Check for defeat
+        if (gameState.playerHp <= 0) {
+            console.log('[endTurn] Player defeated!');
+            onCombatLoss();
+            return;
+        }
+    }
+
+    // Start new turn (resets energy to 3)
     gameState.turnManager.startTurn();
 
+    // Update UI
     if (hud) hud.updateAll();
+    updateHealthBars();
+    
+    // Re-enable hand
+    if (hand) {
+        hand.updateCardAffordability();
+    }
+
+    console.log(`[endTurn] New turn started | Energy: ${gameState.energy}/${gameState.maxEnergy}`);
 }

@@ -417,6 +417,22 @@ body {
     box-shadow: 0 4px 12px rgba(106, 106, 255, 0.5);
 }
 
+/* Drop Target Highlighting */
+#enemy-display.drop-target,
+#player-display.drop-target {
+    box-shadow: 0 0 30px rgba(76, 175, 80, 0.6);
+    border-color: #4caf50;
+    transform: scale(1.02);
+}
+
+#enemy-display.drop-target {
+    background: rgba(255, 82, 82, 0.2);
+}
+
+#player-display.drop-target {
+    background: rgba(76, 175, 80, 0.2);
+}
+
 #battle-field {
     display: flex;
     justify-content: space-between;
