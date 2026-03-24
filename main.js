@@ -206,14 +206,54 @@ function renderMap() {
     mapUI.renderMap(nodes, currentNodeId, validMoves);
 
     // Handle node selection
-    mapUI.onNodeClick = (nodeId) => selectNode(nodeId);
+    mapUI.onNodeClick = (nodeId, node) => selectNode(nodeId, node);
+    
+    // Handle node hover for tooltips
+    mapUI.onNodeHover = (node) => showNodeTooltip(node);
+    
+    // Update map stats
+    updateMapStats();
+}
+
+/**
+ * Shows tooltip for hovered node
+ * @param {MapNode} node - Hovered node
+ */
+function showNodeTooltip(node) {
+    const tooltipEl = document.getElementById('node-tooltip');
+    
+    if (!node) {
+        if (tooltipEl) tooltipEl.style.display = 'none';
+        return;
+    }
+    
+    const mapUI = window.mapUI;
+    const tooltipData = mapUI.getNodeTooltip(node);
+    
+    if (!tooltipEl) {
+        // Create tooltip if it doesn't exist
+        const newTooltip = document.createElement('div');
+        newTooltip.id = 'node-tooltip';
+        newTooltip.className = 'node-tooltip';
+        document.getElementById('map-panel').appendChild(newTooltip);
+        tooltipEl = newTooltip;
+    }
+    
+    tooltipEl.innerHTML = `
+        <div class="node-tooltip-title">${tooltipData.title}</div>
+        <div class="node-tooltip-subtitle">${tooltipData.subtitle}</div>
+        <div class="node-tooltip-description">${tooltipData.description}</div>
+    `;
+    
+    tooltipEl.style.display = 'block';
 }
 
 /**
  * Selects a node on the map (highlights it, enables proceed button)
  * @param {number} nodeId - Node ID to select
+ * @param {MapNode} node - Node object
  */
-function selectNode(nodeId) {
+function selectNode(nodeId, node) {
     const mapManager = window.mapManager;
     const mapUI = window.mapUI;
     const proceedBtn = document.getElementById('proceed-btn');
@@ -229,7 +269,7 @@ function selectNode(nodeId) {
 
     // Select the node
     mapManager.selectedNodeId = nodeId;
-    const node = mapManager.nodes.find(n => n.id === nodeId);
+    mapUI.selectedNodeId = nodeId;
 
     // Update proceed button
     if (proceedBtn) {
@@ -238,7 +278,7 @@ function selectNode(nodeId) {
     }
 
     // Re-render map to show selection
-    renderMap();
+    mapUI.renderMap(mapManager.nodes, mapManager.currentNodeId, validMoves);
 
     console.log(`Selected node ${nodeId} (${node.type})`);
 }
@@ -422,6 +462,7 @@ function onCombatWin() {
 
     const mapManager = window.mapManager;
     const gameState = window.gameState;
+    const mapUI = window.mapUI;
 
     // Add gold reward
     const goldReward = Math.floor(Math.random() * 30) + 20;
@@ -430,8 +471,26 @@ function onCombatWin() {
 
     console.log(`Earned ${goldReward} gold (total: ${mapManager.gold})`);
 
-    // Complete node
+    // Mark current node as complete
+    const currentNode = mapManager.nodes.find(n => n.id === mapManager.currentNodeId);
+    if (currentNode) {
+        currentNode.completed = true;
+        currentNode.visited = true;
+    }
+
+    // Complete node and return to map
     completeNode();
+    
+    // Auto-highlight valid moves after combat
+    setTimeout(() => {
+        const validMoves = mapManager.getValidMoves();
+        if (validMoves.length > 0) {
+            console.log('[Map] Valid moves highlighted:', validMoves);
+            if (mapUI) {
+                mapUI.renderMap(mapManager.nodes, mapManager.currentNodeId, validMoves);
+            }
+        }
+    }, 500);
 }
 
 /**

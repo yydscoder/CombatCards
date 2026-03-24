@@ -29,27 +29,115 @@ export class MapUI {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas?.getContext('2d');
 
-        // Canvas dimensions
-        this.width = 800;
-        this.height = 650;
+        // Canvas dimensions - updated for smaller panel
+        this.width = 400;
+        this.height = 600;
 
         // Node rendering
-        this.nodeRadius = 20;
-        this.floorHeight = 40;
+        this.nodeRadius = 16;
+        this.floorHeight = 38;
 
         // Current state
         this.nodes = [];
         this.currentNodeId = null;
         this.validMoves = [];
+        this.hoveredNodeId = null;
+        this.selectedNodeId = null;
+
+        // Mouse tracking for hover
+        this.mouseX = 0;
+        this.mouseY = 0;
 
         // Callbacks
         this.onNodeClick = null;
+        this.onNodeHover = null;
 
         if (this.canvas) {
             this.canvas.width = this.width;
             this.canvas.height = this.height;
+            
+            // Add mouse tracking
+            this.canvas.addEventListener('mousemove', (e) => this._handleMouseMove(e));
+            this.canvas.addEventListener('mouseleave', () => this._handleMouseLeave());
+            this.canvas.addEventListener('click', (e) => this.handleClick(e));
+            
             console.log('[MapUI] Initialized');
         }
+    }
+
+    /**
+     * Handles mouse move for hover detection
+     * @private
+     */
+    _handleMouseMove(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        this.mouseX = e.clientX - rect.left;
+        this.mouseY = e.clientY - rect.top;
+        
+        // Find hovered node
+        const hoveredNode = this._getNodeAtPosition(this.mouseX, this.mouseY);
+        
+        if (hoveredNode?.id !== this.hoveredNodeId) {
+            this.hoveredNodeId = hoveredNode?.id || null;
+            this.canvas.style.cursor = hoveredNode ? 'pointer' : 'default';
+            
+            // Re-render to show hover effect
+            this.renderMap(this.nodes, this.currentNodeId, this.validMoves);
+            
+            // Trigger hover callback
+            if (this.onNodeHover) {
+                this.onNodeHover(hoveredNode);
+            }
+        }
+    }
+
+    /**
+     * Handles mouse leave
+     * @private
+     */
+    _handleMouseLeave() {
+        this.hoveredNodeId = null;
+        this.renderMap(this.nodes, this.currentNodeId, this.validMoves);
+        
+        if (this.onNodeHover) {
+            this.onNodeHover(null);
+        }
+    }
+
+    /**
+     * Gets node at mouse position
+     * @private
+     */
+    _getNodeAtPosition(x, y) {
+        for (const node of this.nodes) {
+            const nodeX = this._getNodeX(node);
+            const nodeY = this._getNodeY(node);
+            const dist = Math.sqrt((x - nodeX) ** 2 + (y - nodeY) ** 2);
+            if (dist <= this.nodeRadius) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Calculates node X position based on index
+     * @private
+     */
+    _getNodeX(node) {
+        const floorNodes = this.nodes.filter(n => n.floor === node.floor);
+        const index = floorNodes.indexOf(node);
+        const totalWidth = (floorNodes.length - 1) * 60;
+        const startX = (this.width - totalWidth) / 2;
+        return startX + index * 60;
+    }
+
+    /**
+     * Calculates node Y position based on floor
+     * @private
+     */
+    _getNodeY(node) {
+        return this.height - 40 - (node.floor * this.floorHeight);
     }
 
     /**
@@ -156,17 +244,37 @@ export class MapUI {
      * @param {MapNode} node - Node to draw
      */
     _drawNode(node) {
-        const y = 50 + node.floor * this.floorHeight;
+        const x = this._getNodeX(node);
+        const y = this._getNodeY(node);
         const isCurrent = node.id === this.currentNodeId;
         const isValidMove = this.validMoves.includes(node.id);
+        const isHovered = node.id === this.hoveredNodeId;
+        const isSelected = node.id === this.selectedNodeId;
         const isVisited = node.visited;
 
         // Node color based on type
         const baseColor = NodeColor[node.type] || '#ffffff';
 
+        // Draw hover/selection glow
+        if (isHovered || isSelected) {
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, this.nodeRadius + 4, 0, Math.PI * 2);
+            this.ctx.fillStyle = isHovered ? 'rgba(76, 175, 80, 0.4)' : 'rgba(255, 215, 0, 0.4)';
+            this.ctx.fill();
+        }
+
+        // Draw valid move indicator
+        if (isValidMove && !isCurrent) {
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, this.nodeRadius + 3, 0, Math.PI * 2);
+            this.ctx.strokeStyle = '#4caf50';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+        }
+
         // Draw node circle
         this.ctx.beginPath();
-        this.ctx.arc(node.x, y, this.nodeRadius, 0, Math.PI * 2);
+        this.ctx.arc(x, y, this.nodeRadius, 0, Math.PI * 2);
 
         // Fill based on state
         if (isCurrent) {
@@ -234,16 +342,24 @@ export class MapUI {
 
         // Check each node
         for (const node of this.nodes) {
-            const y = 50 + node.floor * this.floorHeight;
-            const dx = clickX - node.x;
-            const dy = clickY - y;
+            const nodeX = this._getNodeX(node);
+            const nodeY = this._getNodeY(node);
+            const dx = clickX - nodeX;
+            const dy = clickY - nodeY;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance <= this.nodeRadius) {
-                console.log(`[MapUI] Node clicked: ${node.id}`);
-
-                if (this.onNodeClick) {
-                    this.onNodeClick(node.id);
+                console.log(`[MapUI] Node clicked: ${node.id} (${node.type})`);
+                
+                // Only allow clicking valid moves
+                if (this.validMoves.includes(node.id)) {
+                    this.selectedNodeId = node.id;
+                    
+                    if (this.onNodeClick) {
+                        this.onNodeClick(node.id, node);
+                    }
+                } else if (node.id !== this.currentNodeId) {
+                    console.log('[MapUI] Node not reachable');
                 }
 
                 return node.id;
@@ -251,6 +367,25 @@ export class MapUI {
         }
 
         return null;
+    }
+
+    /**
+     * Gets tooltip info for hovered node
+     * @param {MapNode} node - Node to get info for
+     * @returns {Object} Tooltip data
+     */
+    getNodeTooltip(node) {
+        if (!node) return null;
+        
+        const isCurrent = node.id === this.currentNodeId;
+        const isValidMove = this.validMoves.includes(node.id);
+        
+        return {
+            title: `${NodeIcon[node.type]} ${node.type.charAt(0).toUpperCase() + node.type.slice(1)}`,
+            subtitle: `Floor ${node.floor}`,
+            description: isCurrent ? 'Your current position' : isValidMove ? 'Click to select' : 'Not reachable',
+            canSelect: isValidMove
+        };
     }
 
     /**

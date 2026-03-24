@@ -109,9 +109,9 @@ export class MapManager {
          * @type {boolean}
          * @description Whether to skip loading saves (for deployment reliability)
          */
-        this.skipSaveLoad = true;
+        this.skipSaveLoad = false;
 
-        // Load saved progress (disabled for now)
+        // Load saved progress
         if (!this.skipSaveLoad) {
             this.loadProgress();
         }

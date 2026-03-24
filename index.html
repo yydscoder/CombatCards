@@ -13,63 +13,68 @@
 </head>
 <body>
     <div id="game-container">
-        <!-- Map View - Campaign Map (Slay the Spire style) -->
-        <div id="map-view" style="display: none;">
-            <div id="map-header">
-                <h2>🗺️ Act <span id="act-number">1</span></h2>
-                <div id="map-stats">
-                    <span class="map-stat">❤️ <span id="map-hp">100/100</span></span>
-                    <span class="map-stat">💰 <span id="map-gold">0</span></span>
-                    <span class="map-stat">📊 <span id="map-floor">Floor 0/15</span></span>
+        <!-- Split Layout: Map Panel (left) + Combat Panel (right) -->
+        <div class="game-layout">
+            <!-- Map Panel - Always Visible -->
+            <aside id="map-panel">
+                <div id="map-header">
+                    <h2>🗺️ Act <span id="act-number">1</span></h2>
+                    <div id="map-stats">
+                        <span class="map-stat">❤️ <span id="map-hp">100/100</span></span>
+                        <span class="map-stat">💰 <span id="map-gold">0</span></span>
+                        <span class="map-stat">📊 <span id="map-floor">Floor 0/15</span></span>
+                    </div>
                 </div>
-            </div>
-            <canvas id="map-canvas" width="800" height="650"></canvas>
-            <div id="map-legend">
-                <span class="legend-item">⚔️ Combat</span>
-                <span class="legend-item">💀 Elite</span>
-                <span class="legend-item">❓ Event</span>
-                <span class="legend-item">🏪 Shop</span>
-                <span class="legend-item">🔥 Rest</span>
-                <span class="legend-item">👑 Boss</span>
-            </div>
-            <div id="map-controls">
-                <button id="proceed-btn" disabled>Proceed to Node</button>
-            </div>
-        </div>
-
-        <!-- Battle Field - Combat encounters -->
-        <div id="battle-field" style="display: none;">
-            <div id="hud">
-                <div id="player-stats">HP: <span id="player-hp">100</span> | Energy: <span id="player-mana">3</span></div>
-                <div id="enemy-stats">Enemy HP: <span id="enemy-hp">80</span></div>
-                <div id="turn-counter">Turn: <span id="turn-count">1</span></div>
-            </div>
-            
-            <div id="player-area" class="drop-zone" data-drop-target="player">
-                <div id="player-graphic">
-                    <div id="player-emoji">🧙</div>
-                    <div id="player-name">You</div>
+                <canvas id="map-canvas" width="400" height="600"></canvas>
+                <div id="map-legend">
+                    <span class="legend-item">⚔️ Combat</span>
+                    <span class="legend-item">💀 Elite</span>
+                    <span class="legend-item">❓ Event</span>
+                    <span class="legend-item">🏪 Shop</span>
+                    <span class="legend-item">🔥 Rest</span>
+                    <span class="legend-item">👑 Boss</span>
                 </div>
-                <div id="player-dots" class="dot-indicators"></div>
-                <div id="player-tooltip" class="dot-tooltip"></div>
-            </div>
-            <div id="enemy-area" class="drop-zone" data-drop-target="enemy">
-                <div id="enemy-graphic">
-                    <div id="enemy-emoji">🟢</div>
-                    <div id="enemy-name">Slime</div>
+                <div id="map-controls">
+                    <button id="proceed-btn" disabled>Proceed</button>
                 </div>
-                <div id="enemy-dots" class="dot-indicators"></div>
-                <div id="enemy-tooltip" class="dot-tooltip"></div>
-            </div>
+            </aside>
+
+            <!-- Combat Panel - Main Gameplay Area -->
+            <main id="combat-panel">
+                <div id="battle-field">
+                    <div id="hud">
+                        <div id="player-stats">HP: <span id="player-hp">100</span> | Energy: <span id="player-mana">3</span></div>
+                        <div id="enemy-stats">Enemy HP: <span id="enemy-hp">80</span></div>
+                        <div id="turn-counter">Turn: <span id="turn-count">1</span></div>
+                    </div>
+
+                    <div id="player-area" class="drop-zone" data-drop-target="player">
+                        <div id="player-graphic">
+                            <div id="player-emoji">🧙</div>
+                            <div id="player-name">You</div>
+                        </div>
+                        <div id="player-dots" class="dot-indicators"></div>
+                        <div id="player-tooltip" class="dot-tooltip"></div>
+                    </div>
+                    <div id="enemy-area" class="drop-zone" data-drop-target="enemy">
+                        <div id="enemy-graphic">
+                            <div id="enemy-emoji">🟢</div>
+                            <div id="enemy-name">Slime</div>
+                        </div>
+                        <div id="enemy-dots" class="dot-indicators"></div>
+                        <div id="enemy-tooltip" class="dot-tooltip"></div>
+                    </div>
+                </div>
+
+                <div id="hand"></div>
+
+                <div id="turn-controls">
+                    <button id="end-turn-btn">End Turn!</button>
+                </div>
+
+                <div id="deck"></div>
+            </main>
         </div>
-
-        <div id="hand" style="display: none;"></div>
-
-        <div id="turn-controls" style="display: none;">
-            <button id="end-turn-btn">End Turn!</button>
-        </div>
-
-        <div id="deck" style="display: none;"></div>
 
         <!-- Game Over Screen -->
         <div id="game-over-screen" style="display: none;">
