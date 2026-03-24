@@ -116,130 +116,73 @@ export class HUD {
      * Updates the player health bar visually
      */
     updatePlayerHealthBar() {
-        const healthFill = document.getElementById('player-health-fill');
+        // Use new health bar element
+        const healthFill = document.getElementById('player-hp-bar');
         if (!healthFill) {
-            console.error('[HUD] player-health-fill element NOT FOUND in DOM');
+            console.warn('[HUD] player-hp-bar element NOT FOUND in DOM');
             return;
         }
 
         const hpPct = (this.gameState.playerHp / this.gameState.playerMaxHp) * 100;
+        healthFill.style.width = `${Math.max(0, hpPct)}%`;
 
-        // Force update with setProperty for reliability (avoids CSS specificity issues)
-        healthFill.style.setProperty('width', `${hpPct}%`, 'important');
-        healthFill.style.setProperty('--health-percentage', `${hpPct}%`);
-        healthFill.className = 'bar-fill ' + this._hpColorClass(hpPct);
+        // Update HP text
+        const hpText = document.getElementById('player-hp');
+        if (hpText) hpText.textContent = this.gameState.playerHp;
+        
+        const maxHpText = document.getElementById('player-max-hp');
+        if (maxHpText) maxHpText.textContent = this.gameState.playerMaxHp;
 
-        const manaFill = document.getElementById('player-mana-fill');
-        if (manaFill) {
-            const energy = this.gameState.energy ?? 3;
-            const maxEnergy = this.gameState.maxEnergy ?? 3;
-            const manaPct = (energy / maxEnergy) * 100;
-            manaFill.style.setProperty('width', `${manaPct}%`, 'important');
-        }
-
-        const hpSpan = document.getElementById('player-hp');
-        if (hpSpan) hpSpan.textContent = this.gameState.playerHp;
-        else console.warn('[HUD] player-hp span NOT FOUND');
-        const manaSpan = document.getElementById('player-mana');
+        // Update energy bar
+        const energyFill = document.getElementById('player-energy-bar');
         const energy = this.gameState.energy ?? 3;
-        if (manaSpan) manaSpan.textContent = energy;
-        else console.warn('[HUD] player-mana span NOT FOUND');
-
-        // Verify DOM update
-        const computedWidth = window.getComputedStyle(healthFill).width;
-        console.log(
-            `[HUD] Player bar — HP: ${this.gameState.playerHp}/${this.gameState.playerMaxHp}`,
-            `| Energy: ${energy}/${this.gameState.maxEnergy ?? 3}`,
-            `| Percentage: ${hpPct.toFixed(1)}%`,
-            `| Width set: ${healthFill.style.width}`,
-            `| Computed width: ${computedWidth}`
-        );
-
-        // Detect desync
-        const expectedWidth = (hpPct / 100) * healthFill.parentNode.offsetWidth;
-        const actualWidth = parseFloat(computedWidth);
-        if (Math.abs(expectedWidth - actualWidth) > 2) {
-            console.warn(`[HUD] ⚠️ Player HP bar DESYNC: expected ${expectedWidth.toFixed(1)}px, got ${actualWidth.toFixed(1)}px`);
+        const maxEnergy = this.gameState.maxEnergy ?? 3;
+        if (energyFill) {
+            const energyPct = (energy / maxEnergy) * 100;
+            energyFill.style.width = `${energyPct}%`;
         }
+        
+        const energyText = document.getElementById('player-energy');
+        if (energyText) energyText.textContent = energy;
+        
+        const maxEnergyText = document.getElementById('player-max-energy');
+        if (maxEnergyText) maxEnergyText.textContent = maxEnergy;
     }
-    
+
     /**
      * Re-initializes enemy health bar with new max HP (called when enemy changes)
      */
     reinitEnemyHealthBar() {
-        if (this.elements.enemyStats) {
-            const enemyName = this.gameState.enemy?.name || 'Enemy';
-            const enemyMaxHp = this.gameState.enemyMaxHp || 80;
-            this.elements.enemyStats.innerHTML = `
-                <div class="hud-block">
-                    <div class="hud-block-title" id="enemy-name-title">${enemyName}</div>
-                    <div class="bar-row">
-                        <span class="bar-icon">❤️</span>
-                        <div class="bar-track">
-                            <div class="bar-fill" id="enemy-health-fill" style="width:100%"></div>
-                        </div>
-                        <span class="bar-value"><span id="enemy-hp">${this.gameState.enemyHp}</span>/<span id="enemy-max-hp">${enemyMaxHp}</span></span>
-                    </div>
-                    <div class="bar-row shield-row" id="enemy-shield-row" style="display:none;">
-                        <span class="bar-icon">🛡️</span>
-                        <div class="bar-track shield-track">
-                            <div class="bar-fill shield-fill" id="enemy-shield-fill" style="width:100%"></div>
-                        </div>
-                        <span class="bar-value"><span id="enemy-shield">0</span></span>
-                    </div>
-                    <div class="bar-row hud-cd-row">
-                        <span class="bar-icon">CD</span>
-                        <span class="bar-value"><span id="enemy-attack-cd">${this.gameState.enemyAttackCooldown ?? 0}</span></span>
-                    </div>
-                </div>`;
-            this.updateEnemyHealthBar();
-            console.log(`[HUD] Enemy health bar re-initialized with max HP: ${enemyMaxHp}`);
-        }
+        // Enemy health bar is now in the main layout
+        this.updateEnemyHealthBar();
     }
 
     /**
      * Updates the enemy health bar visually
      */
     updateEnemyHealthBar() {
-        const healthFill = document.getElementById('enemy-health-fill');
+        // Use new enemy health bar element
+        const healthFill = document.getElementById('enemy-hp-bar');
         if (!healthFill) {
-            console.error('[HUD] enemy-health-fill element NOT FOUND in DOM');
+            console.warn('[HUD] enemy-hp-bar element NOT FOUND in DOM');
             return;
         }
 
-        const enemyTitle = document.getElementById('enemy-name-title');
-        if (enemyTitle) {
-            enemyTitle.textContent = this.gameState.enemy?.name || 'Enemy';
-        }
-
-        // Update max HP display if it changed
-        const enemyMaxHpSpan = document.getElementById('enemy-max-hp');
-        if (enemyMaxHpSpan) {
-            enemyMaxHpSpan.textContent = this.gameState.enemyMaxHp;
-        }
-
         const pct = (this.gameState.enemyHp / this.gameState.enemyMaxHp) * 100;
+        healthFill.style.width = `${Math.max(0, pct)}%`;
 
-        // Force update with setProperty for reliability
-        healthFill.style.setProperty('width', `${pct}%`, 'important');
-        healthFill.style.setProperty('--health-percentage', `${pct}%`);
-        healthFill.className = 'bar-fill ' + this._hpColorClass(pct);
+        // Update enemy name
+        const enemyNameEl = document.getElementById('enemy-name');
+        if (enemyNameEl && this.gameState.enemy) {
+            enemyNameEl.textContent = this.gameState.enemy.name || 'ENEMY';
+        }
 
+        // Update HP text
         const hpSpan = document.getElementById('enemy-hp');
         if (hpSpan) hpSpan.textContent = this.gameState.enemyHp;
-        else console.warn('[HUD] enemy-hp span NOT FOUND');
-
-        const cdSpan = document.getElementById('enemy-attack-cd');
-        if (cdSpan) {
-            cdSpan.textContent = this.gameState.enemyAttackCooldown ?? 0;
-        }
-
-        console.log(
-            `[HUD] Enemy bar — HP: ${this.gameState.enemyHp}/${this.gameState.enemyMaxHp}`,
-            `| Percentage: ${pct.toFixed(1)}%`,
-            `| Width set: ${healthFill.style.width}`,
-            `| Element:`, healthFill
-        );
+        
+        const maxHpSpan = document.getElementById('enemy-max-hp');
+        if (maxHpSpan) maxHpSpan.textContent = this.gameState.enemyMaxHp;
     }
 
     /**

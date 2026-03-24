@@ -50,6 +50,15 @@
 
             <!-- Right Panel - Combat Area -->
             <main id="combat-panel">
+                <!-- Placeholder when not in combat -->
+                <div id="combat-placeholder">
+                    <div class="placeholder-content">
+                        <div class="placeholder-icon">⚔️</div>
+                        <h3>Select a combat node to begin</h3>
+                        <p>Click on a green-bordered floor in the map, then click "Proceed"</p>
+                    </div>
+                </div>
+
                 <!-- Enemy Intent Display -->
                 <div id="enemy-intent" style="display: none;">
                     <span id="intent-icon">⚔️</span>
@@ -57,7 +66,7 @@
                 </div>
 
                 <!-- Character & Enemy Display -->
-                <div id="battle-area">
+                <div id="battle-area" style="display: none;">
                     <div id="player-display">
                         <div id="player-emoji">🧙</div>
                         <div id="player-name">YOU</div>

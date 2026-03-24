@@ -158,37 +158,51 @@ function setGameState(state) {
 
     const mapPanel = document.getElementById('map-panel');
     const combatPanel = document.getElementById('combat-panel');
+    const combatPlaceholder = document.getElementById('combat-placeholder');
+    const battleArea = document.getElementById('battle-area');
+    const enemyIntent = document.getElementById('enemy-intent');
     const handEl = document.getElementById('hand');
+    const handContainer = document.getElementById('hand-container');
     const turnControls = document.getElementById('turn-controls');
     const gameOverScreen = document.getElementById('game-over-screen');
-    const enemyIntent = document.getElementById('enemy-intent');
 
     switch (state) {
         case GameStateEnum.MAP:
+            // Show map panel, hide combat elements
             if (mapPanel) mapPanel.style.display = 'flex';
-            if (combatPanel) combatPanel.style.display = 'none';
+            if (combatPanel) combatPanel.style.display = 'flex';
+            if (combatPlaceholder) combatPlaceholder.style.display = 'flex';
+            if (battleArea) battleArea.style.display = 'none';
+            if (enemyIntent) enemyIntent.style.display = 'none';
             if (handEl) handEl.style.display = 'none';
+            if (handContainer) handContainer.style.display = 'none';
             if (turnControls) turnControls.style.display = 'none';
             if (gameOverScreen) gameOverScreen.style.display = 'none';
-            if (enemyIntent) enemyIntent.style.display = 'none';
             break;
 
         case GameStateEnum.COMBAT:
+            // Show combat elements, hide placeholder
             if (mapPanel) mapPanel.style.display = 'flex';
             if (combatPanel) combatPanel.style.display = 'flex';
+            if (combatPlaceholder) combatPlaceholder.style.display = 'none';
+            if (battleArea) battleArea.style.display = 'flex';
+            if (enemyIntent) enemyIntent.style.display = 'flex';
             if (handEl) handEl.style.display = 'flex';
+            if (handContainer) handContainer.style.display = 'block';
             if (turnControls) turnControls.style.display = 'flex';
             if (gameOverScreen) gameOverScreen.style.display = 'none';
-            if (enemyIntent) enemyIntent.style.display = 'flex';
             break;
 
         case GameStateEnum.GAME_OVER:
             if (mapPanel) mapPanel.style.display = 'none';
             if (combatPanel) combatPanel.style.display = 'none';
+            if (combatPlaceholder) combatPlaceholder.style.display = 'none';
+            if (battleArea) battleArea.style.display = 'none';
+            if (enemyIntent) enemyIntent.style.display = 'none';
             if (handEl) handEl.style.display = 'none';
+            if (handContainer) handContainer.style.display = 'none';
             if (turnControls) turnControls.style.display = 'none';
             if (gameOverScreen) gameOverScreen.style.display = 'flex';
-            if (enemyIntent) enemyIntent.style.display = 'none';
             break;
     }
 }
@@ -354,7 +368,7 @@ function startCombat(node, isElite = false, isBoss = false) {
     // Start first turn
     gameState.turnManager.startTurn();
 
-    // Switch to combat state
+    // Switch to combat state (shows battle area, hides placeholder)
     setGameState(GameStateEnum.COMBAT);
 
     console.log(`Combat started against ${enemy.name} (${enemy.hp} HP)`);
