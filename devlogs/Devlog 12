@@ -1,0 +1,94 @@
+Overview
+
+    I have transformed cards from static objects into a reactive event-driven system. Cards now react when drawn, while
+     sitting in your hand, and when played/discarded/exhausted. They can communicate with each other and have
+    dynamic costs and stats.
+
+    This enables Slay the Spire 2-style mechanics like Sly (benefits from discard), exhaust loops, and in-hand
+    buffs.
+
+
+    What I built in this session 
+
+    1. Card Tags System
+
+    Cards now have tags for synergy detection:
+
+    this.tags = [CardTag.ATTACK, CardTag.FIRE];
+
+    Available tags include: ATTACK, SKILL, FIRE, WATER, SLY, EXHAUST, DOT, BLOCK, HEAL, DRAW, STATUS and there may be more in the future 
+
+
+    This allows cards to detect and synergize with each other. A fire buff card can now check if another card is a
+    fire card and buff it.
+
+    2. Entry Reactions
+
+    Cards can now trigger effects when they enter your hand:
+
+     - `onDraw(gameState)` - Called when card is drawn from deck
+     - `onEnterHand(gameState, source)` - Called when card enters hand from any source (draw, generate, return from
+       exhaust)
+
+    Example use case: A card that gains 1 energy when drawn, or reduces its cost if it came from the exhaust pile.
+
+    3. In-Hand Event Listening
+
+    Cards can now listen for events while sitting in your hand:
+
+      this.listenFor('cardPlayed', (data) => {
+          if (data.card.tags.includes(CardTag.FIRE)) {
+              this.incrementCounter('damageBuff', 1);
+          }
+      });
+
+    Every time a fire card is played, this card increments its damage counter. When played later, it deals more
+    damage (use wisely to stack!)
+
+    Cards can listen for:
+     - cardPlayed - When any card is played
+     - cardDiscarded - When any card is discarded
+     - cardExhausted - When any card is exhausted
+
+    4. Exit Reactions
+
+    Cards trigger effects when leaving your hand:
+
+     - `onPlay(gameState, target)` - When card is played
+     - `onDiscard(gameState)` - When card is discarded (Sly effects)
+     - `onExhaust(gameState)` - When card is exhausted
+
+    Example: A Sly card that deals 4 damage to the enemy when discarded, enabling discard-based strategies for example. 
+
+    5. Dynamic Costs & Stats
+
+    Card costs and stats are no longer fixed:
+
+      getCost(gameState) {
+          // Cost reduced by 1 for each water card played this turn
+          const waterPlayed = gameState.counters?.waterPlayedThisTurn || 0;
+          return Math.max(0, this.baseCost - waterPlayed);
+      }
+     
+      getDamage(gameState) {
+          return this.baseDamage + this.getCounter('damageBuff');
+      }
+
+    A card's cost can change based on game state, and damage can scale based on counters tracked during the turn.
+
+
+    Technical Implementation
+
+    CardPileManager now broadcasts events to all cards in hand whenever a card is played, discarded, or exhausted.
+    Each card maintains its own event listener registry and counter storage.
+
+    Memory Management: When a card leaves hand, removeAllListeners() is called to prevent memory leaks from
+    accumulated callbacks.
+
+    Impact
+
+    This system enables complex card interactions without hardcoding synergies. Cards can now:
+     - Buff each other based on tags
+     - Track state across turns with counters
+     - Trigger effects from any zone (hand, discard, exhaust)
+     - Have costs that dynamically scale
