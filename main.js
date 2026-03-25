@@ -325,7 +325,9 @@ function setGameState(state) {
         case GameStateEnum.COMBAT:
             // Show combat elements, hide placeholder
             if (combatPlaceholder) combatPlaceholder.style.display = 'none';
-            if (battleArea) battleArea.style.display = 'flex';
+            if (battleArea) {
+                battleArea.style.display = 'flex';  // Already has flex-direction: row in CSS
+            }
             if (enemyIntent) enemyIntent.style.display = 'flex';
             if (handEl) handEl.style.display = 'flex';
             if (handContainer) handContainer.style.display = 'block';
@@ -574,6 +576,8 @@ function updateEnemyIntent() {
     intentText.textContent = `${damage}`;
     intentEl.style.display = 'flex';
     intentEl.title = `Enemy will attack for ${damage} damage`;
+    
+    console.log('[updateEnemyIntent] Intent displayed:', damage);
 }
 
 /**

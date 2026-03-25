@@ -1,0 +1,79 @@
+    Overview
+
+    We overhauled the UI to match a dungeon crawler aesthetic. The battle layout is now horizontal (player on left, enemy on right) when it was up and down before , and we added intent telegraphing and buff/debuff tooltips.
+
+    ---
+
+    What We Changed
+
+    1. Horizontal Battle Layout
+
+    Before: Player on top, enemy on bottom (vertical stack)
+
+    After: Player on LEFT, enemy on RIGHT with 40px gap between them
+
+    This  ives more horizontal breathing room. The player has a blue border,  the enemy has a red border for clear visual distinction might have to test putting in multiple enemies for creep mobs
+
+    2. Clean HUD Design
+
+    We removed emoji clutter from the HUD:
+
+    Before: ❤️ 100/100 | ⚡ 3/3 | 💰 0 |  Floor 0/15 |  View Map
+
+    After: HP: 100/100 | Energy: 3/3 | Gold: 0 | Floor: 0/15 | Map
+
+    Clean text labels look more professional and are easier to read at a glance.
+
+    3. Intent Display System
+
+    Intent shows what the enemy will do when you end your turn so you can telegraph your gameplay plans easier
+
+    Display Format: ⚔️ 8 (icon + number)
+
+    The intent appears above the enemy at the START of your turn, before you decide what to play. This allows
+    informed decision-making. If the enemy will attack for 8 and you're at 5 HP, you know to play block cards.
+
+    4. Buff/Debuff Tooltip System
+
+    We added infrastructure for status effect display:
+
+     - Buff Container - Small icon boxes below HP/energy bars
+     - Hover Tooltips - Show effect name, description, stacks, and duration on hover
+     - Color Coding - Green border for buffs, red border for debuffs
+
+    Currently the containers exist but aren't populated yet (waiting for EffectManager integration).
+
+    5. Combat Exploit Prevention
+
+    The Exploit: Players could open the map during combat and click nodes to spawn new enemies, essentially
+    resetting fights or gaining unfair advantages.
+
+    The Fix: Added a state check in openModal():
+
+     1 if (gameState && gameState.enemy) {
+     2     console.warn('[openModal] Cannot open map during combat!');
+     3     return;
+     4 }
+
+    The map modal simply won't open if you're in combat. The "Map" button is also hidden during combat for extra
+    safety.
+
+    6. Drag-and-Drop Visual Feedback
+
+    When dragging a card over the player or enemy area, they now highlight:
+     - Player area - Green tint when hovering
+     - Enemy area - Red tint when hovering
+
+    This gives clear visual feedback about where you're dropping the card.
+
+    Technical Implementation
+
+    CSS Flexbox was key for the horizontal layout. Changed #battle-area from flex-direction: column to
+    flex-direction: row with justify-content: space-around.
+
+    Order Property ensures player is always on left (order: 1) and enemy on right (order: 2) regardless of HTML
+    order.
+
+    Modal Lazy Initialization - The NodeListView is only created when the map modal is first opened, preventing
+    "container not found" errors.
+

@@ -162,13 +162,32 @@ body {
 
 /* Battle Area - Character & Enemy */
 #battle-area {
-    display: flex;
-    flex-direction: row;
+    display: flex !important;
+    flex-direction: row !important;
     justify-content: space-around;
     align-items: center;
     gap: 40px;
     padding: 20px;
     flex-grow: 1;
+    position: relative;
+}
+
+/* Enemy Intent Display - Positioned above enemy */
+#enemy-intent {
+    position: absolute;
+    top: -50px;
+    right: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 82, 82, 0.2);
+    border: 1px solid #ff5252;
+    border-radius: 8px;
+    color: #ff5252;
+    font-weight: bold;
+    white-space: nowrap;
 }
 
 #player-display, #enemy-display {
@@ -184,12 +203,10 @@ body {
 
 #player-display {
     border: 2px solid #4a90d9;
-    order: 1; /* Player on LEFT */
 }
 
 #enemy-display {
     border: 2px solid #ff5252;
-    order: 2; /* Enemy on RIGHT */
 }
 
 #player-emoji, #enemy-emoji {
