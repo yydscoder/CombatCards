@@ -145,6 +145,35 @@ function initializeUIHandlers() {
         });
     }
 
+    // Deck viewer - click on draw pile
+    const drawPile = document.getElementById('draw-pile');
+    if (drawPile) {
+        drawPile.addEventListener('click', () => openDeckViewer('deck'));
+    }
+
+    // Deck viewer - click on discard pile
+    const discardPile = document.getElementById('discard-pile');
+    if (discardPile) {
+        discardPile.addEventListener('click', () => openDeckViewer('discard'));
+    }
+
+    // Close deck viewer
+    const closeDeckViewer = document.getElementById('close-deck-viewer');
+    const deckViewerModal = document.getElementById('deck-viewer-modal');
+    if (closeDeckViewer && deckViewerModal) {
+        closeDeckViewer.addEventListener('click', () => {
+            deckViewerModal.style.display = 'none';
+            deckViewerModal.classList.remove('active');
+        });
+        
+        deckViewerModal.addEventListener('click', (e) => {
+            if (e.target === deckViewerModal) {
+                deckViewerModal.style.display = 'none';
+                deckViewerModal.classList.remove('active');
+            }
+        });
+    }
+
     // Initialize drag-and-drop for card targeting
     initializeDropZones();
 }
@@ -841,6 +870,12 @@ function updateHealthBars() {
         drawCount.textContent = gameState.cardPileManager.getDrawPileCount();
     }
     
+    // Update discard pile counter
+    const discardCount = document.getElementById('discard-count');
+    if (gameState.cardPileManager && discardCount) {
+        discardCount.textContent = gameState.cardPileManager.getDiscardPileCount();
+    }
+    
     console.log('[updateHealthBars] Player:', gameState.playerHp + '/' + gameState.playerMaxHp, 'Block:', gameState.playerBlock, 'Energy:', energy + '/' + maxEnergy);
     if (gameState.enemy) {
         console.log('[updateHealthBars] Enemy:', gameState.enemy.name, gameState.enemyHp + '/' + gameState.enemyMaxHp);
@@ -924,4 +959,53 @@ function endTurn() {
     }
 
     console.log(`[endTurn] New turn started | Energy: ${gameState.energy}/${gameState.maxEnergy}`);
+}
+
+/**
+ * Opens deck viewer modal (deck or discard pile)
+ * @param {string} type - 'deck' or 'discard'
+ */
+function openDeckViewer(type) {
+    const gameState = window.gameState;
+    const deckViewerModal = document.getElementById('deck-viewer-modal');
+    const deckViewerTitle = document.getElementById('deck-viewer-title');
+    const deckViewerCards = document.getElementById('deck-viewer-cards');
+    
+    if (!gameState || !gameState.cardPileManager || !deckViewerModal) return;
+    
+    const pileManager = gameState.cardPileManager;
+    let cards = [];
+    
+    if (type === 'deck') {
+        cards = pileManager.getDrawPile();
+        deckViewerTitle.textContent = `Draw Pile (${cards.length} cards)`;
+    } else if (type === 'discard') {
+        cards = pileManager.getDiscardPile();
+        deckViewerTitle.textContent = `Discard Pile (${cards.length} cards)`;
+    }
+    
+    // Clear previous cards
+    deckViewerCards.innerHTML = '';
+    
+    if (cards.length === 0) {
+        deckViewerCards.innerHTML = '<p style="color: #666; text-align: center; padding: 40px;">No cards</p>';
+    } else {
+        // Show each card
+        for (const card of cards) {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'card';
+            cardEl.innerHTML = `
+                <div class="card-emoji">${card.emoji || '🎴'}</div>
+                <div class="card-name">${card.name}</div>
+                <div class="card-cost">${card.cost}</div>
+            `;
+            deckViewerCards.appendChild(cardEl);
+        }
+    }
+    
+    // Show modal
+    deckViewerModal.style.display = 'flex';
+    deckViewerModal.classList.add('active');
+    
+    console.log(`[DeckViewer] Opened ${type} with ${cards.length} cards`);
 }

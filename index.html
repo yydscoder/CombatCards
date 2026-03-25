@@ -78,20 +78,41 @@
                 </div>
             </div>
 
-            <!-- Card Hand (STS-style: energy orb left, fanned cards center, draw pile right) -->
+            <!-- Card Hand (STS-style: draw pile left, energy orb, fanned cards, discard right, end turn) -->
             <div id="hand-container" style="display: none;">
-                <div id="energy-orb" class="resource-orb">
+                <!-- Draw Pile (LEFT) -->
+                <div id="draw-pile" class="resource-orb" title="Click to view deck">
+                    <span id="draw-count">0</span>
+                    <span class="pile-icon">📚</span>
+                </div>
+                
+                <!-- Energy Orb (placeholder for custom image) -->
+                <div id="energy-orb">
                     <span id="energy-count">3</span>/<span id="energy-max">3</span>
                 </div>
                 
+                <!-- Hand (centered, fanned) -->
                 <div id="hand"></div>
                 
-                <div id="draw-pile" class="resource-orb">
-                    <span id="draw-count">0</span>
-                    <span class="draw-icon">📚</span>
+                <!-- Discard Pile (RIGHT) -->
+                <div id="discard-pile" class="resource-orb" title="Click to view discard pile">
+                    <span id="discard-count">0</span>
+                    <span class="pile-icon">🗑️</span>
                 </div>
                 
+                <!-- End Turn Button (bottom-left) -->
                 <button id="end-turn-btn">End Turn!</button>
+            </div>
+            
+            <!-- Deck Viewer Modal -->
+            <div id="deck-viewer-modal" style="display: none;">
+                <div class="deck-viewer-content">
+                    <div class="deck-viewer-header">
+                        <h3 id="deck-viewer-title">Deck</h3>
+                        <button id="close-deck-viewer">✕</button>
+                    </div>
+                    <div id="deck-viewer-cards"></div>
+                </div>
             </div>
         </main>
 
