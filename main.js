@@ -838,7 +838,7 @@ function updateHealthBars() {
     // Update draw pile counter
     const drawCount = document.getElementById('draw-count');
     if (gameState.cardPileManager && drawCount) {
-        drawCount.textContent = gameState.cardPileManager.getDrawPile().length;
+        drawCount.textContent = gameState.cardPileManager.getDrawPileCount();
     }
     
     console.log('[updateHealthBars] Player:', gameState.playerHp + '/' + gameState.playerMaxHp, 'Block:', gameState.playerBlock, 'Energy:', energy + '/' + maxEnergy);
