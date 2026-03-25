@@ -57,8 +57,29 @@ export class HandUI {
         // Card element cache
         this.cardElements = new Map();
         
-        // Get HandLayout from hand instance (if available)
-        this.handLayout = hand?.handLayout || null;
+        // Get HandLayout - try multiple sources
+        this.handLayout = null;
+        if (hand && hand.handLayout) {
+            this.handLayout = hand.handLayout;
+            console.log('[HandUI] Got handLayout from hand instance');
+        } else if (gameState && gameState.handLayout) {
+            this.handLayout = gameState.handLayout;
+            console.log('[HandUI] Got handLayout from gameState');
+        } else {
+            // Create our own instance as fallback
+            this.handLayout = new HandLayout({
+                maxSpread: 70,
+                curveHeight: 35,
+                maxRotation: 18,
+                baseSpread: 40,
+                spreadFactor: 8,
+                lerpFactor: 0.15,
+                hoverScale: 1.15,
+                hoverLift: 60,
+                bottomAlign: true
+            });
+            console.log('[HandUI] Created fallback handLayout instance');
+        }
 
         // Initialize the hand UI
         this.init();
@@ -218,8 +239,6 @@ export class HandUI {
      * @param {Object[]} cards - Array of cards to render
      */
     renderHand(cards) {
-        console.log('[HandUI] renderHand called with', cards.length, 'cards');
-        
         // Clear all slots first
         this.clearAllSlots();
 
@@ -228,7 +247,6 @@ export class HandUI {
             if (index < this.slots.length) {
                 this.slots[index].setCard(card);
                 this.cardElements.set(card.id, this.slots[index].getCardElement());
-                console.log('[HandUI] Card slot', index, 'set to', card.name);
             }
         });
         
@@ -245,27 +263,16 @@ export class HandUI {
      * @param {Object[]} cards - Array of cards
      */
     applyHandLayout(cards) {
-        console.log('[HandLayout] applyHandLayout called with', cards.length, 'cards');
-        console.log('[HandLayout] handLayout instance:', this.handLayout);
-        
-        if (!this.handLayout || cards.length === 0) {
-            console.warn('[HandLayout] Skipping - no handLayout or no cards');
-            return;
-        }
+        if (!this.handLayout || cards.length === 0) return;
         
         const containerWidth = this.handContainer?.offsetWidth || 800;
-        console.log('[HandLayout] Container width:', containerWidth);
-        
         const transforms = this.handLayout.calculateCardPositions(cards, containerWidth);
-        console.log('[HandLayout] Calculated transforms:', transforms);
         
         cards.forEach((card, index) => {
             const cardEl = this.cardElements.get(card.id);
-            console.log('[HandLayout] Card', index, card.name, 'element:', cardEl);
             
             if (cardEl && transforms[index]) {
                 this.handLayout.applyTransform(cardEl, transforms[index]);
-                console.log('[HandLayout] Applied transform to', card.name);
                 
                 // Store current transform for interpolation
                 cardEl._currentTransform = { ...transforms[index] };
@@ -276,13 +283,11 @@ export class HandUI {
                 
                 // Add hover handler with layout update
                 cardEl._hoverIn = () => {
-                    console.log('[HandLayout] Hovering', card.name);
                     const hoverTransform = this.handLayout.applyHover(transforms[index], true);
                     this.handLayout.applyTransform(cardEl, hoverTransform);
                 };
                 
                 cardEl._hoverOut = () => {
-                    console.log('[HandLayout] Unhovering', card.name);
                     this.handLayout.applyTransform(cardEl, transforms[index]);
                 };
                 
@@ -290,8 +295,6 @@ export class HandUI {
                 cardEl.addEventListener('mouseleave', cardEl._hoverOut);
             }
         });
-        
-        console.log('[HandLayout] Layout complete');
     }
 
     /**

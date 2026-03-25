@@ -18,6 +18,10 @@ export class HandLayout {
         this.lerpFactor = options.lerpFactor || 0.15;   // Smooth interpolation
         this.hoverScale = options.hoverScale || 1.2;    // Hover scale
         this.hoverLift = options.hoverLift || 40;       // Hover lift in px
+        
+        // Alignment configuration
+        this.bottomAlign = options.bottomAlign || false; // Align at bottom like fan
+        this.cardHeight = options.cardHeight || 180;     // Approximate card height for alignment
     }
     
     /**
@@ -66,21 +70,30 @@ export class HandLayout {
             
             // Rotation (tilts outward from center)
             const rotation = clampedT * this.maxRotation;
-            
+
             // Z-index (center cards render on top)
             // Uses inverted absolute value so center = highest
             const zIndex = Math.floor(100 - Math.abs(clampedT) * 50);
-            
+
+            // Bottom alignment adjustment (fan hold style)
+            let finalY = y;
+            if (this.bottomAlign) {
+                // Shift cards down so bottom edges align
+                // Cards at edges need more adjustment due to rotation
+                const rotationOffset = Math.abs(rotation) * 2;
+                finalY = y + this.cardHeight * 0.35 + rotationOffset;
+            }
+
             transforms.push({
                 x,
-                y,
+                y: finalY,
                 rotation,
                 zIndex,
                 scale: 1,
                 index: i
             });
         }
-        
+
         return transforms;
     }
     
@@ -138,18 +151,11 @@ export class HandLayout {
      * @param {Object} transform - Transform object
      */
     applyTransform(cardEl, transform) {
-        if (!cardEl) {
-            console.warn('[HandLayout] applyTransform: No card element');
-            return;
-        }
+        if (!cardEl) return;
         
         const transformString = `translateX(${transform.x}px) translateY(${transform.y}px) rotate(${transform.rotation}deg) scale(${transform.scale})`;
-        console.log('[HandLayout] Applying transform:', transformString);
-        
         cardEl.style.transform = transformString;
         cardEl.style.zIndex = transform.zIndex;
-        
-        console.log('[HandLayout] Transform applied to element:', cardEl);
     }
     
     /**

@@ -137,14 +137,15 @@ export class Hand {
         
         // Initialize HandLayout for STS-style card positioning
         this.handLayout = new HandLayout({
-            maxSpread: 140,
-            curveHeight: 40,
-            maxRotation: 12,
-            baseSpread: 60,
-            spreadFactor: 10,
-            lerpFactor: 0.15,
-            hoverScale: 1.2,
-            hoverLift: 40
+            maxSpread: 70,        // Tightly overlapped (30-40% visible)
+            curveHeight: 35,      // Medium arc height
+            maxRotation: 18,      // Strong rotation (edge cards tilt 18 degrees)
+            baseSpread: 40,       // Tighter base spread
+            spreadFactor: 8,      // Less spread increase per card
+            lerpFactor: 0.15,     // Smooth interpolation
+            hoverScale: 1.15,     // Slight scale on hover
+            hoverLift: 60,        // Big lift on hover (STS-style)
+            bottomAlign: true     // Align at bottom like holding a fan
         });
 
         // Log initialization

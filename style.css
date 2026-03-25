@@ -393,6 +393,30 @@ body {
     display: flex;
     justify-content: center;
     gap: 4px;
+    max-width: 700px;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 20px 40px;
+    min-height: 200px;
+}
+
+/* Scrollbar styling for hand */
+#hand::-webkit-scrollbar {
+    height: 8px;
+}
+
+#hand::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
+#hand::-webkit-scrollbar-thumb {
+    background: #6a6aff;
+    border-radius: 4px;
+}
+
+#hand::-webkit-scrollbar-thumb:hover {
+    background: #8a8aff;
 }
 
 /* Discard Pile (BOTTOM-RIGHT corner) */
