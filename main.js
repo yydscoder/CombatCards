@@ -313,8 +313,14 @@ function setGameState(state) {
         case GameStateEnum.MAP:
             // Show placeholder, hide combat elements
             if (combatPlaceholder) combatPlaceholder.style.display = 'flex';
-            if (battleArea) battleArea.style.display = 'none';
-            if (enemyIntent) enemyIntent.style.display = 'none';
+            if (battleArea) {
+                battleArea.style.display = 'none';
+                battleArea.classList.remove('visible');
+            }
+            if (enemyIntent) {
+                enemyIntent.style.display = 'none';
+                enemyIntent.classList.remove('visible');
+            }
             if (handEl) handEl.style.display = 'none';
             if (handContainer) handContainer.style.display = 'none';
             if (turnControls) turnControls.style.display = 'none';
@@ -326,9 +332,13 @@ function setGameState(state) {
             // Show combat elements, hide placeholder
             if (combatPlaceholder) combatPlaceholder.style.display = 'none';
             if (battleArea) {
-                battleArea.style.display = 'flex';  // Already has flex-direction: row in CSS
+                battleArea.classList.add('visible');
+                battleArea.style.display = 'flex';
             }
-            if (enemyIntent) enemyIntent.style.display = 'flex';
+            if (enemyIntent) {
+                enemyIntent.classList.add('visible');
+                enemyIntent.style.display = 'flex';
+            }
             if (handEl) handEl.style.display = 'flex';
             if (handContainer) handContainer.style.display = 'block';
             if (turnControls) turnControls.style.display = 'flex';
@@ -796,22 +806,16 @@ function updateHealthBars() {
     if (playerHpText) playerHpText.textContent = gameState.playerHp;
     if (playerMaxHpText) playerMaxHpText.textContent = gameState.playerMaxHp;
     
-    // Player Energy bar
-    const playerEnergyBar = document.getElementById('player-energy-bar');
-    const playerEnergyText = document.getElementById('player-energy');
-    const playerMaxEnergyText = document.getElementById('player-max-energy');
-    
+    // Player Energy (update orb)
+    const energyCount = document.getElementById('energy-count');
+    const energyMax = document.getElementById('energy-max');
     const energy = gameState.energy ?? 3;
     const maxEnergy = gameState.maxEnergy ?? 3;
     
-    if (playerEnergyBar) {
-        const energyPercent = (energy / maxEnergy) * 100;
-        playerEnergyBar.style.width = `${energyPercent}%`;
-    }
-    if (playerEnergyText) playerEnergyText.textContent = energy;
-    if (playerMaxEnergyText) playerMaxEnergyText.textContent = maxEnergy;
+    if (energyCount) energyCount.textContent = energy;
+    if (energyMax) energyMax.textContent = maxEnergy;
     
-    // Player Block display (if exists)
+    // Player Block display
     const playerBlockText = document.getElementById('player-block');
     if (playerBlockText) {
         playerBlockText.textContent = gameState.playerBlock || 0;
@@ -829,6 +833,12 @@ function updateHealthBars() {
         }
         if (enemyHpText) enemyHpText.textContent = gameState.enemyHp;
         if (enemyMaxHpText) enemyMaxHpText.textContent = gameState.enemyMaxHp;
+    }
+    
+    // Update draw pile counter
+    const drawCount = document.getElementById('draw-count');
+    if (gameState.cardPileManager && drawCount) {
+        drawCount.textContent = gameState.cardPileManager.getDrawPile().length;
     }
     
     console.log('[updateHealthBars] Player:', gameState.playerHp + '/' + gameState.playerMaxHp, 'Block:', gameState.playerBlock, 'Energy:', energy + '/' + maxEnergy);

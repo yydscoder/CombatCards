@@ -13,19 +13,22 @@
 </head>
 <body>
     <div id="game-container">
-        <!-- Top HUD - Always Visible -->
+        <!-- Top HUD - Always Visible (STS-style layout) -->
         <div id="top-hud">
             <div id="hud-left">
-                <span class="hud-stat">HP: <span id="hud-hp">100/100</span></span>
-                <span class="hud-stat">Energy: <span id="hud-energy">3/3</span></span>
-                <span class="hud-stat">Gold: <span id="hud-gold">0</span></span>
+                <span class="hud-stat hud-hp">❤️ <span id="hud-hp">100/100</span></span>
+                <span class="hud-stat hud-gold">💰 <span id="hud-gold">0</span></span>
+                <div class="hud-potions" id="hud-potions">
+                    <!-- Potion slots will be added here in future -->
+                </div>
             </div>
             <div id="hud-center">
-                <span id="hud-act">Act <span id="act-number">1</span></span>
+                <span class="hud-floor">❓ <span id="hud-floor">0/15</span></span>
             </div>
             <div id="hud-right">
-                <span class="hud-stat">Floor: <span id="hud-floor">0/15</span></span>
-                <button id="view-map-btn" style="display:none;">Map</button>
+                <button id="view-map-btn" style="display:none;">🗺️</button>
+                <button id="view-cards-btn" style="display:none;">📜</button>
+                <button id="settings-btn" style="display:none;">⚙️</button>
             </div>
         </div>
 
@@ -41,53 +44,53 @@
                 </div>
             </div>
 
-            <!-- Character & Enemy Display -->
+            <!-- Character & Enemy Display (STS-style: emoji + horizontal bars) -->
             <div id="battle-area">
-                <!-- Enemy Intent Display (inside battle-area for proper positioning) -->
+                <!-- Enemy Intent Display (floating above enemy) -->
                 <div id="enemy-intent" style="display: none;">
                     <span id="intent-icon"></span>
                     <span id="intent-text"></span>
                 </div>
             
-                <!-- Player Display (LEFT) -->
+                <!-- Player Display (LEFT) - Large emoji with horizontal bars below -->
                 <div id="player-display" class="drop-zone" data-drop-target="player">
                     <div id="player-emoji">🧙</div>
-                    <div id="player-name">YOU</div>
-                    <div class="bar-container">
-                        <div class="bar-fill hp-fill" id="player-hp-bar" style="width: 100%"></div>
+                    <div class="character-info">
+                        <div id="player-name">YOU</div>
+                        <div class="horizontal-bar-container">
+                            <div class="bar-fill hp-fill" id="player-hp-bar" style="width: 100%"></div>
+                        </div>
+                        <div class="bar-text hp-text"><span id="player-hp">100</span>/<span id="player-max-hp">100</span></div>
+                        <div class="block-display">🛡️ <span id="player-block">0</span></div>
                     </div>
-                    <div class="bar-text"><span id="player-hp">100</span>/<span id="player-max-hp">100</span></div>
-                    <div class="bar-container energy-bar">
-                        <div class="bar-fill energy-fill" id="player-energy-bar" style="width: 100%"></div>
-                    </div>
-                    <div class="bar-text"><span id="player-energy">3</span>/<span id="player-max-energy">3</span></div>
-                    <div class="bar-text" style="color: #4a90d9; font-size: 11px;">Block: <span id="player-block">0</span></div>
-                    <!-- Buff/Debuff indicators -->
-                    <div id="player-buffs" class="buff-container"></div>
-                    <div id="player-tooltip" class="buff-tooltip" style="display: none;"></div>
                 </div>
 
-                <!-- Enemy Display (RIGHT) -->
+                <!-- Enemy Display (RIGHT) - Large emoji with horizontal bars below -->
                 <div id="enemy-display" class="drop-zone" data-drop-target="enemy">
                     <div id="enemy-emoji">🟢</div>
-                    <div id="enemy-name">SLIME</div>
-                    <div class="bar-container">
-                        <div class="bar-fill hp-fill" id="enemy-hp-bar" style="width: 100%"></div>
+                    <div class="character-info">
+                        <div id="enemy-name">SLIME</div>
+                        <div class="horizontal-bar-container">
+                            <div class="bar-fill hp-fill" id="enemy-hp-bar" style="width: 100%"></div>
+                        </div>
+                        <div class="bar-text hp-text"><span id="enemy-hp">50</span>/<span id="enemy-max-hp">50</span></div>
                     </div>
-                    <div class="bar-text"><span id="enemy-hp">50</span>/<span id="enemy-max-hp">50</span></div>
-                    <!-- Buff/Debuff indicators -->
-                    <div id="enemy-buffs" class="buff-container"></div>
-                    <div id="enemy-tooltip" class="buff-tooltip" style="display: none;"></div>
                 </div>
             </div>
 
-            <!-- Card Hand -->
+            <!-- Card Hand (STS-style: energy orb left, fanned cards center, draw pile right) -->
             <div id="hand-container" style="display: none;">
+                <div id="energy-orb" class="resource-orb">
+                    <span id="energy-count">3</span>/<span id="energy-max">3</span>
+                </div>
+                
                 <div id="hand"></div>
-            </div>
-
-            <!-- End Turn Button -->
-            <div id="turn-controls" style="display: none;">
+                
+                <div id="draw-pile" class="resource-orb">
+                    <span id="draw-count">0</span>
+                    <span class="draw-icon">📚</span>
+                </div>
+                
                 <button id="end-turn-btn">End Turn!</button>
             </div>
         </main>
