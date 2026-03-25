@@ -977,10 +977,10 @@ function openDeckViewer(type) {
     let cards = [];
     
     if (type === 'deck') {
-        cards = pileManager.getDrawPile();
+        cards = pileManager.drawPile || [];  // Direct property access
         deckViewerTitle.textContent = `Draw Pile (${cards.length} cards)`;
     } else if (type === 'discard') {
-        cards = pileManager.getDiscardPile();
+        cards = pileManager.discardPile || [];  // Direct property access
         deckViewerTitle.textContent = `Discard Pile (${cards.length} cards)`;
     }
     
