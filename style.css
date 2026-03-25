@@ -461,10 +461,15 @@ body {
 
 /* Card Fanning Effect - JavaScript controlled, smooth transitions */
 #hand .card {
-    transition: transform 0.15s ease-out, z-index 0s;
+    transition: transform 0.2s ease-out, z-index 0s;
     transform-origin: bottom center;
     cursor: pointer;
     will-change: transform;
+}
+
+/* Default state - no transform (JS will apply) */
+#hand .card {
+    transform: none;
 }
 
 /* Hover: Big pop-up to read effects (JavaScript enhances this) */

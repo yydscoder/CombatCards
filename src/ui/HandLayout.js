@@ -138,15 +138,18 @@ export class HandLayout {
      * @param {Object} transform - Transform object
      */
     applyTransform(cardEl, transform) {
-        if (!cardEl) return;
+        if (!cardEl) {
+            console.warn('[HandLayout] applyTransform: No card element');
+            return;
+        }
         
-        cardEl.style.transform = `
-            translateX(${transform.x}px) 
-            translateY(${transform.y}px) 
-            rotate(${transform.rotation}deg)
-            scale(${transform.scale})
-        `;
+        const transformString = `translateX(${transform.x}px) translateY(${transform.y}px) rotate(${transform.rotation}deg) scale(${transform.scale})`;
+        console.log('[HandLayout] Applying transform:', transformString);
+        
+        cardEl.style.transform = transformString;
         cardEl.style.zIndex = transform.zIndex;
+        
+        console.log('[HandLayout] Transform applied to element:', cardEl);
     }
     
     /**

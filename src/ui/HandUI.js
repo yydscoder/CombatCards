@@ -218,6 +218,8 @@ export class HandUI {
      * @param {Object[]} cards - Array of cards to render
      */
     renderHand(cards) {
+        console.log('[HandUI] renderHand called with', cards.length, 'cards');
+        
         // Clear all slots first
         this.clearAllSlots();
 
@@ -226,11 +228,14 @@ export class HandUI {
             if (index < this.slots.length) {
                 this.slots[index].setCard(card);
                 this.cardElements.set(card.id, this.slots[index].getCardElement());
+                console.log('[HandUI] Card slot', index, 'set to', card.name);
             }
         });
         
-        // Apply STS-style layout using HandLayout
-        this.applyHandLayout(cards);
+        // Wait for DOM to settle, then apply layout
+        setTimeout(() => {
+            this.applyHandLayout(cards);
+        }, 50);
 
         console.log(`[HandUI] Hand rendered with ${cards.length} cards`);
     }
@@ -240,30 +245,53 @@ export class HandUI {
      * @param {Object[]} cards - Array of cards
      */
     applyHandLayout(cards) {
-        if (!this.handLayout || cards.length === 0) return;
+        console.log('[HandLayout] applyHandLayout called with', cards.length, 'cards');
+        console.log('[HandLayout] handLayout instance:', this.handLayout);
+        
+        if (!this.handLayout || cards.length === 0) {
+            console.warn('[HandLayout] Skipping - no handLayout or no cards');
+            return;
+        }
         
         const containerWidth = this.handContainer?.offsetWidth || 800;
+        console.log('[HandLayout] Container width:', containerWidth);
+        
         const transforms = this.handLayout.calculateCardPositions(cards, containerWidth);
+        console.log('[HandLayout] Calculated transforms:', transforms);
         
         cards.forEach((card, index) => {
             const cardEl = this.cardElements.get(card.id);
+            console.log('[HandLayout] Card', index, card.name, 'element:', cardEl);
+            
             if (cardEl && transforms[index]) {
                 this.handLayout.applyTransform(cardEl, transforms[index]);
+                console.log('[HandLayout] Applied transform to', card.name);
                 
                 // Store current transform for interpolation
                 cardEl._currentTransform = { ...transforms[index] };
                 
+                // Remove old handlers first (prevent duplicates)
+                cardEl.removeEventListener('mouseenter', cardEl._hoverIn);
+                cardEl.removeEventListener('mouseleave', cardEl._hoverOut);
+                
                 // Add hover handler with layout update
-                cardEl.addEventListener('mouseenter', () => {
+                cardEl._hoverIn = () => {
+                    console.log('[HandLayout] Hovering', card.name);
                     const hoverTransform = this.handLayout.applyHover(transforms[index], true);
                     this.handLayout.applyTransform(cardEl, hoverTransform);
-                });
+                };
                 
-                cardEl.addEventListener('mouseleave', () => {
+                cardEl._hoverOut = () => {
+                    console.log('[HandLayout] Unhovering', card.name);
                     this.handLayout.applyTransform(cardEl, transforms[index]);
-                });
+                };
+                
+                cardEl.addEventListener('mouseenter', cardEl._hoverIn);
+                cardEl.addEventListener('mouseleave', cardEl._hoverOut);
             }
         });
+        
+        console.log('[HandLayout] Layout complete');
     }
 
     /**
