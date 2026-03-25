@@ -67,6 +67,18 @@ export class GameState {
         this.maxEnergy = GAME_CONFIG.PLAYER_MAX_ENERGY;
 
         /**
+         * @type {number}
+         * @description Current block (persists between turns, removed when hit)
+         */
+        this.playerBlock = 0;
+
+        /**
+         * @type {number}
+         * @description Maximum block capacity (optional limit)
+         */
+        this.maxPlayerBlock = 999;
+
+        /**
          * @type {Object<string, Object>}
          * @description Active shields: { bubble: {count, absorb}, flame: {remaining} }
          */
@@ -618,6 +630,8 @@ export class GameState {
         this.playerMaxHp = GAME_CONFIG.PLAYER_MAX_HP;
         this.energy = GAME_CONFIG.PLAYER_ENERGY;
         this.maxEnergy = GAME_CONFIG.PLAYER_MAX_ENERGY;
+        this.playerBlock = 0;
+        this.maxPlayerBlock = 999;
         this.playerShields = {};
 
         // Enemy state

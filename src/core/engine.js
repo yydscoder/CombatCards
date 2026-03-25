@@ -553,24 +553,25 @@ export class TurnManager {
     }
 
     /**
-     * Starts a new turn
+     * Starts a new turn (STS2-style: Start → Player → End → Start)
+     * This is the main entry point for each turn
      *
      * @returns {Object} Turn start result
      *
      * @example
-     * const result = turnManager.startTurn();
+     * const result = turnManager.startOfTurn();
      * console.log(`Turn ${result.turn}: ${result.energy} energy`);
      */
-    startTurn() {
+    startOfTurn() {
         if (this.isGameOver) {
             return { success: false, reason: 'game_over' };
         }
 
-        // Increment turn
+        // Increment turn counter
         this.currentTurn++;
         this.turnStartTime = performance.now();
 
-        // Reset energy
+        // Reset energy to 3
         if (this.energyManager) {
             this.energyManager.reset();
         }
@@ -583,7 +584,7 @@ export class TurnManager {
 
         this.currentPhase = 'player';
 
-        console.log('[TurnManager] Turn', this.currentTurn, 'started');
+        console.log('[TurnManager] Start of Turn', this.currentTurn);
 
         return {
             success: true,
@@ -594,17 +595,17 @@ export class TurnManager {
     }
 
     /**
-     * Ends the current turn
+     * Ends the current turn and executes enemy action
+     * Called when player clicks "End Turn"
      *
+     * @param {Object} options - End turn options
+     * @param {Function} [options.onEnemyAction] - Callback for enemy action
      * @returns {Object} Turn end result
      *
      * @example
-     * const result = turnManager.endTurn();
-     * if (result.success) {
-     *     console.log(`Turn ended, next: ${result.nextPhase}`);
-     * }
+     * const result = turnManager.endOfTurn({ onEnemyAction: () => enemy.attack() });
      */
-    endTurn() {
+    endOfTurn(options = {}) {
         if (this.isGameOver) {
             return { success: false, reason: 'game_over' };
         }
@@ -616,13 +617,34 @@ export class TurnManager {
             this.gameState.phase = this.currentPhase;
         }
 
-        console.log('[TurnManager] Turn', this.currentTurn, 'ended, enemy phase');
+        console.log('[TurnManager] End of Turn', this.currentTurn, '- Enemy action');
+
+        // Execute enemy action (passed as callback)
+        if (options.onEnemyAction && typeof options.onEnemyAction === 'function') {
+            options.onEnemyAction();
+        }
 
         return {
             success: true,
             nextPhase: this.currentPhase,
             turn: this.currentTurn
         };
+    }
+
+    /**
+     * Legacy method for compatibility - redirects to startOfTurn
+     * @deprecated Use startOfTurn() instead
+     */
+    startTurn() {
+        return this.startOfTurn();
+    }
+
+    /**
+     * Legacy method for compatibility - redirects to endOfTurn
+     * @deprecated Use endOfTurn() instead
+     */
+    endTurn(options = {}) {
+        return this.endOfTurn(options);
     }
 
     /**

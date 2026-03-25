@@ -1197,9 +1197,9 @@ export class Hand {
     }
 
     endTurn() {
-        console.log('Ending turn...');
+        console.log('[Hand] Ending turn...');
 
-        // Tick DoT / HoT effects before the new turn's energy is granted
+        // Tick DoT / HoT effects BEFORE enemy action
         this._processActiveEffects();
 
         // Sync enemy HP after DoT ticks
@@ -1211,12 +1211,12 @@ export class Hand {
             return;
         }
 
-        // Enemy turn + cooldown model: CD ticks once per full round (player+enemy)
-        if (!this.gameState.isGameOver) {
+        // Enemy action with callback
+        const enemyAction = () => {
             const interval = this.gameState.enemyAttackInterval || 1;
             let cooldown = this.gameState.enemyAttackCooldown ?? interval;
 
-            // Enemy acts when CD hits 0 on their turn (CD=1 means attack now)
+            // Enemy acts when CD hits 0
             if (cooldown <= 1) {
                 this.gameState.enemyAttackCooldown = 0;
                 if (this.hud) this.hud.updateAll();
@@ -1228,15 +1228,25 @@ export class Hand {
 
             this.gameState.enemyAttackCooldown = cooldown;
             if (this.hud) this.hud.updateAll();
-        }
+        };
 
         this._logStatusSnapshot('end_turn');
 
-        // End current turn and start next (this will reset energy)
+        // End turn with enemy action callback
         if (this.gameState.turnManager) {
-            this.gameState.turnManager.endTurn();
-            this.gameState.turnManager.startTurn();
-            if (this.hud) this.hud.updateAll(); // refresh energy bar + turn counter
+            this.gameState.turnManager.endOfTurn({ onEnemyAction: enemyAction });
+            
+            // Start next turn AFTER enemy acts
+            this.gameState.turnManager.startOfTurn();
+            
+            // Draw cards for new turn
+            if (this.cardPileManager) {
+                this.cardPileManager.drawCard(5);
+                this.cards = this.cardPileManager.getHand();
+            }
+            
+            if (this.hud) this.hud.updateAll();
+            if (this.handUI) this.handUI.renderHand(this.cards);
         }
         this.updateCardAffordability();
 
@@ -1252,7 +1262,7 @@ export class Hand {
             }, 1000);
         }
 
-        console.log(`Turn ended. Now on turn ${this.gameState.turn}`);
+        console.log(`[Hand] Turn ended. Now on turn ${this.gameState.turn}`);
     }
 }
 

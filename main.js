@@ -534,20 +534,27 @@ function startCombat(node, isElite = false, isBoss = false) {
     // Initialize hand for combat
     hand.initHand();
 
-    // Start first turn (this sets energy to 3)
-    gameState.turnManager.startTurn();
+    // Start first turn (STS2-style: Start → Player → End)
+    gameState.turnManager.startOfTurn();
+    
+    // Draw starting hand (5 cards)
+    if (gameState.cardPileManager) {
+        gameState.cardPileManager.drawCard(5);
+        hand.cards = gameState.cardPileManager.getHand();
+        if (hand.handUI) hand.handUI.renderHand(hand.cards);
+    }
 
     // Update HUD and health bars AFTER turn starts
     if (hud) hud.updateAll();
     updateHealthBars();
     
-    // Show enemy intent
+    // Show enemy intent (what they'll do when turn ends)
     updateEnemyIntent();
 
     // Switch to combat state (shows battle area, hides placeholder)
     setGameState(GameStateEnum.COMBAT);
 
-    console.log(`Combat started against ${enemy.name} (${enemy.hp} HP) | Energy: ${gameState.energy}/${gameState.maxEnergy}`);
+    console.log(`Combat started against ${enemy.name} (${enemy.hp} HP) | Energy: ${gameState.energy}/${gameState.maxEnergy} | Turn: ${gameState.turn}`);
 }
 
 /**
@@ -800,6 +807,12 @@ function updateHealthBars() {
     if (playerEnergyText) playerEnergyText.textContent = energy;
     if (playerMaxEnergyText) playerMaxEnergyText.textContent = maxEnergy;
     
+    // Player Block display (if exists)
+    const playerBlockText = document.getElementById('player-block');
+    if (playerBlockText) {
+        playerBlockText.textContent = gameState.playerBlock || 0;
+    }
+    
     // Enemy HP bar
     const enemyHpBar = document.getElementById('enemy-hp-bar');
     const enemyHpText = document.getElementById('enemy-hp');
@@ -814,7 +827,7 @@ function updateHealthBars() {
         if (enemyMaxHpText) enemyMaxHpText.textContent = gameState.enemyMaxHp;
     }
     
-    console.log('[updateHealthBars] Player:', gameState.playerHp + '/' + gameState.playerMaxHp, 'Energy:', energy + '/' + maxEnergy);
+    console.log('[updateHealthBars] Player:', gameState.playerHp + '/' + gameState.playerMaxHp, 'Block:', gameState.playerBlock, 'Energy:', energy + '/' + maxEnergy);
     if (gameState.enemy) {
         console.log('[updateHealthBars] Enemy:', gameState.enemy.name, gameState.enemyHp + '/' + gameState.enemyMaxHp);
     }
