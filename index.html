@@ -16,16 +16,16 @@
         <!-- Top HUD - Always Visible -->
         <div id="top-hud">
             <div id="hud-left">
-                <span class="hud-stat">❤️ <span id="hud-hp">100/100</span></span>
-                <span class="hud-stat">⚡ <span id="hud-energy">3/3</span></span>
-                <span class="hud-stat">💰 <span id="hud-gold">0</span></span>
+                <span class="hud-stat">HP: <span id="hud-hp">100/100</span></span>
+                <span class="hud-stat">Energy: <span id="hud-energy">3/3</span></span>
+                <span class="hud-stat">Gold: <span id="hud-gold">0</span></span>
             </div>
             <div id="hud-center">
                 <span id="hud-act">Act <span id="act-number">1</span></span>
             </div>
             <div id="hud-right">
-                <span class="hud-stat">📊 Floor <span id="hud-floor">0/15</span></span>
-                <button id="view-map-btn" style="display:none;">🗺️ View Map</button>
+                <span class="hud-stat">Floor: <span id="hud-floor">0/15</span></span>
+                <button id="view-map-btn" style="display:none;">Map</button>
             </div>
         </div>
 
@@ -43,13 +43,14 @@
 
             <!-- Enemy Intent Display -->
             <div id="enemy-intent" style="display: none;">
-                <span id="intent-icon">⚔️</span>
-                <span id="intent-text">Attack 8</span>
+                <span id="intent-icon"></span>
+                <span id="intent-text"></span>
             </div>
 
             <!-- Character & Enemy Display -->
-            <div id="battle-area" style="display: none;">
-                <div id="player-display">
+            <div id="battle-area">
+                <!-- Player Display (LEFT) -->
+                <div id="player-display" class="drop-zone" data-drop-target="player">
                     <div id="player-emoji">🧙</div>
                     <div id="player-name">YOU</div>
                     <div class="bar-container">
@@ -59,16 +60,23 @@
                     <div class="bar-container energy-bar">
                         <div class="bar-fill energy-fill" id="player-energy-bar" style="width: 100%"></div>
                     </div>
-                    <div class="bar-text"><span id="player-energy">3</span>/<span id="player-max-energy">3</span> ⚡</div>
+                    <div class="bar-text"><span id="player-energy">3</span>/<span id="player-max-energy">3</span></div>
+                    <!-- Buff/Debuff indicators -->
+                    <div id="player-buffs" class="buff-container"></div>
+                    <div id="player-tooltip" class="buff-tooltip" style="display: none;"></div>
                 </div>
 
-                <div id="enemy-display">
+                <!-- Enemy Display (RIGHT) -->
+                <div id="enemy-display" class="drop-zone" data-drop-target="enemy">
                     <div id="enemy-emoji">🟢</div>
                     <div id="enemy-name">SLIME</div>
                     <div class="bar-container">
                         <div class="bar-fill hp-fill" id="enemy-hp-bar" style="width: 100%"></div>
                     </div>
                     <div class="bar-text"><span id="enemy-hp">50</span>/<span id="enemy-max-hp">50</span></div>
+                    <!-- Buff/Debuff indicators -->
+                    <div id="enemy-buffs" class="buff-container"></div>
+                    <div id="enemy-tooltip" class="buff-tooltip" style="display: none;"></div>
                 </div>
             </div>
 

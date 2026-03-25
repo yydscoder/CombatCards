@@ -230,6 +230,13 @@ function handleCardDrop(e, targetType) {
 function openModal() {
     const mapModal = document.getElementById('map-modal');
     const viewMapBtn = document.getElementById('view-map-btn');
+    const gameState = window.gameState;
+    
+    // Prevent opening map during combat (exploit prevention)
+    if (gameState && gameState.enemy) {
+        console.warn('[openModal] Cannot open map during combat!');
+        return;
+    }
     
     // Lazy init NodeListView when modal is first opened
     if (!window.nodeListView) {
@@ -324,7 +331,7 @@ function setGameState(state) {
             if (handContainer) handContainer.style.display = 'block';
             if (turnControls) turnControls.style.display = 'flex';
             if (gameOverScreen) gameOverScreen.style.display = 'none';
-            if (viewMapBtn) viewMapBtn.style.display = 'block';
+            if (viewMapBtn) viewMapBtn.style.display = 'none'; // Hide map button during combat
             break;
 
         case GameStateEnum.GAME_OVER:
@@ -533,11 +540,33 @@ function startCombat(node, isElite = false, isBoss = false) {
     // Update HUD and health bars AFTER turn starts
     if (hud) hud.updateAll();
     updateHealthBars();
+    
+    // Show enemy intent
+    updateEnemyIntent();
 
     // Switch to combat state (shows battle area, hides placeholder)
     setGameState(GameStateEnum.COMBAT);
 
     console.log(`Combat started against ${enemy.name} (${enemy.hp} HP) | Energy: ${gameState.energy}/${gameState.maxEnergy}`);
+}
+
+/**
+ * Updates enemy intent display
+ */
+function updateEnemyIntent() {
+    const gameState = window.gameState;
+    const intentEl = document.getElementById('enemy-intent');
+    const intentIcon = document.getElementById('intent-icon');
+    const intentText = document.getElementById('intent-text');
+    
+    if (!gameState || !gameState.enemy || !intentEl) return;
+    
+    // Show intent (attack damage or other action)
+    const damage = gameState.enemy.damage || 8;
+    intentIcon.textContent = '⚔️';
+    intentText.textContent = `${damage}`;
+    intentEl.style.display = 'flex';
+    intentEl.title = `Enemy will attack for ${damage} damage`;
 }
 
 /**
@@ -860,6 +889,7 @@ function endTurn() {
     // Update UI
     if (hud) hud.updateAll();
     updateHealthBars();
+    updateEnemyIntent();
     
     // Re-enable hand
     if (hand) {
