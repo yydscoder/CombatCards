@@ -15,6 +15,9 @@
 // Import CardSlot for slot management
 import { CardSlot, createCardSlotFactory } from './CardSlot.js';
 
+// Import HandLayout for STS-style positioning
+import { HandLayout } from './HandLayout.js';
+
 /**
  * HandUI class - Manages hand rendering and interactions
  *
@@ -38,7 +41,7 @@ export class HandUI {
         this.hud = hud;
 
         // Get the hand container element
-        this.container = document.getElementById('hand');
+        this.handContainer = document.getElementById('hand');
 
         // Slot management
         this.slots = [];
@@ -53,6 +56,9 @@ export class HandUI {
 
         // Card element cache
         this.cardElements = new Map();
+        
+        // Get HandLayout from hand instance (if available)
+        this.handLayout = hand?.handLayout || null;
 
         // Initialize the hand UI
         this.init();
@@ -62,13 +68,13 @@ export class HandUI {
      * Initializes the hand UI
      */
     init() {
-        if (!this.container) {
+        if (!this.handContainer) {
             console.error('[HandUI] Hand container not found!');
             return;
         }
 
         // Clear existing content
-        this.container.innerHTML = '';
+        this.handContainer.innerHTML = '';
 
         // Create card slots
         this.createSlots();
@@ -83,7 +89,7 @@ export class HandUI {
         const slotFactory = createCardSlotFactory(this);
 
         for (let i = 0; i < this.maxSlots; i++) {
-            const slot = slotFactory.create(i, this.container);
+            const slot = slotFactory.create(i, this.handContainer);
             this.slots.push(slot);
         }
     }
@@ -222,8 +228,42 @@ export class HandUI {
                 this.cardElements.set(card.id, this.slots[index].getCardElement());
             }
         });
+        
+        // Apply STS-style layout using HandLayout
+        this.applyHandLayout(cards);
 
         console.log(`[HandUI] Hand rendered with ${cards.length} cards`);
+    }
+    
+    /**
+     * Applies STS-style arc layout to cards
+     * @param {Object[]} cards - Array of cards
+     */
+    applyHandLayout(cards) {
+        if (!this.handLayout || cards.length === 0) return;
+        
+        const containerWidth = this.handContainer?.offsetWidth || 800;
+        const transforms = this.handLayout.calculateCardPositions(cards, containerWidth);
+        
+        cards.forEach((card, index) => {
+            const cardEl = this.cardElements.get(card.id);
+            if (cardEl && transforms[index]) {
+                this.handLayout.applyTransform(cardEl, transforms[index]);
+                
+                // Store current transform for interpolation
+                cardEl._currentTransform = { ...transforms[index] };
+                
+                // Add hover handler with layout update
+                cardEl.addEventListener('mouseenter', () => {
+                    const hoverTransform = this.handLayout.applyHover(transforms[index], true);
+                    this.handLayout.applyTransform(cardEl, hoverTransform);
+                });
+                
+                cardEl.addEventListener('mouseleave', () => {
+                    this.handLayout.applyTransform(cardEl, transforms[index]);
+                });
+            }
+        });
     }
 
     /**

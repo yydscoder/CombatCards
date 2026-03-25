@@ -459,29 +459,23 @@ body {
     transform: none;
 }
 
-/* Card Fanning Effect - Each card rotated slightly with better pop-up */
-#hand .card:nth-child(1) { transform: rotate(-10deg); }
-#hand .card:nth-child(2) { transform: rotate(-5deg); }
-#hand .card:nth-child(3) { transform: rotate(0deg); }
-#hand .card:nth-child(4) { transform: rotate(5deg); }
-#hand .card:nth-child(5) { transform: rotate(10deg); }
-#hand .card:nth-child(6) { transform: rotate(15deg); }
+/* Card Fanning Effect - JavaScript controlled, smooth transitions */
+#hand .card {
+    transition: transform 0.15s ease-out, z-index 0s;
+    transform-origin: bottom center;
+    cursor: pointer;
+    will-change: transform;
+}
 
-/* Hover overrides fan for better readability */
-#hand .card:nth-child(1):hover,
-#hand .card:nth-child(2):hover,
-#hand .card:nth-child(3):hover,
-#hand .card:nth-child(4):hover,
-#hand .card:nth-child(5):hover,
-#hand .card:nth-child(6):hover {
-    transform: translateY(-40px) scale(1.2) rotate(0deg) !important;
-    transition: transform 0.25s ease-out;
+/* Hover: Big pop-up to read effects (JavaScript enhances this) */
+#hand .card:hover {
+    z-index: 999 !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
 }
 
 /* Card Click/Active - Full view */
 #hand .card:active {
-    transform: translateY(-60px) scale(1.4) !important;
-    z-index: 200 !important;
+    z-index: 1000 !important;
 }
 
 /* End Turn Button (bottom-left, below draw pile) */

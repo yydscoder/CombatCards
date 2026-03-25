@@ -64,6 +64,9 @@ import { Overgrowth } from '../cards/nature/Overgrowth.js';
 // Import HandUI for rendering
 import { HandUI } from './HandUI.js';
 
+// Import HandLayout for STS-style card positioning
+import { HandLayout } from './HandLayout.js';
+
 // Import CardPileManager for pile operations
 import { CardPileManager } from '../core/CardPileManager.js';
 
@@ -131,6 +134,18 @@ export class Hand {
 
         // Initialize HandUI for rendering and interactions
         this.handUI = new HandUI(gameState, this, hud);
+        
+        // Initialize HandLayout for STS-style card positioning
+        this.handLayout = new HandLayout({
+            maxSpread: 140,
+            curveHeight: 40,
+            maxRotation: 12,
+            baseSpread: 60,
+            spreadFactor: 10,
+            lerpFactor: 0.15,
+            hoverScale: 1.2,
+            hoverLift: 40
+        });
 
         // Log initialization
         console.log('Hand initialized with CardPileManager and HandUI');
