@@ -384,27 +384,31 @@ body {
     border: 2px dashed #555;
 }
 
-/* Hand - CENTERED at bottom, cards emerge from bottom edge */
+/* Hand Container - STS-style absolute positioning */
 #hand {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    bottom: 0;
-    display: flex;
-    justify-content: center;
-    gap: 0;  /* No gap - overlap handled by JS */
-    max-width: 80%;
-    width: 80%;
-    overflow-x: visible;
-    overflow-y: visible;
-    padding: 0 40px;
-    min-height: 220px;
+    bottom: 20px;
+    width: 800px;
+    height: 300px;
     pointer-events: none;  /* Let clicks pass through container */
 }
 
-/* Cards have pointer events enabled */
+/* Individual Card - Absolute positioning with bottom pivot */
 #hand .card {
-    pointer-events: auto;
+    position: absolute;
+    width: 120px;
+    height: 180px;
+    transform-origin: bottom center;  /* CRITICAL - fans from bottom */
+    transition: transform 0.25s cubic-bezier(0.25, 1.25, 0.5, 1);  /* Bouncy feel */
+    pointer-events: auto;  /* Cards are clickable */
+    cursor: pointer;
+}
+
+/* Card hover - lifts up and straightens */
+#hand .card:hover {
+    z-index: 999 !important;
 }
 
 /* Scrollbar styling for hand (when cards exceed width) */

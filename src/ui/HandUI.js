@@ -68,17 +68,13 @@ export class HandUI {
         } else {
             // Create our own instance as fallback with STS config
             this.handLayout = new HandLayout({
-                overlapRatio: 0.25,        // 25% overlap, 75% visible
-                maxRotation: 15,           // 15 degrees at edges
-                curveHeight: 100,          // Medium arc height
-                pivotOffset: 250,          // Pivot point below screen
-                cardWidth: 200,            // Approximate card width
-                cardHeight: 280,           // Approximate card height
-                maxWidthPercent: 0.80,     // Max 80% of screen width
-                lerpFactor: 0.15,          // Smooth interpolation
-                hoverScale: 1.15,          // Slight scale on hover
-                hoverLift: 60,             // Big lift on hover (STS-style)
-                bottomAnchor: true         // Anchor at bottom edge
+                maxSpread: 700,           // Max hand width
+                curveHeight: 80,          // Arc height
+                maxRotation: 15,          // 15 degrees at edges
+                cardWidth: 120,           // Card width
+                cardHeight: 180,          // Card height
+                hoverScale: 1.2,          // Hover scale
+                hoverLift: 40             // Hover lift
             });
             console.log('[HandUI] Created fallback handLayout instance');
         }
@@ -261,29 +257,27 @@ export class HandUI {
     }
     
     /**
-     * Applies STS-style bottom pivot arc layout to cards
+     * Applies STS-style layout to cards
      * @param {Object[]} cards - Array of cards
      */
     applyHandLayout(cards) {
         if (!this.handLayout || cards.length === 0) return;
         
-        const containerWidth = this.handContainer?.offsetWidth || 800;
+        const containerWidth = 800;  // Fixed container width
         const transforms = this.handLayout.calculateCardPositions(cards, containerWidth);
         
         cards.forEach((card, index) => {
             const cardEl = this.cardElements.get(card.id);
             
             if (cardEl && transforms[index]) {
+                // Apply base transform
                 this.handLayout.applyTransform(cardEl, transforms[index]);
                 
-                // Store current transform for interpolation
-                cardEl._currentTransform = { ...transforms[index] };
-                
-                // Remove old handlers first (prevent duplicates)
+                // Remove old hover handlers
                 cardEl.removeEventListener('mouseenter', cardEl._hoverIn);
                 cardEl.removeEventListener('mouseleave', cardEl._hoverOut);
                 
-                // Add hover handler with layout update
+                // Add hover handlers
                 cardEl._hoverIn = () => {
                     const hoverTransform = this.handLayout.applyHover(transforms[index], true);
                     this.handLayout.applyTransform(cardEl, hoverTransform);
