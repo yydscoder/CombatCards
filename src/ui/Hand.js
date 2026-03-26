@@ -1,8 +1,10 @@
 /**
- * Hand UI Module for Emoji Card Battle
+ * Hand Module for Emoji Card Battle
  *
  * This module manages the player's hand of cards.
  * It handles drawing cards, displaying them, and managing hand state.
+ * 
+ * Architecture: Uses CardPileManager as single source of truth for hand state.
  */
 
 // Import card classes - Fire
@@ -76,12 +78,10 @@ import { createEffectManager } from '../effects/EffectManager.js';
 
 /**
  * Hand class - Manages the player's hand of cards
- * 
- * This class handles all hand-related functionality, including:
- * - Drawing cards from the deck
- * - Displaying cards in the hand
- * - Managing card selection and interaction
- * - Handling card discards
+ *
+ * State Management:
+ * - CardPileManager.hand is the single source of truth for cards in hand
+ * - this.cards is a getter that returns CardPileManager.hand for backward compatibility
  */
 export class Hand {
     /**
@@ -121,21 +121,16 @@ export class Hand {
             gameState.enemyAttackCooldown = gameState.enemyAttackInterval;
         }
         gameState.player = this._buildPlayerProxy();
+        
+        // Get DOM containers
         this.handContainer = document.getElementById('hand');
         this.deckContainer = document.getElementById('deck');
-
-        // Hand state (legacy - kept for backward compatibility)
-        this.cards = []; // Array of cards currently in hand
-        this.maxCards = 5; // Maximum number of cards in hand (legacy)
 
         // Initialize CardPileManager for pile operations (Slay the Spire style)
         this.cardPileManager = new CardPileManager(gameState);
         gameState.cardPileManager = this.cardPileManager;
 
-        // Initialize HandUI for rendering and interactions
-        this.handUI = new HandUI(gameState, this, hud);
-        
-        // Initialize HandLayout for arc fan card positioning (Slay the Spire style)
+        // Initialize HandLayout ONCE - shared between Hand and HandUI
         this.handLayout = new HandLayout({
             arcRadius: 300,             // How curved the fan is
             arcAngle: 40,               // Total spread in degrees
@@ -146,10 +141,29 @@ export class Hand {
             cardHeight: 140             // Card height
         });
 
+        // Initialize HandUI for rendering and interactions (shares handLayout)
+        this.handUI = new HandUI(gameState, this, hud, this.handLayout);
+
         // Log initialization
         console.log('Hand initialized with CardPileManager and HandUI');
     }
-    
+
+    /**
+     * Getter for cards - returns CardPileManager.hand as single source of truth
+     */
+    get cards() {
+        return this.cardPileManager?.hand || [];
+    }
+
+    /**
+     * Setter for cards - updates CardPileManager.hand
+     */
+    set cards(value) {
+        if (this.cardPileManager) {
+            this.cardPileManager.hand = value;
+        }
+    }
+
     /**
      * Initializes the hand with starting cards
      * Uses CardPileManager for Slay the Spire-style deck management
@@ -161,12 +175,9 @@ export class Hand {
         // Set up the CardPileManager with the deck
         if (this.cardPileManager) {
             this.cardPileManager.setupDeck(deck);
-            
+
             // Draw starting hand with at least one low-cost card (cost <= 3)
             this._drawBalancedStartingHand();
-
-            // Sync legacy cards array with CardPileManager hand
-            this.cards = this.cardPileManager.getHand();
 
             // Debug: log card states
             console.log(`[Hand] Started combat with ${this.cards.length} cards in hand`);
@@ -196,7 +207,7 @@ export class Hand {
     _drawBalancedStartingHand() {
         const startingHandSize = 5;
         const lowCostThreshold = 3;
-        
+
         // First, try to find a low-cost card
         const lowCostCards = this.cardPileManager.drawPile.filter(c => c.cost <= lowCostThreshold);
         if (lowCostCards.length > 0) {
@@ -211,7 +222,7 @@ export class Hand {
                 console.log(`[Hand] Starting hand includes: ${lowCostCard.name} (cost ${lowCostCard.cost})`);
             }
         }
-        
+
         // Draw remaining cards randomly
         const remainingDraw = startingHandSize - 1;
         for (let i = 0; i < remainingDraw && this.cardPileManager.drawPile.length > 0; i++) {
@@ -243,21 +254,21 @@ export class Hand {
         // Store remaining cards in gameState deck
         this.gameState.deck = deck;
     }
-    
+
     /**
      * Creates a combined deck with fire and water cards
      * @returns {Array} Array of card instances
      */
     _createCombinedDeck() {
         const deck = [];
-        
+
         // === FIRE DECK ===
         // Basic fire cards (more common)
         for (let i = 0; i < 3; i++) deck.push(new FireCard("Fire Blast", 5, 10));
         for (let i = 0; i < 3; i++) deck.push(new Fireball());
         for (let i = 0; i < 3; i++) deck.push(new Ember());
         for (let i = 0; i < 2; i++) deck.push(new Ignite());
-        
+
         // Mid-cost fire cards
         for (let i = 0; i < 2; i++) deck.push(new Scorch());
         for (let i = 0; i < 2; i++) deck.push(new FlameShield());
@@ -266,22 +277,22 @@ export class Hand {
         for (let i = 0; i < 2; i++) deck.push(new Combust());
         for (let i = 0; i < 2; i++) deck.push(new Blaze());
         for (let i = 0; i < 2; i++) deck.push(new FireBreath());
-        
+
         // High-cost fire cards
         for (let i = 0; i < 2; i++) deck.push(new Magma());
         for (let i = 0; i < 2; i++) deck.push(new Firestorm());
         for (let i = 0; i < 2; i++) deck.push(new Pyroclasm());
-        
+
         // Ultimate fire card
         deck.push(new Inferno());
-        
+
         // === WATER DECK ===
         // Basic water cards
         for (let i = 0; i < 3; i++) deck.push(new WaterJet());
         for (let i = 0; i < 3; i++) deck.push(new IceSpike());
         for (let i = 0; i < 2; i++) deck.push(new Heal());
         for (let i = 0; i < 2; i++) deck.push(new AquaBlast());
-        
+
         // Mid-cost water cards
         for (let i = 0; i < 2; i++) deck.push(new IceWall());
         for (let i = 0; i < 2; i++) deck.push(new BubbleShield());
@@ -291,23 +302,23 @@ export class Hand {
         for (let i = 0; i < 2; i++) deck.push(new ManaSpring());
         for (let i = 0; i < 2; i++) deck.push(new HydroBoost());
         for (let i = 0; i < 2; i++) deck.push(new Whirlpool());
-        
+
         // High-cost water cards
         for (let i = 0; i < 2; i++) deck.push(new TidalWave());
         for (let i = 0; i < 2; i++) deck.push(new DeepFreeze());
         for (let i = 0; i < 2; i++) deck.push(new Blizzard());
         for (let i = 0; i < 2; i++) deck.push(new Tsunami());
-        
+
         // Ultimate water card
         deck.push(new Leviathan());
-        
+
         // === NATURE DECK ===
         // Basic nature cards
         for (let i = 0; i < 3; i++) deck.push(new VineWhip());
         for (let i = 0; i < 2; i++) deck.push(new Poison());
         for (let i = 0; i < 2; i++) deck.push(new Regrow());
         for (let i = 0; i < 2; i++) deck.push(new Bloom());
-        
+
         // Mid-cost nature cards
         for (let i = 0; i < 2; i++) deck.push(new Roots());
         for (let i = 0; i < 2; i++) deck.push(new Thorns());
@@ -316,7 +327,7 @@ export class Hand {
         for (let i = 0; i < 2; i++) deck.push(new BarkSkin());
         for (let i = 0; i < 2; i++) deck.push(new Sap());
         for (let i = 0; i < 2; i++) deck.push(new Lifebloom());
-        
+
         // High-cost nature cards
         for (let i = 0; i < 2; i++) deck.push(new WildGrowth());
         for (let i = 0; i < 2; i++) deck.push(new Entangle());
@@ -324,13 +335,13 @@ export class Hand {
         for (let i = 0; i < 2; i++) deck.push(new MushroomCloud());
         for (let i = 0; i < 2; i++) deck.push(new Ironbark());
         for (let i = 0; i < 2; i++) deck.push(new Overgrowth());
-        
+
         // Ultimate nature card
         deck.push(new NatureWrath());
 
         return deck;
     }
-    
+
     /**
      * Shuffles a deck using Fisher-Yates algorithm for unbiased shuffling
      * @param {Array} deck - The deck to shuffle
@@ -342,7 +353,7 @@ export class Hand {
         }
         console.log('Deck shuffled using Fisher-Yates algorithm');
     }
-    
+
     /**
      * Adds a card to the hand
      *
@@ -350,7 +361,7 @@ export class Hand {
      * @returns {boolean} True if card was added successfully, false otherwise
      */
     addCard(card) {
-        // Use CardPileManager if available
+        // Use CardPileManager
         if (this.cardPileManager) {
             // Add card to draw pile and draw it immediately
             this.cardPileManager.drawPile.push(card);
@@ -359,9 +370,6 @@ export class Hand {
             const drawResult = this.cardPileManager.drawCard(1);
 
             if (drawResult.success) {
-                // Sync legacy cards array
-                this.cards = this.cardPileManager.getHand();
-
                 // Render the card
                 this.renderCard(card);
 
@@ -373,20 +381,9 @@ export class Hand {
             }
         }
 
-        // Fallback: legacy behavior
-        if (this.cards.length >= this.maxCards) {
-            console.warn(`Cannot add card: hand is full (${this.maxCards} cards)`);
-            return false;
-        }
-
-        card.isInHand = true;
-        card.isInDeck = false;
-        this.cards.push(card);
-        this.gameState.hand = this.cards;
-        this.renderCard(card);
-
-        console.log(`Card added to hand: ${card.name}`);
-        return true;
+        // Fallback: legacy behavior (should not happen in normal operation)
+        console.warn('[Hand] CardPileManager not available, using legacy addCard');
+        return false;
     }
 
     /**
@@ -396,14 +393,11 @@ export class Hand {
      * @returns {boolean} True if card was removed successfully, false otherwise
      */
     removeCard(card) {
-        // Use CardPileManager if available
+        // Use CardPileManager
         if (this.cardPileManager) {
             const playResult = this.cardPileManager.playCard(card);
 
             if (playResult.success) {
-                // Sync legacy cards array
-                this.cards = this.cardPileManager.getHand();
-
                 // Remove card element from DOM via HandUI
                 if (this.handUI) {
                     this.handUI.removeCard(card);
@@ -423,50 +417,11 @@ export class Hand {
             }
         }
 
-        // Fallback: legacy behavior
-        const index = this.cards.indexOf(card);
-        if (index === -1) {
-            console.warn(`Card not found in hand: ${card.name}`);
-            return false;
-        }
-
-        // Remove card from array
-        this.cards.splice(index, 1);
-
-        // Update card state
-        card.isInHand = false;
-
-        // Add to discard pile
-        card.isDiscarded = true;
-        if (!this.gameState.discardPile) {
-            this.gameState.discardPile = [];
-        }
-        this.gameState.discardPile.push(card);
-
-        // Update game state
-        this.gameState.hand = this.cards;
-
-        // Remove card using HandUI
-        if (this.handUI) {
-            this.handUI.removeCard(card);
-        } else {
-            // Fallback: direct DOM removal
-            const cardElement = document.querySelector(`[data-card-id="${card.id}"]`);
-            if (cardElement && cardElement.parentNode) {
-                cardElement.parentNode.removeChild(cardElement);
-            }
-        }
-
-        console.log(`Card removed from hand: ${card.name} (discard pile: ${this.gameState.discardPile.length})`);
-
-        // Draw a new card to replace the played one (maintain hand size)
-        if (!this.gameState.isGameOver && this.cards.length < 5) {
-            this.drawCard();
-        }
-
-        return true;
+        // Fallback: legacy behavior (should not happen in normal operation)
+        console.warn('[Hand] CardPileManager not available, using legacy removeCard');
+        return false;
     }
-    
+
     /**
      * Renders a card in the hand
      *
@@ -475,83 +430,14 @@ export class Hand {
     renderCard(card) {
         // Delegate to HandUI for rendering
         if (this.handUI) {
-            this.handUI.renderCardInSlot(card);
+            this.handUI.renderHand(this.cards);
         } else {
-            // Fallback: direct rendering (legacy support)
-            this._renderCardLegacy(card);
+            console.warn('[Hand] HandUI not available, cannot render card');
         }
 
         console.log(`Card rendered in hand: ${card.name}`);
     }
 
-    /**
-     * Legacy card rendering (fallback if HandUI not available)
-     * @private
-     */
-    _renderCardLegacy(card) {
-        // Create card element (reusing CardRenderer logic)
-        const cardElement = document.createElement('div');
-        cardElement.className = 'card';
-        cardElement.dataset.cardId = card.id;
-        cardElement.dataset.cardName = card.name;
-        cardElement.dataset.cardType = card.constructor.name;
-        // Add element type for theme styling (fire, water, nature)
-        if (card.element) {
-            cardElement.dataset.element = card.element;
-        }
-
-        // Add click event listener
-        cardElement.addEventListener('click', (event) => {
-            this.handleCardClick(card, event);
-        });
-
-        // Create card content
-        const cardContent = document.createElement('div');
-        cardContent.className = 'card-content';
-
-        // Create mana cost badge (top-left corner)
-        const manaBadge = document.createElement('div');
-        manaBadge.className = 'card-mana-cost';
-        manaBadge.textContent = card.cost;
-        manaBadge.title = `${card.cost} Mana`;
-
-        // Create emoji element
-        const emojiElement = document.createElement('div');
-        emojiElement.className = 'card-emoji';
-        emojiElement.textContent = card.emoji;
-
-        // Create name element
-        const nameElement = document.createElement('div');
-        nameElement.className = 'card-name';
-        nameElement.textContent = card.name;
-
-        // Create stats element
-        const statsElement = document.createElement('div');
-        statsElement.className = 'card-stats';
-        statsElement.textContent = card.getStatsString();
-
-        // Append elements
-        cardContent.appendChild(manaBadge);
-        cardContent.appendChild(emojiElement);
-        cardContent.appendChild(nameElement);
-        cardContent.appendChild(statsElement);
-        cardElement.appendChild(cardContent);
-
-        // Mark affordability so player can see what's playable
-        if (card.canPlay(this.gameState)) {
-            cardElement.classList.add('playable');
-        } else {
-            cardElement.classList.add('unplayable');
-        }
-
-        // Append to hand container
-        if (this.handContainer) {
-            this.handContainer.appendChild(cardElement);
-        }
-
-        console.log(`Card rendered in hand: ${card.name}`);
-    }
-    
     /**
      * Handles card click events in the hand
      *
@@ -564,7 +450,7 @@ export class Hand {
         event.stopPropagation();
 
         const energy = this.gameState.energy ?? 0;
-        
+
         // Log the card click with full state
         console.log(`[Hand] === Card Clicked ===`);
         console.log(`[Hand] Card: ${card.name} (cost: ${card.cost})`);
@@ -593,7 +479,7 @@ export class Hand {
 
         // Spend energy
         const cardCost = card.getCost ? card.getCost(this.gameState) : card.cost;
-        
+
         if (this.gameState.energyManager) {
             const spendResult = this.gameState.energyManager.spend(cardCost);
             console.log(`[Hand] Energy spend result:`, spendResult);
@@ -669,7 +555,7 @@ export class Hand {
             case 'heal_and_buff': {
                 const base   = card.healAmount || card.effect?.value || 5;
                 const isCrit = Math.random() < (card.critChance || 0.10);
-                const amount = Math.max(1, Math.floor(base * (isCrit ? 1.5 : 1) * (0.9 + Math.random() * 0.2)));
+                const amount = isCrit ? Math.floor(base * 1.5) : base;
                 this.gameState.updatePlayerHp(this.gameState.playerHp + amount);
                 console.log(
                     `[Hand] HEAL — ${card.name}:`,
@@ -727,7 +613,7 @@ export class Hand {
             case 'shield_and_buff': {
                 const shield = card.shieldAmount || card.effect?.value || 8;
                 const dur    = card.shieldDuration || card.duration || 3;
-                
+
                 // Add shield to the shield system (NOT as HP)
                 const shieldName = card.name.toLowerCase().replace(/\s+/g, '_');
                 this.gameState.addShield(shieldName, {
@@ -735,7 +621,7 @@ export class Hand {
                     duration: dur,
                     turnsRemaining: dur
                 });
-                
+
                 console.log(
                     `[Hand] SHIELD — ${card.name}:`,
                     `${shield} shield for ${dur} turns`,
@@ -793,21 +679,27 @@ export class Hand {
         if (this.hud) this.hud.updateAll();
         this.updateCardAffordability();
     }
-    
+
     /**
      * Adds visual feedback to a card
-     * 
+     *
      * @param {Object} card - The card to add feedback to
      */
     addVisualFeedback(card, type = 'success') {
-        const cardElement = document.querySelector(`[data-card-id="${card.id}"]`);
-        if (cardElement) {
-            const cls = type === 'success' ? 'feedback-success' : 'feedback-failure';
-            cardElement.classList.add(cls);
-            setTimeout(() => cardElement.classList.remove(cls), 600);
+        // Delegate to HandUI if available
+        if (this.handUI) {
+            this.handUI.addVisualFeedback(card, type);
+        } else {
+            // Fallback: direct DOM manipulation
+            const cardElement = document.querySelector(`[data-card-id="${card.id}"]`);
+            if (cardElement) {
+                const cls = type === 'success' ? 'feedback-success' : 'feedback-failure';
+                cardElement.classList.add(cls);
+                setTimeout(() => cardElement.classList.remove(cls), 600);
+            }
         }
     }
-    
+
     /**
      * Re-evaluates playable/unplayable classes for all cards in hand
      * based on current mana. Call this whenever mana changes.
@@ -838,14 +730,11 @@ export class Hand {
      * @returns {Object|null} The drawn card or null if no cards available
      */
     drawCard() {
-        // Use CardPileManager if available
+        // Use CardPileManager
         if (this.cardPileManager) {
             const drawResult = this.cardPileManager.drawCard(1);
 
             if (drawResult.success) {
-                // Sync legacy cards array
-                this.cards = this.cardPileManager.getHand();
-
                 // Render the new card
                 if (drawResult.cards.length > 0) {
                     const newCard = drawResult.cards[0];
@@ -859,62 +748,36 @@ export class Hand {
             }
         }
 
-        // Fallback: legacy behavior
-        if (!this.gameState.deck || this.gameState.deck.length === 0) {
-            console.warn('Cannot draw card: deck is empty');
-
-            if (this.cards.length === 0 && this.gameState.discardPile?.length > 0) {
-                console.log('Reshuffling discard pile into new deck...');
-                this.gameState.deck = [...this.gameState.discardPile];
-                this.gameState.discardPile = [];
-                this._shuffleDeck(this.gameState.deck);
-            } else {
-                console.log('Creating new deck...');
-                this.gameState.deck = this._createCombinedDeck();
-                this._shuffleDeck(this.gameState.deck);
-            }
-        }
-
-        const newCard = this.gameState.deck.pop();
-        this.addCard(newCard);
-
-        console.log(`Card drawn: ${newCard.name} (${this.gameState.deck.length} cards remaining)`);
-        return newCard;
+        // Fallback: legacy behavior (should not happen in normal operation)
+        console.warn('[Hand] CardPileManager not available, using legacy drawCard');
+        return null;
     }
-    
+
     /**
      * Discards a card from the hand
-     * 
+     *
      * @param {Object} card - The card to discard
      */
     discardCard(card) {
-        // Remove from hand
-        this.removeCard(card);
-        
-        // Add to discard pile
-        card.isDiscarded = true;
-        this.gameState.discardPile.push(card);
-        
-        console.log(`Card discarded: ${card.name}`);
+        // Remove from hand via CardPileManager
+        if (this.cardPileManager) {
+            this.cardPileManager.discardCard(card);
+            console.log(`Card discarded: ${card.name}`);
+        }
     }
-    
+
     /**
      * Updates the hand display
      */
     updateDisplay() {
-        // Clear current hand
-        if (this.handContainer) {
-            this.handContainer.innerHTML = '';
+        // Delegate to HandUI
+        if (this.handUI) {
+            this.handUI.renderHand(this.cards);
         }
-
-        // Render all cards in hand
-        this.cards.forEach(card => {
-            this.renderCard(card);
-        });
 
         console.log(`Hand display updated with ${this.cards.length} cards`);
     }
-    
+
     /**
      * Initializes the end turn button
      */
@@ -1036,7 +899,7 @@ export class Hand {
         // Use the new shield absorption system
         const shieldResult = this.gameState.absorbDamage(remainingDamage);
         remainingDamage = shieldResult.remainingDamage;
-        
+
         if (shieldResult.absorbed > 0) {
             console.log(`[Shield] Total absorbed: ${shieldResult.absorbed}, remaining: ${remainingDamage}`);
         }
@@ -1249,16 +1112,18 @@ export class Hand {
         // End turn with enemy action callback
         if (this.gameState.turnManager) {
             this.gameState.turnManager.endOfTurn({ onEnemyAction: enemyAction });
-            
+
             // Start next turn AFTER enemy acts
             this.gameState.turnManager.startOfTurn();
-            
-            // Draw cards for new turn
+
+            // Draw cards for new turn - handle deck exhaustion
             if (this.cardPileManager) {
-                this.cardPileManager.drawCard(5);
-                this.cards = this.cardPileManager.getHand();
+                const drawResult = this.cardPileManager.drawCard(5);
+                if (!drawResult.success && drawResult.reason.includes('deck is empty')) {
+                    console.log('[Hand] Deck exhausted, reshuffling discard pile');
+                }
             }
-            
+
             if (this.hud) this.hud.updateAll();
             if (this.handUI) this.handUI.renderHand(this.cards);
         }

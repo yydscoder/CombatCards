@@ -1,13 +1,14 @@
 /**
  * HandLayout - Arc Fan Card Hand Positioning
- * 
+ *
  * Based on Slay the Spire hand mechanic.
  * Uses trigonometry for fan arc positioning.
- * 
+ *
  * Key Features:
  * - Cards fan out in arc using sin/cos
  * - Hovered card lifts and scales
  * - Neighbor cards push away from center
+ * - Responsive positioning based on container width
  */
 
 export class HandLayout {
@@ -21,7 +22,7 @@ export class HandLayout {
         this.cardWidth = options.cardWidth || 100;
         this.cardHeight = options.cardHeight || 140;
     }
-    
+
     /**
      * Calculates card positions along fan arc
      * @param {number} cardCount - Number of cards in hand
@@ -31,33 +32,36 @@ export class HandLayout {
      */
     calculateCardPositions(cardCount, containerWidth, hoveredIndex = -1) {
         if (cardCount === 0) return [];
-        
+
+        // Calculate center based on container width (responsive)
         const centerX = containerWidth / 2;
-        const centerY = 0; // Bottom of container (cards positioned from bottom)
         
+        // Position cards in lower portion of container for hover room
+        const centerY = this.cardHeight * 1.8;  // ~252px for 140px cards
+
         // Calculate total angle spread in radians
         const totalRad = (this.arcAngle * Math.PI) / 180;
         const startAngle = -totalRad / 2;
         const angleStep = cardCount > 1 ? totalRad / (cardCount - 1) : 0;
-        
+
         const transforms = [];
-        
+
         for (let index = 0; index < cardCount; index++) {
             // Calculate angle for this card
             const angle = startAngle + (angleStep * index);
-            
+
             // Basic arc position (sin/cos)
             const x = centerX + (this.arcRadius * Math.sin(angle));
-            const y = centerY - (this.arcRadius * Math.cos(angle)) + this.cardHeight;
-            
+            const y = centerY - (this.arcRadius * Math.cos(angle));
+
             // Rotation (align with angle, convert to degrees)
             const rotation = (angle * 180) / Math.PI;
-            
+
             // Hover logic
             let offsetX = 0;
             let offsetY = 0;
             let scale = 1;
-            
+
             if (index === hoveredIndex) {
                 // Hovered card: lift up and scale
                 offsetY = -this.hoverLift;
@@ -70,16 +74,16 @@ export class HandLayout {
                     offsetX = this.neighborPush;
                 }
             }
-            
+
             // Z-index: hovered card on top, then by position
             let zIndex = 50 + index;
             if (index === hoveredIndex) {
                 zIndex = 999;
             }
-            
+
             transforms.push({
                 x: x - (this.cardWidth / 2),  // Center anchor
-                y: y - this.cardHeight,        // Position from bottom
+                y: y - (this.cardHeight / 2),  // Center anchor
                 rotation,
                 zIndex,
                 scale,
@@ -88,10 +92,10 @@ export class HandLayout {
                 index
             });
         }
-        
+
         return transforms;
     }
-    
+
     /**
      * Applies transform to card element
      * @param {HTMLElement} cardEl - Card DOM element
@@ -99,16 +103,16 @@ export class HandLayout {
      */
     applyTransform(cardEl, transform) {
         if (!cardEl) return;
-        
+
         const finalX = transform.x + transform.offsetX;
         const finalY = transform.y + transform.offsetY;
-        
+
         cardEl.style.transform = `
             translate(${finalX}px, ${finalY}px)
             rotate(${transform.rotation}deg)
             scale(${transform.scale})
         `;
-        
+
         cardEl.style.zIndex = transform.zIndex;
     }
 }

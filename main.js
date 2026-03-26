@@ -224,6 +224,12 @@ function initializeDropZones() {
         handleCardDrop(e, 'player');
     });
 
+    // Global dragend handler - ensures drop targets are cleared even if drag ends outside zones
+    document.addEventListener('dragend', () => {
+        enemyDisplay.classList.remove('drop-target');
+        playerDisplay.classList.remove('drop-target');
+    });
+
     console.log('[DropZones] Initialized on enemy and player areas');
 }
 

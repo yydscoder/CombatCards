@@ -3,17 +3,12 @@
  *
  * This module manages the visual rendering and interaction of the player's hand.
  * It handles:
- * - Rendering cards in slots at the bottom of the screen
+ * - Rendering cards directly in the hand container (no slot abstraction)
  * - Click-to-play card functionality
- * - Click-to-move card reordering
- * - Drag-and-drop card management
+ * - Drag-and-drop card targeting
  * - Visual feedback for playable/unplayable states
- *
- * Patch Notes v0.1.6: + Hand UI rendered. + Card selection logic. + Click-to-move.
+ * - Arc fan positioning using HandLayout
  */
-
-// Import CardSlot for slot management
-import { CardSlot, createCardSlotFactory } from './CardSlot.js';
 
 // Import HandLayout for STS-style positioning
 import { HandLayout } from './HandLayout.js';
@@ -22,10 +17,9 @@ import { HandLayout } from './HandLayout.js';
  * HandUI class - Manages hand rendering and interactions
  *
  * Handles all visual aspects of the player's hand including:
- * - Creating and managing card slots
- * - Rendering cards with proper styling
+ * - Creating and managing card elements directly
+ * - Rendering cards with proper arc fan positioning
  * - Handling click and drag interactions
- * - Managing card selection for reordering
  * - Providing visual feedback
  */
 export class HandUI {
@@ -34,8 +28,9 @@ export class HandUI {
      * @param {Object} gameState - Reference to the game state object
      * @param {Object} hand - Reference to the Hand logic instance
      * @param {Object} hud - Reference to the HUD instance for feedback
+     * @param {HandLayout} handLayout - Optional shared HandLayout instance
      */
-    constructor(gameState, hand, hud) {
+    constructor(gameState, hand, hud, handLayout = null) {
         this.gameState = gameState;
         this.hand = hand;
         this.hud = hud;
@@ -43,38 +38,36 @@ export class HandUI {
         // Get the hand container element
         this.handContainer = document.getElementById('hand');
 
-        // Slot management
-        this.slots = [];
-        this.maxSlots = 5;
-
-        // Selection state for click-to-move
-        this.selectedSlot = null;
-
-        // Drag state
-        this.draggedCard = null;
-        this.dragSourceIndex = null;
-
-        // Card element cache
+        // Card element cache for quick lookups
         this.cardElements = new Map();
-        
-        // Get HandLayout - try multiple sources
-        this.handLayout = null;
-        if (hand && hand.handLayout) {
-            this.handLayout = hand.handLayout;
-            console.log('[HandUI] Got handLayout from hand instance');
-        } else if (gameState && gameState.handLayout) {
-            this.handLayout = gameState.handLayout;
-            console.log('[HandUI] Got handLayout from gameState');
-        } else {
-            // Create our own instance as fallback with arc fan config
+
+        // Track hovered card index for arc positioning
+        this.hoveredIndex = -1;
+
+        // Drag state for targeting
+        this.draggedCard = null;
+
+        // Use provided handLayout or get from hand/gameState
+        this.handLayout = handLayout;
+        if (!this.handLayout) {
+            if (hand && hand.handLayout) {
+                this.handLayout = hand.handLayout;
+                console.log('[HandUI] Got handLayout from hand instance');
+            } else if (gameState && gameState.handLayout) {
+                this.handLayout = gameState.handLayout;
+                console.log('[HandUI] Got handLayout from gameState');
+            }
+        }
+        if (!this.handLayout) {
+            // Create fallback instance (should not happen if Hand passes layout)
             this.handLayout = new HandLayout({
-                arcRadius: 300,             // How curved the fan is
-                arcAngle: 40,               // Total spread in degrees
-                hoverLift: 50,              // Pixels to move up on hover
-                hoverScale: 1.2,            // Scale multiplier
-                neighborPush: 30,           // Pixels to push neighbors
-                cardWidth: 100,             // Card width
-                cardHeight: 140             // Card height
+                arcRadius: 300,
+                arcAngle: 40,
+                hoverLift: 50,
+                hoverScale: 1.2,
+                neighborPush: 30,
+                cardWidth: 100,
+                cardHeight: 140
             });
             console.log('[HandUI] Created fallback handLayout instance');
         }
@@ -95,22 +88,7 @@ export class HandUI {
         // Clear existing content
         this.handContainer.innerHTML = '';
 
-        // Create card slots
-        this.createSlots();
-
-        console.log('[HandUI] Initialized with', this.slots.length, 'slots');
-    }
-
-    /**
-     * Creates card slots in the container
-     */
-    createSlots() {
-        const slotFactory = createCardSlotFactory(this);
-
-        for (let i = 0; i < this.maxSlots; i++) {
-            const slot = slotFactory.create(i, this.handContainer);
-            this.slots.push(slot);
-        }
+        console.log('[HandUI] Initialized');
     }
 
     /**
@@ -169,8 +147,20 @@ export class HandUI {
         cardContent.appendChild(statsElement);
         cardElement.appendChild(cardContent);
 
-        // Add click event for playing the card (fallback)
+        // Add click event for playing the card
         cardElement.addEventListener('click', (e) => this.handleCardClick(card, e));
+
+        // Add hover events for arc positioning
+        cardElement.addEventListener('mouseenter', () => {
+            const cards = this.hand?.cards || [];
+            const index = cards.findIndex(c => c.id === card.id);
+            this.hoveredIndex = index;
+            this.updateHandPositions();
+        });
+        cardElement.addEventListener('mouseleave', () => {
+            this.hoveredIndex = -1;
+            this.updateHandPositions();
+        });
 
         // Add drag events for targeting
         cardElement.addEventListener('dragstart', (e) => this.handleDragStart(card, e));
@@ -206,79 +196,49 @@ export class HandUI {
     }
 
     /**
-     * Renders a card in a specific slot
-     * @param {Object} card - The card to render
-     * @param {number} slotIndex - The slot index to render in
-     */
-    renderCardInSlot(card, slotIndex = -1) {
-        // Find an empty slot or use the specified index
-        let targetIndex = slotIndex;
-
-        if (targetIndex < 0 || targetIndex >= this.slots.length) {
-            // Find first empty slot
-            targetIndex = this.slots.findIndex(slot => slot.card === null);
-
-            if (targetIndex < 0) {
-                // Hand is full, use last slot
-                targetIndex = this.slots.length - 1;
-            }
-        }
-
-        // Set the card in the slot
-        const slot = this.slots[targetIndex];
-        if (slot) {
-            slot.setCard(card);
-            console.log(`[HandUI] Card ${card.name} rendered in slot ${targetIndex}`);
-        }
-    }
-
-    /**
      * Renders all cards in the hand with arc fan positioning
      * @param {Object[]} cards - Array of cards to render
      */
     renderHand(cards) {
-        // Clear all slots first
-        this.clearAllSlots();
+        // Clear container
+        if (this.handContainer) {
+            this.handContainer.innerHTML = '';
+        }
 
-        // Render each card in order
+        // Clear cache
+        this.cardElements.clear();
+        this.hoveredIndex = -1;
+
+        // Render each card directly into container
         cards.forEach((card, index) => {
-            if (index < this.slots.length) {
-                this.slots[index].setCard(card);
-                this.cardElements.set(card.id, this.slots[index].getCardElement());
-                
-                // Add hover events for arc positioning
-                const cardEl = this.slots[index].getCardElement();
-                cardEl.addEventListener('mouseenter', () => {
-                    this.updateHandPositions(index);
-                });
-                cardEl.addEventListener('mouseleave', () => {
-                    this.updateHandPositions(-1);
-                });
-            }
+            if (!this.handContainer) return;
+
+            const cardElement = this.createCardElement(card);
+            this.handContainer.appendChild(cardElement);
+            this.cardElements.set(card.id, cardElement);
         });
-        
+
         // Initial positioning
-        this.updateHandPositions(-1);
+        this.updateHandPositions();
 
         console.log(`[HandUI] Hand rendered with ${cards.length} cards`);
     }
-    
+
     /**
      * Updates all card positions based on hover state
-     * @param {number} hoveredIndex - Index of hovered card (-1 if none)
      */
-    updateHandPositions(hoveredIndex) {
-        if (!this.handLayout) return;
-        
+    updateHandPositions() {
+        if (!this.handLayout || !this.handContainer) return;
+
         const cards = this.hand?.cards || [];
-        const containerWidth = this.handContainer?.offsetWidth || 800;
-        
+        const containerWidth = this.handContainer.offsetWidth || 800;
+
         const transforms = this.handLayout.calculateCardPositions(
             cards.length,
             containerWidth,
-            hoveredIndex
+            this.hoveredIndex
         );
-        
+
         cards.forEach((card, index) => {
             const cardEl = this.cardElements.get(card.id);
             if (cardEl && transforms[index]) {
@@ -291,12 +251,11 @@ export class HandUI {
      * Refreshes all card visuals (e.g., after mana change)
      */
     refreshAllCardVisuals() {
-        this.slots.forEach(slot => {
-            if (slot.card) {
-                const cardElement = slot.getCardElement();
-                if (cardElement) {
-                    this.updateCardVisual(cardElement, slot.card);
-                }
+        this.cardElements.forEach((cardElement, cardId) => {
+            // Find the card object
+            const card = this.hand?.cards?.find(c => c.id === cardId);
+            if (card) {
+                this.updateCardVisual(cardElement, card);
             }
         });
     }
@@ -315,7 +274,7 @@ export class HandUI {
 
         // Check if card can be played
         const canPlay = card.canPlay && card.canPlay(this.gameState);
-        
+
         if (!canPlay) {
             console.warn(`[HandUI] Cannot play ${card.name}: cost=${card.cost}, energy=${energy}`);
             this.addVisualFeedback(card, 'failure');
@@ -328,156 +287,6 @@ export class HandUI {
         if (this.hand && this.hand.handleCardClick) {
             this.hand.handleCardClick(card, event);
         }
-    }
-
-    /**
-     * Plays a card (delegates to hand logic)
-     * @param {Object} card - The card to play
-     */
-    playCard(card) {
-        if (!this.hand) {
-            console.error('[HandUI] No hand logic instance available');
-            return;
-        }
-
-        // Find the slot containing this card
-        const slotIndex = this.slots.findIndex(s => s.card === card);
-
-        if (slotIndex >= 0) {
-            // Execute card effect
-            const result = card.executeEffect(this.gameState, this.gameState.enemy);
-
-            if (result && result.success) {
-                // Deduct mana
-                this.gameState.updatePlayerMana(this.gameState.playerMana - card.cost);
-
-                // Update HUD
-                if (this.hud) {
-                    this.hud.updateAll();
-
-                    // Show damage feedback if damage was dealt
-                    if (result.damage > 0) {
-                        this.hud.showDamageFeedback(result.damage, 'enemy', result.isCriticalHit);
-                    }
-                }
-
-                // Visual feedback
-                this.addVisualFeedback(card, 'success');
-
-                // Remove card from slot
-                this.slots[slotIndex].clearCard();
-                this.cardElements.delete(card.id);
-
-                // Update hand state
-                card.isInHand = false;
-                card.isDiscarded = true;
-
-                console.log(`[HandUI] Card played: ${card.name}`);
-            } else {
-                this.addVisualFeedback(card, 'failure');
-            }
-        }
-    }
-
-    /**
-     * Selects a slot for click-to-move
-     * @param {CardSlot} slot - The slot to select
-     */
-    selectSlot(slot) {
-        // Deselect previous slot
-        if (this.selectedSlot && this.selectedSlot !== slot) {
-            this.selectedSlot.setSelected(false);
-        }
-
-        // Toggle selection
-        if (this.selectedSlot === slot) {
-            this.selectedSlot = null;
-            slot.setSelected(false);
-            console.log('[HandUI] Selection cleared');
-        } else {
-            this.selectedSlot = slot;
-            slot.setSelected(true);
-            console.log(`[HandUI] Slot ${slot.index} selected`);
-        }
-    }
-
-    /**
-     * Clears the current selection
-     */
-    clearSelection() {
-        if (this.selectedSlot) {
-            this.selectedSlot.setSelected(false);
-            this.selectedSlot = null;
-            console.log('[HandUI] Selection cleared');
-        }
-    }
-
-    /**
-     * Gets the currently selected slot
-     * @returns {CardSlot|null} The selected slot or null
-     */
-    getSelectedSlot() {
-        return this.selectedSlot;
-    }
-
-    /**
-     * Gets a slot by index
-     * @param {number} index - The slot index
-     * @returns {CardSlot|null} The slot or null
-     */
-    getSlotByIndex(index) {
-        if (index >= 0 && index < this.slots.length) {
-            return this.slots[index];
-        }
-        return null;
-    }
-
-    /**
-     * Swaps cards between two slots
-     * @param {CardSlot} slot1 - First slot
-     * @param {CardSlot} slot2 - Second slot
-     */
-    swapCards(slot1, slot2) {
-        if (!slot1 || !slot2 || slot1 === slot2) return;
-
-        // Swap cards in slots
-        const tempCard = slot1.card;
-        slot1.setCard(slot2.card);
-        slot2.setCard(tempCard);
-
-        // Update card elements cache
-        if (slot1.card) {
-            this.cardElements.set(slot1.card.id, slot1.getCardElement());
-        }
-        if (slot2.card) {
-            this.cardElements.set(slot2.card.id, slot2.getCardElement());
-        }
-
-        // Update hand array order if hand logic exists
-        if (this.hand && this.hand.cards) {
-            const index1 = this.hand.cards.indexOf(slot1.card || tempCard);
-            const index2 = this.hand.cards.indexOf(slot2.card || tempCard);
-
-            if (index1 >= 0 && index2 >= 0) {
-                // Swap in hand array
-                [this.hand.cards[index1], this.hand.cards[index2]] = 
-                [this.hand.cards[index2], this.hand.cards[index1]];
-            }
-        }
-
-        console.log(`[HandUI] Cards swapped between slots ${slot1.index} and ${slot2.index}`);
-    }
-
-    /**
-     * Clears drag-over state from all slots
-     */
-    clearAllDragOverStates() {
-        this.slots.forEach(slot => {
-            slot.isDragOver = false;
-            if (slot.element) {
-                slot.element.classList.remove('slot-drag-over');
-            }
-        });
     }
 
     /**
@@ -514,22 +323,16 @@ export class HandUI {
      * @param {Object} card - The card to remove
      */
     removeCard(card) {
-        const slotIndex = this.slots.findIndex(s => s.card === card);
+        const cardElement = this.cardElements.get(card.id);
 
-        if (slotIndex >= 0) {
-            this.slots[slotIndex].clearCard();
+        if (cardElement) {
+            cardElement.remove();
             this.cardElements.delete(card.id);
             console.log(`[HandUI] Card removed: ${card.name}`);
-        }
-    }
 
-    /**
-     * Clears all slots
-     */
-    clearAllSlots() {
-        this.slots.forEach(slot => slot.clearCard());
-        this.cardElements.clear();
-        this.selectedSlot = null;
+            // Update positions after removal
+            this.updateHandPositions();
+        }
     }
 
     /**
@@ -582,6 +385,7 @@ export class HandUI {
         if (enemyArea) enemyArea.classList.remove('drop-target');
         if (playerArea) playerArea.classList.remove('drop-target');
 
+        // Handle drop on target if applicable
         if (pendingCard && window.__dropTarget) {
             console.log(`[HandUI] Drag ended over ${window.__dropTarget}, applying card`);
             this.handleDropOnTarget(pendingCard, window.__dropTarget);
@@ -604,19 +408,6 @@ export class HandUI {
 
         console.log(`[HandUI] Card dropped on ${targetType}: ${card.name}`);
 
-        // Determine target
-        let target;
-        if (targetType === 'enemy') {
-            target = this.gameState.enemy;
-        } else if (targetType === 'player') {
-            target = this.gameState;
-        }
-
-        if (!target) {
-            console.warn('[HandUI] No valid target');
-            return;
-        }
-
         // Play the card
         this.handleCardClick(card, { preventDefault: () => {}, stopPropagation: () => {} });
     }
@@ -625,11 +416,13 @@ export class HandUI {
      * Destroys the hand UI and cleans up
      */
     destroy() {
-        this.slots.forEach(slot => slot.destroy());
-        this.slots = [];
+        if (this.handContainer) {
+            this.handContainer.innerHTML = '';
+        }
         this.cardElements.clear();
-        this.selectedSlot = null;
-        this.container = null;
+        this.draggedCard = null;
+        this.hoveredIndex = -1;
+        this.handContainer = null;
     }
 }
 
