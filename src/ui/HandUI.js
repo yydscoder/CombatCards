@@ -66,15 +66,14 @@ export class HandUI {
             this.handLayout = gameState.handLayout;
             console.log('[HandUI] Got handLayout from gameState');
         } else {
-            // Create our own instance as fallback with STS config
+            // Create our own instance as fallback with arc fan config
             this.handLayout = new HandLayout({
-                maxSpread: 700,           // Max hand width
-                curveHeight: 80,          // Arc height
-                maxRotation: 15,          // 15 degrees at edges
-                cardWidth: 120,           // Card width
-                cardHeight: 180,          // Card height
-                hoverScale: 1.2,          // Hover scale
-                hoverLift: 40             // Hover lift
+                arcRadius: 350,             // Distance from pivot
+                arcSpan: 100,               // Total arc angle
+                cardWidth: 120,             // Card width
+                cardHeight: 180,            // Card height
+                hoverScale: 1.15,           // Hover scale
+                hoverLift: 50               // Hover lift
             });
             console.log('[HandUI] Created fallback handLayout instance');
         }

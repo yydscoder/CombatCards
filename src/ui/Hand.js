@@ -135,15 +135,14 @@ export class Hand {
         // Initialize HandUI for rendering and interactions
         this.handUI = new HandUI(gameState, this, hud);
         
-        // Initialize HandLayout for STS-style card positioning
+        // Initialize HandLayout for arc fan card positioning
         this.handLayout = new HandLayout({
-            maxSpread: 700,           // Max hand width
-            curveHeight: 80,          // Arc height
-            maxRotation: 15,          // 15 degrees at edges
-            cardWidth: 120,           // Card width
-            cardHeight: 180,          // Card height
-            hoverScale: 1.2,          // Hover scale
-            hoverLift: 40             // Hover lift
+            arcRadius: 350,             // Distance from pivot (controls arc height)
+            arcSpan: 100,               // Total arc angle in degrees (wider = more spread)
+            cardWidth: 120,             // Card width
+            cardHeight: 180,            // Card height
+            hoverScale: 1.15,           // Hover scale
+            hoverLift: 50               // Hover lift
         });
 
         // Log initialization
