@@ -36,11 +36,12 @@ export class HandLayout {
         // Calculate center based on container width (responsive)
         const centerX = containerWidth / 2;
         
-        // Position the arc pivot point near the BOTTOM of the container
-        // Cards fan UP from this pivot point
-        // Container is ~400px tall, we want card bottoms near the bottom edge
+        // Position the arc pivot point ABOVE the container
+        // Cards fan DOWN from this pivot, creating an arc at the bottom
+        // Container is ~400px tall, cards are 140px tall
+        // Arc radius 300px + card height 140px = 440px total, cards sit at bottom
         const containerHeight = 400;  // Match CSS #hand height
-        const centerY = containerHeight - 80;  // ~320px - pivot point near bottom
+        const centerY = -50;  // Pivot point above container (negative = above top edge)
 
         // Calculate total angle spread in radians
         const totalRad = (this.arcAngle * Math.PI) / 180;
@@ -51,7 +52,7 @@ export class HandLayout {
 
         // Log container bounds for debugging
         console.log(`[HandLayout] Container: ${containerWidth}px wide x ${containerHeight}px tall`);
-        console.log(`[HandLayout] Arc pivot: centerX=${centerX}, centerY=${centerY}`);
+        console.log(`[HandLayout] Arc pivot: centerX=${centerX}, centerY=${centerY} (above container)`);
         console.log(`[HandLayout] Arc radius: ${this.arcRadius}px, angle spread: ${this.arcAngle}°`);
 
         for (let index = 0; index < cardCount; index++) {
@@ -59,9 +60,9 @@ export class HandLayout {
             const angle = startAngle + (angleStep * index);
 
             // Basic arc position (sin/cos)
-            // cos(angle) is positive at center, so y = centerY - radius puts cards ABOVE pivot
+            // With centerY above container and positive radius, cards fan down and right
             const x = centerX + (this.arcRadius * Math.sin(angle));
-            const y = centerY - (this.arcRadius * Math.cos(angle));
+            const y = centerY + (this.arcRadius * Math.cos(angle));
 
             // Rotation (align with angle, convert to degrees)
             const rotation = (angle * 180) / Math.PI;
@@ -90,13 +91,14 @@ export class HandLayout {
                 zIndex = 999;
             }
 
-            // Calculate final card position (center anchor)
+            // Calculate final card position (anchor from BOTTOM center of card)
+            // Cards fan upward from the arc, with bottoms on the curve
             const finalX = x - (this.cardWidth / 2) + offsetX;
-            const finalY = y - (this.cardHeight / 2) + offsetY;
+            const finalY = y - this.cardHeight + offsetY;  // Anchor from bottom, not center
 
             transforms.push({
-                x: x - (this.cardWidth / 2),  // Center anchor
-                y: y - (this.cardHeight / 2),  // Center anchor
+                x: x - (this.cardWidth / 2),  // Center X anchor
+                y: y - this.cardHeight,  // Bottom Y anchor (card extends upward)
                 rotation,
                 zIndex,
                 scale,
@@ -123,9 +125,10 @@ export class HandLayout {
             console.log(`[HandLayout] Card ${lastIdx}: pos(${last.finalX.toFixed(0)}, ${last.finalY.toFixed(0)})`);
         }
 
-        // Log container boundaries
+        // Log container boundaries and arc coverage
         console.log(`[HandLayout] Container bounds: left=0, right=${containerWidth}, top=0, bottom=${containerHeight}`);
-        console.log(`[HandLayout] Card bounds (center): top=${(centerY - this.arcRadius).toFixed(0)}, bottom=${(centerY).toFixed(0)}`);
+        console.log(`[HandLayout] Arc coverage: from y=${centerY}px to y=${centerY + this.arcRadius}px`);
+        console.log(`[HandLayout] Card bottoms at y=${centerY + this.arcRadius}px, tops at y=${centerY + this.arcRadius - this.cardHeight}px`);
 
         return transforms;
     }
