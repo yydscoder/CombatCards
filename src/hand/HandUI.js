@@ -19,6 +19,10 @@ export class HandUI {
         this.lastCardCount = -1;
         this.lastContainerWidth = -1;
         this.lastContainerHeight = -1;
+        this.recalcMetrics = {
+            total: 0,
+            reasons: {}
+        };
 
         handUiInstanceCounter += 1;
         this.instanceId = handUiInstanceCounter;
@@ -29,12 +33,20 @@ export class HandUI {
         };
 
         this.handLayout = handLayout || hand?.handLayout || gameState?.handLayout || new HandLayout({
-            cardWidth: 100,
-            cardHeight: 140
+            cardWidth: 112,
+            cardHeight: 156,
+            centerXRatio: 0.39
         });
 
         this.resizeObserver = null;
         this.windowResizeHandler = null;
+        this.previewOverlay = null;
+        this.previewCardId = null;
+        this.keydownHandler = (event) => {
+            if (event.key === 'Escape') {
+                this.closeCardPreview();
+            }
+        };
         this.initialized = false;
         this.initPromise = this.init();
     }
@@ -167,6 +179,10 @@ export class HandUI {
 
         cardElement.addEventListener('dragstart', (event) => this.handleDragStart(card, event));
         cardElement.addEventListener('dragend', (event) => this.handleDragEnd(card, event));
+        cardElement.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            this.openCardPreview(card);
+        });
 
         this.cardElements.set(card.id, cardElement);
         this.updateCardVisual(cardElement, card);
@@ -252,7 +268,13 @@ export class HandUI {
         this.lastContainerWidth = bounds.width;
         this.lastContainerHeight = bounds.height;
 
+        this.recalcMetrics.total += 1;
+        this.recalcMetrics.reasons[reason] = (this.recalcMetrics.reasons[reason] || 0) + 1;
+
         console.log(`[HandUI] Recalculate reason: ${reason}`);
+        if (this.recalcMetrics.total % 10 === 0) {
+            console.log('[HandUI] Recalculate metrics:', JSON.stringify(this.recalcMetrics));
+        }
 
         const transforms = this.handLayout.calculateCardPositions(
             cards.length,
@@ -405,6 +427,74 @@ export class HandUI {
         this.handleCardClick(card, { preventDefault: () => {}, stopPropagation: () => {} }, targetType);
     }
 
+    buildCardPreviewContent(card) {
+        const displayName = typeof card.getDisplayName === 'function' ? card.getDisplayName() : (card.name || 'Unknown Card');
+        const stats = typeof card.getStatsString === 'function' ? card.getStatsString() : `Cost: ${card.cost ?? 0}`;
+        const description = card.effect?.description || card.description || 'No description available.';
+        const targetText = card.targetType || card.effect?.target || 'enemy';
+        const typeText = card.cardType || card.effect?.type || 'card';
+
+        return `
+            <div class="card-preview-shell">
+                <button class="card-preview-close" type="button" aria-label="Close card preview">x</button>
+                <div class="card-preview-card" data-element="${card.element || ''}">
+                    <div class="card-mana-cost">${card.cost ?? 0}</div>
+                    <div class="card-content card-preview-content">
+                        <div class="card-emoji">${card.emoji || '🃏'}</div>
+                        <div class="card-name">${displayName}</div>
+                        <div class="card-stats">${stats}</div>
+                        <div class="card-preview-meta">Type: ${typeText}</div>
+                        <div class="card-preview-meta">Target: ${targetText}</div>
+                        <div class="card-preview-description">${description}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    ensurePreviewOverlay() {
+        if (this.previewOverlay) {
+            return this.previewOverlay;
+        }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'card-preview-overlay';
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) {
+                this.closeCardPreview();
+            }
+        });
+
+        document.body.appendChild(overlay);
+        this.previewOverlay = overlay;
+        return overlay;
+    }
+
+    openCardPreview(card) {
+        const overlay = this.ensurePreviewOverlay();
+        overlay.innerHTML = this.buildCardPreviewContent(card);
+        overlay.classList.add('active');
+        this.previewCardId = card.id;
+
+        const closeButton = overlay.querySelector('.card-preview-close');
+        if (closeButton) {
+            closeButton.addEventListener('click', () => this.closeCardPreview());
+        }
+
+        window.addEventListener('keydown', this.keydownHandler);
+    }
+
+    closeCardPreview() {
+        if (!this.previewOverlay) {
+            return;
+        }
+
+        this.previewOverlay.classList.remove('active');
+        this.previewOverlay.innerHTML = '';
+        this.previewCardId = null;
+        window.removeEventListener('keydown', this.keydownHandler);
+    }
+
     destroy() {
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
@@ -415,6 +505,12 @@ export class HandUI {
             window.removeEventListener('resize', this.windowResizeHandler);
             this.windowResizeHandler = null;
         }
+
+        this.closeCardPreview();
+        if (this.previewOverlay && this.previewOverlay.parentNode) {
+            this.previewOverlay.parentNode.removeChild(this.previewOverlay);
+        }
+        this.previewOverlay = null;
 
         debouncer.cancel(this.debounceKeys.hover);
         debouncer.cancel(this.debounceKeys.resize);

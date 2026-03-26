@@ -137,8 +137,9 @@ export class Hand {
             hoverLift: 50,              // Pixels to move up on hover
             hoverScale: 1.2,            // Scale multiplier
             neighborPush: 30,           // Pixels to push neighbors
-            cardWidth: 100,             // Card width
-            cardHeight: 140             // Card height
+            cardWidth: 112,             // Card width
+            cardHeight: 156,            // Card height
+            centerXRatio: 0.39          // Slight right shift of hand fan
         });
 
         // Initialize HandUI for rendering and interactions (shares handLayout)

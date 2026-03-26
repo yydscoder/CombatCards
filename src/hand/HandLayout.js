@@ -10,10 +10,10 @@ export class HandLayout {
             hoverLift: options.hoverLift ?? 50,
             hoverScale: options.hoverScale ?? 1.2,
             neighborPush: options.neighborPush ?? 30,
-            cardWidth: options.cardWidth ?? 100,
-            cardHeight: options.cardHeight ?? 140,
+            cardWidth: options.cardWidth ?? 112,
+            cardHeight: options.cardHeight ?? 156,
             animationDuration: options.animationDuration ?? 0.2,
-            centerXRatio: options.centerXRatio ?? 0.35
+            centerXRatio: options.centerXRatio ?? 0.39
         };
 
         this.lastState = {
