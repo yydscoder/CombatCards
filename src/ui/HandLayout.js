@@ -39,9 +39,10 @@ export class HandLayout {
         // Position the arc pivot point ABOVE the container
         // Cards fan DOWN from this pivot, creating an arc at the bottom
         // Container is ~400px tall, cards are 140px tall
-        // Arc radius 300px + card height 140px = 440px total, cards sit at bottom
+        // We want card bottoms at ~370px (30px from container bottom)
+        // centerY + arcRadius = 370, so centerY = 370 - 300 = 70
         const containerHeight = 400;  // Match CSS #hand height
-        const centerY = -50;  // Pivot point above container (negative = above top edge)
+        const centerY = 70;  // Pivot point for arc (cards fan down from here)
 
         // Calculate total angle spread in radians
         const totalRad = (this.arcAngle * Math.PI) / 180;
