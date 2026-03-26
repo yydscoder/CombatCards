@@ -66,17 +66,19 @@ export class HandUI {
             this.handLayout = gameState.handLayout;
             console.log('[HandUI] Got handLayout from gameState');
         } else {
-            // Create our own instance as fallback
+            // Create our own instance as fallback with STS config
             this.handLayout = new HandLayout({
-                maxSpread: 70,
-                curveHeight: 35,
-                maxRotation: 18,
-                baseSpread: 40,
-                spreadFactor: 8,
-                lerpFactor: 0.15,
-                hoverScale: 1.15,
-                hoverLift: 60,
-                bottomAlign: true
+                overlapRatio: 0.25,        // 25% overlap, 75% visible
+                maxRotation: 15,           // 15 degrees at edges
+                curveHeight: 100,          // Medium arc height
+                pivotOffset: 250,          // Pivot point below screen
+                cardWidth: 200,            // Approximate card width
+                cardHeight: 280,           // Approximate card height
+                maxWidthPercent: 0.80,     // Max 80% of screen width
+                lerpFactor: 0.15,          // Smooth interpolation
+                hoverScale: 1.15,          // Slight scale on hover
+                hoverLift: 60,             // Big lift on hover (STS-style)
+                bottomAnchor: true         // Anchor at bottom edge
             });
             console.log('[HandUI] Created fallback handLayout instance');
         }
@@ -259,7 +261,7 @@ export class HandUI {
     }
     
     /**
-     * Applies STS-style arc layout to cards
+     * Applies STS-style bottom pivot arc layout to cards
      * @param {Object[]} cards - Array of cards
      */
     applyHandLayout(cards) {

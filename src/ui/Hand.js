@@ -135,17 +135,19 @@ export class Hand {
         // Initialize HandUI for rendering and interactions
         this.handUI = new HandUI(gameState, this, hud);
         
-        // Initialize HandLayout for STS-style card positioning
+        // Initialize HandLayout for STS-style card positioning (BOTTOM PIVOT system)
         this.handLayout = new HandLayout({
-            maxSpread: 70,        // Tightly overlapped (30-40% visible)
-            curveHeight: 35,      // Medium arc height
-            maxRotation: 18,      // Strong rotation (edge cards tilt 18 degrees)
-            baseSpread: 40,       // Tighter base spread
-            spreadFactor: 8,      // Less spread increase per card
-            lerpFactor: 0.15,     // Smooth interpolation
-            hoverScale: 1.15,     // Slight scale on hover
-            hoverLift: 60,        // Big lift on hover (STS-style)
-            bottomAlign: true     // Align at bottom like holding a fan
+            overlapRatio: 0.25,        // 25% overlap, 75% visible
+            maxRotation: 15,           // 15 degrees at edges
+            curveHeight: 100,          // Medium arc height
+            pivotOffset: 250,          // Pivot point below screen
+            cardWidth: 200,            // Approximate card width
+            cardHeight: 280,           // Approximate card height
+            maxWidthPercent: 0.80,     // Max 80% of screen width
+            lerpFactor: 0.15,          // Smooth interpolation
+            hoverScale: 1.15,          // Slight scale on hover
+            hoverLift: 60,             // Big lift on hover (STS-style)
+            bottomAnchor: true         // Anchor at bottom edge
         });
 
         // Log initialization

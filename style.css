@@ -384,23 +384,30 @@ body {
     border: 2px dashed #555;
 }
 
-/* Hand - CENTERED at bottom */
+/* Hand - CENTERED at bottom, cards emerge from bottom edge */
 #hand {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    bottom: 30px;
+    bottom: 0;
     display: flex;
     justify-content: center;
-    gap: 4px;
-    max-width: 700px;
-    overflow-x: auto;
+    gap: 0;  /* No gap - overlap handled by JS */
+    max-width: 80%;
+    width: 80%;
+    overflow-x: visible;
     overflow-y: visible;
-    padding: 20px 40px;
-    min-height: 200px;
+    padding: 0 40px;
+    min-height: 220px;
+    pointer-events: none;  /* Let clicks pass through container */
 }
 
-/* Scrollbar styling for hand */
+/* Cards have pointer events enabled */
+#hand .card {
+    pointer-events: auto;
+}
+
+/* Scrollbar styling for hand (when cards exceed width) */
 #hand::-webkit-scrollbar {
     height: 8px;
 }
@@ -483,12 +490,13 @@ body {
     transform: none;
 }
 
-/* Card Fanning Effect - JavaScript controlled, smooth transitions */
+/* Card Fanning Effect - JavaScript controlled (BOTTOM PIVOT system) */
 #hand .card {
     transition: transform 0.2s ease-out, z-index 0s;
-    transform-origin: bottom center;
+    transform-origin: bottom center;  /* Pivot from bottom */
     cursor: pointer;
     will-change: transform;
+    position: relative;  /* Ensure transforms work correctly */
 }
 
 /* Default state - no transform (JS will apply) */
@@ -496,7 +504,7 @@ body {
     transform: none;
 }
 
-/* Hover: Big pop-up to read effects (JavaScript enhances this) */
+/* Hover: Card lifts out of hand, straightens */
 #hand .card:hover {
     z-index: 999 !important;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
