@@ -16,6 +16,15 @@ body {
     overflow-x: hidden;
 }
 
+:root {
+    --ui-scale: clamp(0.85, 0.5vw + 0.7, 1.25);
+    --combat-pad: clamp(12px, 1.2vw, 24px);
+    --combat-gap: clamp(28px, 3.5vw, 70px);
+    --pile-w: clamp(52px, 3.9vw, 72px);
+    --pile-h: clamp(68px, 5.2vw, 94px);
+    --orb-size: clamp(46px, 3.2vw, 62px);
+}
+
 #game-container {
     width: 100vw;
     max-width: none;
@@ -183,7 +192,7 @@ body {
     background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
     border-radius: 10px;
     border: 2px solid #3a3a5a;
-    padding: 20px;
+    padding: var(--combat-pad);
     overflow: hidden;
 }
 
@@ -207,8 +216,8 @@ body {
     flex-direction: row;
     justify-content: space-around;
     align-items: flex-start;
-    gap: 60px;
-    padding: 20px;
+    gap: var(--combat-gap);
+    padding: var(--combat-pad);
     flex-grow: 1;
     position: relative;
 }
@@ -245,7 +254,7 @@ body {
     align-items: center;
     gap: 8px;
     padding: 10px;
-    min-width: 180px;
+    min-width: clamp(140px, 14vw, 240px);
 }
 
 #player-display {
@@ -258,7 +267,7 @@ body {
 
 /* Large emoji for characters (STS-style sprites) */
 #player-emoji, #enemy-emoji {
-    font-size: 96px;  /* Larger, like character sprites */
+    font-size: clamp(64px, calc(72px * var(--ui-scale)), 148px);
     line-height: 1;
     filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
 }
@@ -288,7 +297,7 @@ body {
 
 /* Horizontal Bar Container (STS-style under character) */
 .horizontal-bar-container {
-    width: 140px;
+    width: clamp(110px, 11vw, 190px);
     height: 10px;
     background: rgba(0, 0, 0, 0.6);
     border-radius: 5px;
@@ -346,10 +355,10 @@ body {
 /* Draw Pile (BOTTOM-LEFT corner) */
 #draw-pile {
     position: absolute;
-    left: 30px;
-    bottom: 30px;
-    width: 60px;
-    height: 80px;
+    left: clamp(16px, 1.8vw, 32px);
+    bottom: clamp(20px, 1.8vw, 32px);
+    width: var(--pile-w);
+    height: var(--pile-h);
     background: linear-gradient(135deg, #4a4a6a, #2a2a4a);
     border-radius: 8px;
     display: flex;
@@ -373,10 +382,10 @@ body {
 /* Energy Orb (above draw pile, BOTTOM-LEFT) */
 #energy-orb {
     position: absolute;
-    left: 30px;
-    bottom: 130px;
-    width: 50px;
-    height: 50px;
+    left: clamp(16px, 1.8vw, 32px);
+    bottom: clamp(112px, 9.2vw, 142px);
+    width: var(--orb-size);
+    height: var(--orb-size);
     background: transparent;
     border-radius: 50%;
     display: flex;
@@ -391,11 +400,11 @@ body {
 /* Hand Container - Arc fan layout */
 #hand {
     position: absolute;
-    left: 120px;            /* Start after draw pile (30px margin + 60px pile + 30px gap) */
-    right: 120px;           /* End before discard pile (30px margin + 60px pile + 30px gap) */
+    left: clamp(96px, 8vw, 140px);
+    right: clamp(96px, 8vw, 140px);
     bottom: 0;
     min-width: 600px;       /* Minimum width for cards to fit */
-    height: 400px;          /* Height for arc fan + hover room */
+    height: clamp(340px, 36vh, 440px);
     display: block;
     pointer-events: auto;   /* Enable pointer events for card interactions */
 }
@@ -446,10 +455,10 @@ body {
 /* Discard Pile (BOTTOM-RIGHT corner) */
 #discard-pile {
     position: absolute;
-    right: 30px;
-    bottom: 30px;
-    width: 60px;
-    height: 80px;
+    right: clamp(16px, 1.8vw, 32px);
+    bottom: clamp(20px, 1.8vw, 32px);
+    width: var(--pile-w);
+    height: var(--pile-h);
     background: linear-gradient(135deg, #6a4a4a, #4a2a2a);
     border-radius: 8px;
     display: flex;
@@ -477,10 +486,10 @@ body {
 /* End Turn Button (BOTTOM-RIGHT, above discard pile) */
 #end-turn-btn {
     position: absolute;
-    right: 30px;
-    bottom: 130px;
-    padding: 14px 28px;
-    font-size: 14px;
+    right: clamp(16px, 1.8vw, 32px);
+    bottom: clamp(112px, 9.2vw, 142px);
+    padding: clamp(10px, 0.8vw, 16px) clamp(18px, 2vw, 34px);
+    font-size: clamp(12px, calc(13px * var(--ui-scale)), 18px);
     font-weight: bold;
     color: #ffffff;
     background: linear-gradient(135deg, #5a5aff, #3a3acc);
@@ -522,8 +531,8 @@ body {
 
 /* End Turn Button (bottom-left, below draw pile) */
 #end-turn-btn {
-    padding: 14px 28px;
-    font-size: 14px;
+    padding: clamp(10px, 0.8vw, 16px) clamp(18px, 2vw, 34px);
+    font-size: clamp(12px, calc(13px * var(--ui-scale)), 18px);
     font-weight: bold;
     color: #ffffff;
     background: linear-gradient(135deg, #5a5aff, #3a3acc);

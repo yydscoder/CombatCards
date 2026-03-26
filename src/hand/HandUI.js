@@ -35,7 +35,7 @@ export class HandUI {
         this.handLayout = handLayout || hand?.handLayout || gameState?.handLayout || new HandLayout({
             cardWidth: 112,
             cardHeight: 156,
-            centerXRatio: 0.39
+            centerXRatio: 0.5
         });
 
         this.resizeObserver = null;

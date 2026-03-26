@@ -139,7 +139,7 @@ export class Hand {
             neighborPush: 30,           // Pixels to push neighbors
             cardWidth: 112,             // Card width
             cardHeight: 156,            // Card height
-            centerXRatio: 0.39          // Slight right shift of hand fan
+            centerXRatio: 0.5           // Center the hand fan in container
         });
 
         // Initialize HandUI for rendering and interactions (shares handLayout)

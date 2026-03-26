@@ -13,7 +13,7 @@ export class HandLayout {
             cardWidth: options.cardWidth ?? 112,
             cardHeight: options.cardHeight ?? 156,
             animationDuration: options.animationDuration ?? 0.2,
-            centerXRatio: options.centerXRatio ?? 0.39
+            centerXRatio: options.centerXRatio ?? 0.5
         };
 
         this.lastState = {
