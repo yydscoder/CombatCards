@@ -1850,20 +1850,17 @@ body {
    Hand Management UI - Card Slots (Patch v0.1.6)
    ─────────────────────────────────────────────────────────────────────────── */
 
-/* Card slot container - individual slot in the hand */
+/* Card slot container - individual slot in the hand (INVISIBLE - cards only) */
 .card-slot {
     width: 100px;
     height: 150px;
-    background: linear-gradient(160deg, rgba(45, 45, 68, 0.5), rgba(26, 26, 46, 0.5));
-    border: 2px dashed rgba(90, 90, 255, 0.3);
+    background: transparent;  /* Removed background */
+    border: none;  /* Removed border */
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: 
-        border-color 0.2s ease,
-        background-color 0.2s ease,
-        box-shadow 0.2s ease;
+    transition: none;  /* No transitions needed */
     position: relative;
 }
 
@@ -1872,22 +1869,14 @@ body {
     margin: 0;
 }
 
-/* Slot hover state */
+/* Slot hover state - removed (no visual feedback) */
 .card-slot:hover {
-    border-color: rgba(90, 90, 255, 0.6);
-    background: linear-gradient(160deg, rgba(55, 55, 78, 0.6), rgba(36, 36, 56, 0.6));
-    box-shadow: 0 0 12px rgba(90, 90, 255, 0.3);
+    /* No visual change */
 }
 
-/* Slot selected state (click-to-move) */
+/* Slot selected state - removed (no visual feedback) */
 .card-slot.slot-selected {
-    border-color: #ffd700;
-    border-style: solid;
-    background: linear-gradient(160deg, rgba(75, 75, 98, 0.7), rgba(46, 46, 66, 0.7));
-    box-shadow: 
-        0 0 20px rgba(255, 215, 0, 0.5),
-        0 0 40px rgba(255, 215, 0, 0.3);
-    animation: slotPulse 1.2s ease-in-out infinite;
+    /* No visual change */
 }
 
 @keyframes slotPulse {
@@ -1905,11 +1894,7 @@ body {
 
 /* Slot drag-over state */
 .card-slot.slot-drag-over {
-    border-color: #4caf50;
-    border-style: solid;
-    background: linear-gradient(160deg, rgba(76, 175, 80, 0.3), rgba(46, 76, 46, 0.5));
-    box-shadow: 0 0 16px rgba(76, 175, 80, 0.5);
-    transform: scale(1.05);
+    /* No visual change */
 }
 
 /* Slot dragging state */
@@ -1918,25 +1903,12 @@ body {
     transform: scale(0.95);
 }
 
-/* Empty slot indicator */
+/* Empty slot indicator - REMOVED */
 .card-slot::before {
-    content: '+';
-    font-size: 32px;
-    color: rgba(90, 90, 255, 0.2);
-    font-weight: bold;
-    transition: color 0.2s ease;
+    content: none;  /* Removed '+' indicator */
 }
 
-.card-slot:hover::before {
-    color: rgba(90, 90, 255, 0.4);
-}
-
-/* Hide indicator when slot has card - uses :has() with JS fallback */
-.card-slot:has(.card)::before {
-    display: none;
-}
-
-/* JS fallback class for browsers without :has() support */
+/* JS fallback class for browsers without :has() support - REMOVED */
 .card-slot.has-card::before {
     display: none;
 }
