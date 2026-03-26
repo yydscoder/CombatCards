@@ -34,8 +34,9 @@ export class HandLayout {
         if (cardCount === 0) return [];
 
         // Calculate center based on container width (responsive)
-        // Offset to 42% instead of 50% to shift hand left toward draw pile
-        const centerX = containerWidth * 0.42;
+        // Offset to 35% instead of 50% to shift hand left toward energy orb
+        // This centers the hand between energy orb (left) and end turn button (right)
+        const centerX = containerWidth * 0.35;
         
         // Position the arc pivot point BELOW the container
         // Cards fan UP from this pivot, creating an arc at the bottom
