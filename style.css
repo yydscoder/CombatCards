@@ -509,7 +509,7 @@ body {
     transform-origin: bottom center;  /* Pivot from bottom */
     cursor: pointer;
     will-change: transform;
-    position: relative;  /* Ensure transforms work correctly */
+    position: absolute;
 }
 
 /* Default state - no transform (JS will apply) */

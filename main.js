@@ -9,7 +9,7 @@ import { GAME_CONFIG } from './src/core/config.js';
 
 // Import UI modules
 import { HUD } from './src/ui/HUD.js';
-import { Hand } from './src/ui/Hand.js';
+import { Hand } from './src/hand/Hand.js';
 import { NodeListView } from './src/ui/NodeListView.js';
 
 // Import map system
