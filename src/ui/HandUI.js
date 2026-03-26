@@ -68,12 +68,13 @@ export class HandUI {
         } else {
             // Create our own instance as fallback with arc fan config
             this.handLayout = new HandLayout({
-                arcRadius: 350,             // Distance from pivot
-                arcSpan: 100,               // Total arc angle
-                cardWidth: 120,             // Card width
-                cardHeight: 180,            // Card height
-                hoverScale: 1.15,           // Hover scale
-                hoverLift: 50               // Hover lift
+                arcRadius: 300,             // How curved the fan is
+                arcAngle: 40,               // Total spread in degrees
+                hoverLift: 50,              // Pixels to move up on hover
+                hoverScale: 1.2,            // Scale multiplier
+                neighborPush: 30,           // Pixels to push neighbors
+                cardWidth: 100,             // Card width
+                cardHeight: 140             // Card height
             });
             console.log('[HandUI] Created fallback handLayout instance');
         }
@@ -232,7 +233,7 @@ export class HandUI {
     }
 
     /**
-     * Renders all cards in the hand
+     * Renders all cards in the hand with arc fan positioning
      * @param {Object[]} cards - Array of cards to render
      */
     renderHand(cards) {
@@ -244,50 +245,44 @@ export class HandUI {
             if (index < this.slots.length) {
                 this.slots[index].setCard(card);
                 this.cardElements.set(card.id, this.slots[index].getCardElement());
+                
+                // Add hover events for arc positioning
+                const cardEl = this.slots[index].getCardElement();
+                cardEl.addEventListener('mouseenter', () => {
+                    this.updateHandPositions(index);
+                });
+                cardEl.addEventListener('mouseleave', () => {
+                    this.updateHandPositions(-1);
+                });
             }
         });
         
-        // Wait for DOM to settle, then apply layout
-        setTimeout(() => {
-            this.applyHandLayout(cards);
-        }, 50);
+        // Initial positioning
+        this.updateHandPositions(-1);
 
         console.log(`[HandUI] Hand rendered with ${cards.length} cards`);
     }
     
     /**
-     * Applies STS-style layout to cards
-     * @param {Object[]} cards - Array of cards
+     * Updates all card positions based on hover state
+     * @param {number} hoveredIndex - Index of hovered card (-1 if none)
      */
-    applyHandLayout(cards) {
-        if (!this.handLayout || cards.length === 0) return;
+    updateHandPositions(hoveredIndex) {
+        if (!this.handLayout) return;
         
-        const containerWidth = 800;  // Fixed container width
-        const transforms = this.handLayout.calculateCardPositions(cards, containerWidth);
+        const cards = this.hand?.cards || [];
+        const containerWidth = this.handContainer?.offsetWidth || 800;
+        
+        const transforms = this.handLayout.calculateCardPositions(
+            cards.length,
+            containerWidth,
+            hoveredIndex
+        );
         
         cards.forEach((card, index) => {
             const cardEl = this.cardElements.get(card.id);
-            
             if (cardEl && transforms[index]) {
-                // Apply base transform
                 this.handLayout.applyTransform(cardEl, transforms[index]);
-                
-                // Remove old hover handlers
-                cardEl.removeEventListener('mouseenter', cardEl._hoverIn);
-                cardEl.removeEventListener('mouseleave', cardEl._hoverOut);
-                
-                // Add hover handlers
-                cardEl._hoverIn = () => {
-                    const hoverTransform = this.handLayout.applyHover(transforms[index], true);
-                    this.handLayout.applyTransform(cardEl, hoverTransform);
-                };
-                
-                cardEl._hoverOut = () => {
-                    this.handLayout.applyTransform(cardEl, transforms[index]);
-                };
-                
-                cardEl.addEventListener('mouseenter', cardEl._hoverIn);
-                cardEl.addEventListener('mouseleave', cardEl._hoverOut);
             }
         });
     }

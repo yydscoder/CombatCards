@@ -391,28 +391,30 @@ body {
     transform: translateX(-50%);
     bottom: 0;
     width: 800px;
-    height: 400px;  /* Taller for arc */
+    height: 350px;
     pointer-events: none;
 }
 
-/* Individual Card - Absolute positioning for arc fan */
+/* Individual Card - Arc fan positioning */
 #hand .card {
     position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 120px;
-    height: 180px;
-    margin-left: -60px;   /* Half width for centering */
-    margin-top: -90px;    /* Half height for centering */
-    transform-origin: center center;
-    transition: transform 0.25s cubic-bezier(0.25, 1.25, 0.5, 1);
+    width: 100px;
+    height: 140px;
+    transform-origin: center bottom;  /* Pivot from bottom for arc */
+    transition: transform 0.2s ease;
     pointer-events: auto;
     cursor: pointer;
+    user-select: none;
 }
 
-/* Card hover */
+/* Card content - prevent selection during interaction */
+#hand .card .card-content {
+    pointer-events: none;
+}
+
+/* Card hover - brought to front */
 #hand .card:hover {
-    z-index: 999 !important;
+    border-color: #ffd700;
 }
 
 /* Scrollbar styling for hand (when cards exceed width) */
