@@ -336,8 +336,9 @@ body {
 /* Hand Container - STS-style (absolute positioning for proper centering) */
 #hand-container {
     position: relative;
-    padding: 20px 30px;
-    min-height: 240px;
+    width: 100%;
+    padding: 0;
+    min-height: 350px;
 }
 
 /* Draw Pile (BOTTOM-LEFT corner) */
@@ -359,6 +360,7 @@ body {
     border: 2px solid #5a5a7a;
     cursor: pointer;
     transition: transform 0.2s;
+    z-index: 10;
 }
 
 #draw-pile:hover {
@@ -387,13 +389,13 @@ body {
 /* Hand Container - Arc fan layout */
 #hand {
     position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 20px;
-    width: 900px;  /* Increased width for better card spacing */
-    height: 400px; /* Increased height for hover overflow */
+    left: 120px;            /* Start after draw pile (30px margin + 60px pile + 30px gap) */
+    right: 120px;           /* End before discard pile (30px margin + 60px pile + 30px gap) */
+    bottom: 0;
+    min-width: 600px;       /* Minimum width for cards to fit */
+    height: 350px;          /* Height for arc fan + hover room */
     display: block;
-    pointer-events: auto;  /* Enable pointer events for card interactions */
+    pointer-events: auto;   /* Enable pointer events for card interactions */
 }
 
 /* Individual Card - Arc fan positioning */

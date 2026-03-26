@@ -408,8 +408,8 @@ export class HandUI {
 
         console.log(`[HandUI] Card dropped on ${targetType}: ${card.name}`);
 
-        // Play the card
-        this.handleCardClick(card, { preventDefault: () => {}, stopPropagation: () => {} });
+        // Play the card with the target
+        this.handleCardClick(card, { preventDefault: () => {}, stopPropagation: () => {} }, targetType);
     }
 
     /**

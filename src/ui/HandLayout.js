@@ -36,8 +36,9 @@ export class HandLayout {
         // Calculate center based on container width (responsive)
         const centerX = containerWidth / 2;
         
-        // Position cards in lower portion of container for hover room
-        const centerY = this.cardHeight * 1.8;  // ~252px for 140px cards
+        // Position cards so bottom of card arc sits near bottom of container
+        // Cards are 140px tall, we want them to sit with bottoms ~20px from container bottom
+        const centerY = this.cardHeight + 50;  // ~190px - positions arc pivot point
 
         // Calculate total angle spread in radians
         const totalRad = (this.arcAngle * Math.PI) / 180;

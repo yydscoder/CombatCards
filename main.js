@@ -241,7 +241,7 @@ function initializeDropZones() {
 function handleCardDrop(e, targetType) {
     const data = e.dataTransfer.getData('text/plain');
     let cardId;
-    
+
     try {
         const parsed = JSON.parse(data);
         cardId = parsed.cardId;
@@ -255,7 +255,8 @@ function handleCardDrop(e, targetType) {
     if (card && hand && hand.handleCardClick) {
         console.log('[DropZones] Casting', card.name, 'on', targetType);
         const fakeEvent = { preventDefault: () => {}, stopPropagation: () => {} };
-        hand.handleCardClick(card, fakeEvent);
+        // Pass the drop target to handleCardClick
+        hand.handleCardClick(card, fakeEvent, targetType);
     }
 }
 

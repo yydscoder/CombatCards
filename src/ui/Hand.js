@@ -443,8 +443,9 @@ export class Hand {
      *
      * @param {Object} card - The card that was clicked
      * @param {Event} event - The click event
+     * @param {string} dropTarget - Optional target from drag-drop ('enemy' or 'player')
      */
-    handleCardClick(card, event) {
+    handleCardClick(card, event, dropTarget = null) {
         // Prevent default behavior
         event.preventDefault();
         event.stopPropagation();
@@ -458,6 +459,9 @@ export class Hand {
         console.log(`[Hand] isInHand: ${card.isInHand}`);
         console.log(`[Hand] Enemy:`, this.gameState.enemy);
         console.log(`[Hand] Enemy HP: ${this.gameState.enemyHp}`);
+        if (dropTarget) {
+            console.log(`[Hand] Drop target: ${dropTarget}`);
+        }
 
         // Check if card can be played
         const canPlay = card.canPlay && card.canPlay(this.gameState);
@@ -471,11 +475,32 @@ export class Hand {
 
         console.log(`[Hand] Playing ${card.name}...`);
 
-        // Execute card effect directly
+        // Check if we have an enemy for combat
         if (!this.gameState.enemy) {
             console.warn('[Hand] No enemy!');
             return;
         }
+
+        // Determine the target based on card effect type or drop target
+        let target;
+        const cardTargetType = card.effect?.target || card.target;
+        
+        if (dropTarget) {
+            // Use the drag-drop target if provided
+            if (dropTarget === 'player') {
+                target = this.gameState;
+            } else {
+                target = this.gameState.enemy;
+            }
+        } else if (cardTargetType === 'self') {
+            // Self-targeting cards (heals, buffs)
+            target = this.gameState;
+        } else {
+            // Default to enemy for attacks
+            target = this.gameState.enemy;
+        }
+
+        console.log(`[Hand] Target: ${cardTargetType || 'default'} -> ${dropTarget || 'auto'}`);
 
         // Spend energy
         const cardCost = card.getCost ? card.getCost(this.gameState) : card.cost;
@@ -494,31 +519,42 @@ export class Hand {
 
         console.log(`[Hand] Energy after spend: ${this.gameState.energy} (card cost: ${cardCost})`);
 
-        // Execute card effect
-        const result = card.executeEffect(this.gameState, this.gameState.enemy);
+        // Execute card effect with determined target
+        const result = card.executeEffect(this.gameState, target);
         console.log(`[Hand] Effect result:`, result);
 
         // Sync enemy HP
         this._syncEnemyHP();
 
         // Show damage feedback
-        if (result.damage && this.hud) {
-            this.hud.showDamageFeedback(result.damage, 'enemy', result.isCriticalHit);
-            this.hud.updateAll();
+        if (result.damage) {
+            const damageTarget = result.target === 'self' ? 'player' : 'enemy';
+            if (this.hud) {
+                this.hud.showDamageFeedback(result.damage, damageTarget, result.isCriticalHit);
+                this.hud.updateAll();
+            }
         }
 
-        // Flash enemy graphic
-        const enemyArea = document.getElementById('enemy-area');
-        if (enemyArea && result.damage) {
-            enemyArea.classList.remove('hit');
-            void enemyArea.offsetWidth; // Force reflow
-            enemyArea.classList.add('hit');
+        // Flash hit graphic on appropriate target
+        if (result.damage) {
+            const hitArea = document.getElementById(result.target === 'self' ? 'player-area' : 'enemy-area');
+            if (hitArea) {
+                hitArea.classList.remove('hit');
+                void hitArea.offsetWidth; // Force reflow
+                hitArea.classList.add('hit');
+            }
         }
 
         // Check if enemy died
         if (this.gameState.enemyHp <= 0) {
             console.log('[Hand] Enemy defeated!');
             this._handleEnemyDeath();
+        }
+
+        // Check if player died
+        if (this.gameState.playerHp <= 0 && !this.gameState.isGameOver) {
+            this._handlePlayerDefeat();
+            return;
         }
 
         // Remove card from hand
