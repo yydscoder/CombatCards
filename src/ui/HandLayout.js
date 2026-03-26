@@ -37,16 +37,19 @@ export class HandLayout {
         // Offset to 42% instead of 50% to shift hand left toward draw pile
         const centerX = containerWidth * 0.42;
         
-        // Position the arc pivot point ABOVE the container
-        // Cards fan DOWN from this pivot, creating an arc at the bottom
-        // Container is ~400px tall, cards are 140px tall
-        // We want card bottoms at ~370px (30px from container bottom)
-        // centerY + arcRadius = 370, so centerY = 370 - 300 = 70
+        // Position the arc pivot point BELOW the container
+        // Cards fan UP from this pivot, creating an arc at the bottom
+        // Container is ~400px tall, pivot is 100px below bottom
         const containerHeight = 400;  // Match CSS #hand height
-        const centerY = 70;  // Pivot point for arc (cards fan down from here)
+        const centerY = containerHeight + 100;  // ~500px - pivot below container
+        const arcRadius = 350;  // Distance from pivot to card bottoms
 
         // Calculate total angle spread in radians
-        const totalRad = (this.arcAngle * Math.PI) / 180;
+        // Dynamic spread: 5° per card, max 60° total
+        const minAnglePerCard = 5;
+        const maxSpread = 60;
+        const dynamicSpread = Math.min(cardCount * minAnglePerCard, maxSpread);
+        const totalRad = (dynamicSpread * Math.PI) / 180;
         const startAngle = -totalRad / 2;
         const angleStep = cardCount > 1 ? totalRad / (cardCount - 1) : 0;
 
@@ -54,17 +57,17 @@ export class HandLayout {
 
         // Log container bounds for debugging
         console.log(`[HandLayout] Container: ${containerWidth}px wide x ${containerHeight}px tall`);
-        console.log(`[HandLayout] Arc pivot: centerX=${centerX}, centerY=${centerY} (above container)`);
-        console.log(`[HandLayout] Arc radius: ${this.arcRadius}px, angle spread: ${this.arcAngle}°`);
+        console.log(`[HandLayout] Arc pivot: centerX=${centerX.toFixed(1)}, centerY=${centerY} (below container)`);
+        console.log(`[HandLayout] Arc radius: ${arcRadius}px, angle spread: ${dynamicSpread}° (dynamic for ${cardCount} cards)`);
 
         for (let index = 0; index < cardCount; index++) {
             // Calculate angle for this card
             const angle = startAngle + (angleStep * index);
 
             // Basic arc position (sin/cos)
-            // With centerY above container and positive radius, cards fan down and right
-            const x = centerX + (this.arcRadius * Math.sin(angle));
-            const y = centerY + (this.arcRadius * Math.cos(angle));
+            // With pivot below container, cards fan UP from bottom
+            const x = centerX + (arcRadius * Math.sin(angle));
+            const y = centerY - (arcRadius * Math.cos(angle));
 
             // Rotation (align with angle, convert to degrees)
             const rotation = (angle * 180) / Math.PI;
@@ -129,8 +132,8 @@ export class HandLayout {
 
         // Log container boundaries and arc coverage
         console.log(`[HandLayout] Container bounds: left=0, right=${containerWidth}, top=0, bottom=${containerHeight}`);
-        console.log(`[HandLayout] Arc coverage: from y=${centerY}px to y=${centerY + this.arcRadius}px`);
-        console.log(`[HandLayout] Card bottoms at y=${centerY + this.arcRadius}px, tops at y=${centerY + this.arcRadius - this.cardHeight}px`);
+        console.log(`[HandLayout] Arc coverage: from y=${centerY - arcRadius}px to y=${centerY}px`);
+        console.log(`[HandLayout] Card bottoms at y=${centerY - arcRadius}px, tops at y=${centerY - arcRadius - this.cardHeight}px`);
 
         return transforms;
     }

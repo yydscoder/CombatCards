@@ -47,6 +47,11 @@ export class HandUI {
         // Drag state for targeting
         this.draggedCard = null;
 
+        // Debounce state for recalculations
+        this.recalcTimeout = null;
+        this.lastCardCount = 0;
+        this.lastContainerWidth = 0;
+
         // Use provided handLayout or get from hand/gameState
         this.handLayout = handLayout;
         if (!this.handLayout) {
@@ -77,13 +82,33 @@ export class HandUI {
     }
 
     /**
+     * Waits for the container to have valid dimensions
+     * @returns {Promise<void>}
+     */
+    async waitForContainer() {
+        return new Promise(resolve => {
+            const check = () => {
+                if (this.handContainer && this.handContainer.offsetWidth > 0) {
+                    resolve();
+                } else {
+                    requestAnimationFrame(check);
+                }
+            };
+            check();
+        });
+    }
+
+    /**
      * Initializes the hand UI
      */
-    init() {
+    async init() {
         if (!this.handContainer) {
             console.error('[HandUI] Hand container not found!');
             return;
         }
+
+        // Wait for container to have valid dimensions
+        await this.waitForContainer();
 
         // Clear existing content
         this.handContainer.innerHTML = '';
@@ -197,11 +222,11 @@ export class HandUI {
             const cards = this.hand?.cards || [];
             const index = cards.findIndex(c => c.id === card.id);
             this.hoveredIndex = index;
-            this.updateHandPositions();
+            this.scheduleRecalculation(false); // Debounced for smooth hover
         });
         cardElement.addEventListener('mouseleave', () => {
             this.hoveredIndex = -1;
-            this.updateHandPositions();
+            this.scheduleRecalculation(false); // Debounced for smooth hover
         });
 
         // Add drag events for targeting
@@ -260,20 +285,50 @@ export class HandUI {
             this.cardElements.set(card.id, cardElement);
         });
 
-        // Initial positioning
-        this.updateHandPositions();
+        // Initial positioning (no debounce on initial render)
+        this.updateHandPositions(true);
 
         console.log(`[HandUI] Hand rendered with ${cards.length} cards`);
     }
 
     /**
-     * Updates all card positions based on hover state
+     * Schedules a position recalculation with debouncing
+     * @param {boolean} immediate - If true, recalculate immediately
      */
-    updateHandPositions() {
+    scheduleRecalculation(immediate = false) {
+        if (this.recalcTimeout) {
+            clearTimeout(this.recalcTimeout);
+        }
+
+        if (immediate) {
+            this.updateHandPositions();
+        } else {
+            this.recalcTimeout = setTimeout(() => {
+                this.updateHandPositions();
+            }, 50); // 50ms debounce for hover animations
+        }
+    }
+
+    /**
+     * Updates all card positions based on hover state
+     * @param {boolean} force - If true, force recalculation regardless of changes
+     */
+    updateHandPositions(force = false) {
         if (!this.handLayout || !this.handContainer) return;
 
         const cards = this.hand?.cards || [];
         const containerWidth = this.handContainer.offsetWidth || 800;
+
+        // Skip if nothing changed (unless forced)
+        if (!force && 
+            cards.length === this.lastCardCount && 
+            containerWidth === this.lastContainerWidth) {
+            return;
+        }
+
+        // Update tracking
+        this.lastCardCount = cards.length;
+        this.lastContainerWidth = containerWidth;
 
         const transforms = this.handLayout.calculateCardPositions(
             cards.length,
