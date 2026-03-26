@@ -49,6 +49,11 @@ export class HandLayout {
 
         const transforms = [];
 
+        // Log container bounds for debugging
+        console.log(`[HandLayout] Container: ${containerWidth}px wide x ${containerHeight}px tall`);
+        console.log(`[HandLayout] Arc pivot: centerX=${centerX}, centerY=${centerY}`);
+        console.log(`[HandLayout] Arc radius: ${this.arcRadius}px, angle spread: ${this.arcAngle}°`);
+
         for (let index = 0; index < cardCount; index++) {
             // Calculate angle for this card
             const angle = startAngle + (angleStep * index);
@@ -85,6 +90,10 @@ export class HandLayout {
                 zIndex = 999;
             }
 
+            // Calculate final card position (center anchor)
+            const finalX = x - (this.cardWidth / 2) + offsetX;
+            const finalY = y - (this.cardHeight / 2) + offsetY;
+
             transforms.push({
                 x: x - (this.cardWidth / 2),  // Center anchor
                 y: y - (this.cardHeight / 2),  // Center anchor
@@ -93,9 +102,30 @@ export class HandLayout {
                 scale,
                 offsetX,
                 offsetY,
-                index
+                index,
+                // Debug info
+                rawX: x,
+                rawY: y,
+                finalX,
+                finalY
             });
+
+            // Log first card and center card positions
+            if (index === 0 || index === Math.floor(cardCount / 2)) {
+                console.log(`[HandLayout] Card ${index}: pos(${finalX.toFixed(0)}, ${finalY.toFixed(0)}), rotation=${rotation.toFixed(1)}°, scale=${scale}`);
+            }
         }
+
+        // Log last card position
+        if (cardCount > 1) {
+            const lastIdx = cardCount - 1;
+            const last = transforms[lastIdx];
+            console.log(`[HandLayout] Card ${lastIdx}: pos(${last.finalX.toFixed(0)}, ${last.finalY.toFixed(0)})`);
+        }
+
+        // Log container boundaries
+        console.log(`[HandLayout] Container bounds: left=0, right=${containerWidth}, top=0, bottom=${containerHeight}`);
+        console.log(`[HandLayout] Card bounds (center): top=${(centerY - this.arcRadius).toFixed(0)}, bottom=${(centerY).toFixed(0)}`);
 
         return transforms;
     }

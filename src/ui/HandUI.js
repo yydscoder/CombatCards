@@ -88,6 +88,48 @@ export class HandUI {
         // Clear existing content
         this.handContainer.innerHTML = '';
 
+        // Log hand container position and size
+        const rect = this.handContainer.getBoundingClientRect();
+        console.log(`[HandUI] Hand container: ${rect.width}px x ${rect.height}px`);
+        console.log(`[HandUI] Hand container bounds: left=${rect.left}, top=${rect.top}, right=${rect.right}, bottom=${rect.bottom}`);
+
+        // Log relative positions of UI elements
+        const drawPile = document.getElementById('draw-pile');
+        const discardPile = document.getElementById('discard-pile');
+        const endTurnBtn = document.getElementById('end-turn-btn');
+        const energyOrb = document.getElementById('energy-orb');
+
+        if (drawPile) {
+            const drawRect = drawPile.getBoundingClientRect();
+            console.log(`[HandUI] Draw pile: ${drawRect.width}x${drawRect.height} @ (${drawRect.left}, ${drawRect.top}) to (${drawRect.right}, ${drawRect.bottom})`);
+        }
+        if (discardPile) {
+            const discardRect = discardPile.getBoundingClientRect();
+            console.log(`[HandUI] Discard pile: ${discardRect.width}x${discardRect.height} @ (${discardRect.left}, ${discardRect.top}) to (${discardRect.right}, ${discardRect.bottom})`);
+        }
+        if (endTurnBtn) {
+            const btnRect = endTurnBtn.getBoundingClientRect();
+            console.log(`[HandUI] End Turn button: ${btnRect.width}x${btnRect.height} @ (${btnRect.left}, ${btnRect.top}) to (${btnRect.right}, ${btnRect.bottom})`);
+        }
+        if (energyOrb) {
+            const energyRect = energyOrb.getBoundingClientRect();
+            console.log(`[HandUI] Energy orb: ${energyRect.width}x${energyRect.height} @ (${energyRect.left}, ${energyRect.top}) to (${energyRect.right}, ${energyRect.bottom})`);
+        }
+
+        // Calculate center point between draw and discard piles
+        if (drawPile && discardPile) {
+            const drawRect = drawPile.getBoundingClientRect();
+            const discardRect = discardPile.getBoundingClientRect();
+            const handContainerRect = this.handContainer.getBoundingClientRect();
+            
+            const drawRightEdge = drawRect.right - handContainerRect.left;
+            const discardLeftEdge = discardRect.left - handContainerRect.left;
+            const midpoint = (drawRightEdge + discardLeftEdge) / 2;
+            
+            console.log(`[HandUI] Space between piles: ${drawRightEdge}px to ${discardLeftEdge}px (width: ${discardLeftEdge - drawRightEdge}px)`);
+            console.log(`[HandUI] Midpoint between piles: ${midpoint.toFixed(0)}px from left edge of hand container`);
+        }
+
         console.log('[HandUI] Initialized');
     }
 
@@ -245,6 +287,23 @@ export class HandUI {
                 this.handLayout.applyTransform(cardEl, transforms[index]);
             }
         });
+
+        // Log actual card element positions after transform
+        if (cards.length > 0) {
+            const firstCard = this.cardElements.get(cards[0].id);
+            const centerCard = this.cardElements.get(cards[Math.floor(cards.length / 2)]?.id);
+            
+            if (firstCard) {
+                const firstRect = firstCard.getBoundingClientRect();
+                const containerRect = this.handContainer.getBoundingClientRect();
+                console.log(`[HandUI] Card 0 actual position: (${firstRect.left - containerRect.left}, ${firstRect.top - containerRect.top}) relative to container`);
+            }
+            if (centerCard) {
+                const centerRect = centerCard.getBoundingClientRect();
+                const containerRect = this.handContainer.getBoundingClientRect();
+                console.log(`[HandUI] Center card actual position: (${centerRect.left - containerRect.left}, ${centerRect.top - containerRect.top}) relative to container`);
+            }
+        }
     }
 
     /**
