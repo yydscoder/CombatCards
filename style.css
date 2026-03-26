@@ -393,7 +393,7 @@ body {
     right: 120px;           /* End before discard pile (30px margin + 60px pile + 30px gap) */
     bottom: 0;
     min-width: 600px;       /* Minimum width for cards to fit */
-    height: 350px;          /* Height for arc fan + hover room */
+    height: 400px;          /* Height for arc fan + hover room */
     display: block;
     pointer-events: auto;   /* Enable pointer events for card interactions */
 }

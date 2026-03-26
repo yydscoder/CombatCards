@@ -36,9 +36,11 @@ export class HandLayout {
         // Calculate center based on container width (responsive)
         const centerX = containerWidth / 2;
         
-        // Position cards so bottom of card arc sits near bottom of container
-        // Cards are 140px tall, we want them to sit with bottoms ~20px from container bottom
-        const centerY = this.cardHeight + 50;  // ~190px - positions arc pivot point
+        // Position the arc pivot point near the BOTTOM of the container
+        // Cards fan UP from this pivot point
+        // Container is ~400px tall, we want card bottoms near the bottom edge
+        const containerHeight = 400;  // Match CSS #hand height
+        const centerY = containerHeight - 80;  // ~320px - pivot point near bottom
 
         // Calculate total angle spread in radians
         const totalRad = (this.arcAngle * Math.PI) / 180;
@@ -52,6 +54,7 @@ export class HandLayout {
             const angle = startAngle + (angleStep * index);
 
             // Basic arc position (sin/cos)
+            // cos(angle) is positive at center, so y = centerY - radius puts cards ABOVE pivot
             const x = centerX + (this.arcRadius * Math.sin(angle));
             const y = centerY - (this.arcRadius * Math.cos(angle));
 
