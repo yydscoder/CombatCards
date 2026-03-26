@@ -110,8 +110,10 @@ export class HandUI {
         // Wait for container to have valid dimensions
         await this.waitForContainer();
 
-        // Clear existing content
-        this.handContainer.innerHTML = '';
+        // Only clear if nothing rendered yet (prevents wiping cards on re-init)
+        if (this.cardElements.size === 0) {
+            this.handContainer.innerHTML = '';
+        }
 
         // Log hand container position and size
         const rect = this.handContainer.getBoundingClientRect();
