@@ -42,6 +42,8 @@ export class HandUI {
         this.windowResizeHandler = null;
         this.previewOverlay = null;
         this.previewCardId = null;
+        this.initRetryTimer = null;
+        this.initInProgress = false;
         this.keydownHandler = (event) => {
             if (event.key === 'Escape') {
                 this.closeCardPreview();
@@ -52,8 +54,15 @@ export class HandUI {
     }
 
     async init() {
+        if (this.initialized || this.initInProgress) {
+            return;
+        }
+
+        this.initInProgress = true;
+
         if (!this.handContainer) {
             console.error('[HandUI] Hand container not found!');
+            this.initInProgress = false;
             return;
         }
 
@@ -62,7 +71,9 @@ export class HandUI {
             console.log(`[HandUI] Hand container: ${rect.width}px x ${rect.height}px`);
             console.log(`[HandUI] Hand container bounds: left=${rect.left}, top=${rect.top}, right=${rect.right}, bottom=${rect.bottom}`);
         } catch (error) {
-            console.error('[HandUI] Container layout wait failed:', error);
+            console.warn('[HandUI] Container layout wait failed, scheduling retry:', error.message || error);
+            this.initInProgress = false;
+            this.scheduleInitRetry();
             return;
         }
 
@@ -83,6 +94,7 @@ export class HandUI {
         }
 
         this.initialized = true;
+        this.initInProgress = false;
         console.log('[HandUI] Initialized');
 
         if (this.pendingRenderCards) {
@@ -90,6 +102,17 @@ export class HandUI {
             this.pendingRenderCards = null;
             this.renderHand(queuedCards);
         }
+    }
+
+    scheduleInitRetry() {
+        if (this.initialized || this.initRetryTimer) {
+            return;
+        }
+
+        this.initRetryTimer = setTimeout(() => {
+            this.initRetryTimer = null;
+            this.init();
+        }, 250);
     }
 
     logReferenceElements() {
@@ -213,6 +236,7 @@ export class HandUI {
 
         if (!this.initialized) {
             this.pendingRenderCards = cards;
+            this.scheduleInitRetry();
             return;
         }
 
@@ -496,6 +520,11 @@ export class HandUI {
     }
 
     destroy() {
+        if (this.initRetryTimer) {
+            clearTimeout(this.initRetryTimer);
+            this.initRetryTimer = null;
+        }
+
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
             this.resizeObserver = null;
@@ -525,6 +554,7 @@ export class HandUI {
         this.hoveredIndex = -1;
         this.pendingRenderCards = null;
         this.handContainer = null;
+        this.initInProgress = false;
         this.initialized = false;
     }
 }

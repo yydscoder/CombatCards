@@ -579,17 +579,14 @@ function startCombat(node, isElite = false, isBoss = false) {
     // Update enemy display
     updateEnemyDisplay(enemy);
 
-    // Initialize hand for combat (setup only, rendering happens after visibility)
+    // Switch to combat state first so hand container is visible before hand setup/render.
+    setGameState(GameStateEnum.COMBAT);
+
+    // Initialize hand for combat (deck setup + initial hand render).
     hand.initHand();
 
     // Start first turn (STS2-style: Start → Player → End)
     gameState.turnManager.startOfTurn();
-
-    // Draw starting hand (5 cards)
-    if (gameState.cardPileManager) {
-        gameState.cardPileManager.drawCard(5);
-        hand.cards = gameState.cardPileManager.getHand();
-    }
 
     // Update HUD and health bars AFTER turn starts
     if (hud) hud.updateAll();
@@ -597,17 +594,6 @@ function startCombat(node, isElite = false, isBoss = false) {
 
     // Show enemy intent (what they'll do when turn ends)
     updateEnemyIntent();
-
-    // Switch to combat state (shows battle area, hides placeholder)
-    // MUST happen before hand rendering so container has valid dimensions
-    setGameState(GameStateEnum.COMBAT);
-
-    // Re-render hand AFTER container is visible (prevents cards from being cleared)
-    if (hand.handUI) {
-        requestAnimationFrame(() => {
-            hand.handUI.renderHand(hand.cards);
-        });
-    }
 
     console.log(`Combat started against ${enemy.name} (${enemy.hp} HP) | Energy: ${gameState.energy}/${gameState.maxEnergy} | Turn: ${gameState.turn}`);
 }
